@@ -1,65 +1,69 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
+      <h1 className="text-4xl font-bold mb-4">좌표.to</h1>
+      <p className="text-xl text-gray-600 mb-8">짧고 의미있는 한글 URL</p>
+
+      <div className="max-w-xl w-full space-y-6">
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Phase 0: 브라우저 호환성 테스트
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            아래 링크를 클릭한 후, 브라우저 주소창에 한글이 제대로 표시되는지
+            확인하세요.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+          <div className="space-y-3">
+            <TestLink
+              href="/go/테스트"
+              label="무료 단축 URL"
+              example="좌표.to/go/테스트"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <TestLink
+              href="/홍길동"
+              label="네임스페이스"
+              example="좌표.to/홍길동"
+            />
+            <TestLink
+              href="/홍길동/노션"
+              label="서브링크"
+              example="좌표.to/홍길동/노션"
+            />
+          </div>
         </div>
-      </main>
-    </div>
+
+        <div className="bg-blue-50 rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-2">테스트 체크리스트</h2>
+          <ul className="text-sm space-y-2 text-gray-700">
+            <li>☐ Chrome (PC): 주소창에 한글 표시?</li>
+            <li>☐ Safari (PC): 주소창에 한글 표시?</li>
+            <li>☐ Chrome (모바일): 주소창 + 복사 시 한글 유지?</li>
+            <li>☐ Safari (iOS): 주소창 + 복사 시 한글 유지?</li>
+            <li>☐ 카카오톡: 링크 프리뷰에 한글 표시?</li>
+            <li>☐ 네이버 앱: 인앱 브라우저 한글 표시?</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function TestLink({
+  href,
+  label,
+  example,
+}: {
+  href: string;
+  label: string;
+  example: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="block p-3 bg-white rounded border hover:border-blue-400 transition"
+    >
+      <span className="font-medium">{label}</span>
+      <span className="ml-2 text-sm text-blue-600 font-mono">{example}</span>
+    </a>
   );
 }
