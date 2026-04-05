@@ -25,7 +25,15 @@ export async function POST(request: NextRequest) {
     target_url: "",
   }));
 
-  const supabase = getSupabase();
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (e) {
+    return NextResponse.json(
+      { error: "서버 설정 오류: " + (e instanceof Error ? e.message : String(e)) },
+      { status: 500 }
+    );
+  }
 
   // 슬러그 유효성 검증
   const slugCheck = validateSlug(slug);
@@ -129,7 +137,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error("Slug creation failed:", error);
     return NextResponse.json(
-      { error: "URL 생성에 실패했습니다. 잠시 후 다시 시도해주세요." },
+      { error: "URL 생성에 실패했습니다: " + error.message },
       { status: 500 }
     );
   }
