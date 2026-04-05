@@ -51,12 +51,20 @@ export default function Home() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-3xl mx-auto">
         <span className="text-lg font-bold tracking-tight">좌표.to</span>
-        <a
-          href="/reserve"
-          className="text-sm text-[var(--accent)] font-medium hover:underline"
-        >
-          내 이름 예약
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href="/dashboard"
+            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            대시보드
+          </a>
+          <a
+            href="/reserve"
+            className="text-sm text-[var(--accent)] font-medium hover:underline"
+          >
+            내 이름 예약
+          </a>
+        </div>
       </nav>
 
       {/* Hero */}
