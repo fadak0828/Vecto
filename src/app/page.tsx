@@ -18,7 +18,6 @@ export default function Home() {
     e.preventDefault();
     setLoading(true);
     setResult(null);
-
     try {
       const res = await fetch("/api/shorten", {
         method: "POST",
@@ -47,204 +46,368 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-3xl mx-auto">
-        <span className="text-lg font-bold tracking-tight">좌표.to</span>
-        <div className="flex items-center gap-4">
+      <nav className="flex items-center justify-between px-8 py-5 max-w-5xl mx-auto">
+        <span
+          className="text-xl font-bold tracking-tight"
+          style={{ fontFamily: "Manrope, sans-serif" }}
+        >
+          좌표.to
+        </span>
+        <div className="flex items-center gap-6">
           <a
             href="/dashboard"
-            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+            className="text-sm hover:opacity-70 transition-opacity"
+            style={{ color: "var(--on-surface-variant)" }}
           >
             대시보드
           </a>
           <a
             href="/reserve"
-            className="text-sm text-[var(--accent)] font-medium hover:underline"
+            className="text-sm hover:opacity-70 transition-opacity"
+            style={{ color: "var(--on-surface-variant)" }}
           >
-            내 이름 예약
+            이름 예약하기
+          </a>
+          <a
+            href="/auth/login"
+            className="text-sm px-4 py-2 rounded-full transition-opacity hover:opacity-90"
+            style={{
+              background: "var(--on-background)",
+              color: "var(--surface-lowest)",
+            }}
+          >
+            로그인
           </a>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="px-6 pt-12 pb-16 max-w-3xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-4">
-          한글로 기억되는
-          <br />
-          <span className="text-[var(--accent)]">짧은 주소</span>
-        </h1>
-        <p className="text-lg text-[var(--muted)] max-w-lg mb-2">
-          말로 불러주면 바로 접속할 수 있는 URL.
-          <br />
-          영어 암호 대신 한글로 만드세요.
-        </p>
-
-        {/* Live preview */}
-        <div className="mt-8 mb-6 py-3 px-5 bg-[var(--surface)] rounded-xl border border-stone-200 inline-block shadow-sm">
-          <span className="text-[var(--muted)] text-sm">미리보기 </span>
-          <span className="font-mono text-lg font-semibold">
-            좌표.to/go/
-            <span className="text-[var(--accent)]">
-              {slug || "내-포트폴리오"}
-            </span>
-          </span>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3 max-w-lg">
-          <div className="flex items-center bg-[var(--surface)] border border-stone-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-transparent shadow-sm">
-            <span className="pl-4 pr-1 py-3 text-[var(--muted)] text-sm whitespace-nowrap select-none">
-              좌표.to/go/
-            </span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => {
-                setSlug(e.target.value.replace(/\s+/g, "-"));
-                setResult(null);
-              }}
-              placeholder="내-포트폴리오"
-              className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg"
-              required
-            />
-          </div>
-
-          <input
-            type="url"
-            value={targetUrl}
-            onChange={(e) => setTargetUrl(e.target.value)}
-            placeholder="연결할 URL (https://...)"
-            className="w-full py-3 px-4 bg-[var(--surface)] border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent text-base shadow-sm"
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[var(--foreground)] text-white rounded-xl font-semibold text-base hover:opacity-90 disabled:opacity-50 transition-opacity active:scale-[0.98]"
+      <section className="px-8 pt-16 pb-20 max-w-5xl mx-auto">
+        <div className="max-w-2xl">
+          <p
+            className="text-sm font-medium mb-4 tracking-wider uppercase"
+            style={{ color: "var(--primary)" }}
           >
-            {loading ? "생성 중..." : "좌표 만들기"}
-          </button>
-        </form>
+            디지털 큐레이터
+          </p>
+          <h1
+            className="text-5xl sm:text-6xl font-extrabold leading-[1.1] mb-6"
+            style={{ fontFamily: "Manrope, sans-serif" }}
+          >
+            한글로 기억되는
+            <br />
+            짧은 주소, 좌표.to
+          </h1>
+          <p
+            className="text-lg max-w-lg mb-10"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+          >
+            좌표.to는 URL을 의미 있는 한글 주소로 변환합니다.
+            <br />
+            명함에도, 강의실에서도, 전단지에서도 바로 쓸 수 있습니다.
+          </p>
 
-        {/* Error */}
-        {result?.error && (
-          <div className="mt-4 max-w-lg p-4 bg-red-50 border border-red-100 rounded-xl">
-            <p className="text-red-700 text-sm">{result.error}</p>
-            {result.suggested && (
-              <button
-                onClick={() => {
-                  setSlug(result.suggested!);
-                  setResult(null);
-                }}
-                className="mt-2 text-sm text-[var(--accent)] hover:underline"
+          {/* URL 생성 폼 — Glass Card */}
+          <div
+            className="p-6 rounded-2xl max-w-lg"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(16px)",
+              boxShadow:
+                "0 4px 64px rgba(0,101,101,0.04), 0 1px 3px rgba(0,0,0,0.03)",
+            }}
+          >
+            <p
+              className="text-xs font-medium mb-1 tracking-wider uppercase"
+              style={{ color: "var(--on-surface-variant)" }}
+            >
+              나만의 좌표 만들기
+            </p>
+
+            {/* Live preview */}
+            <div className="mb-4">
+              <span
+                className="text-2xl font-bold"
+                style={{ fontFamily: "Manrope, sans-serif" }}
               >
-                대안 사용: {result.suggested} →
+                좌표.to/go/
+                <span style={{ color: "var(--primary)" }}>
+                  {slug || "내-포트폴리오"}
+                </span>
+              </span>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div
+                className="flex items-center rounded-xl overflow-hidden"
+                style={{
+                  background: "var(--surface-lowest)",
+                  boxShadow: "0 2px 32px rgba(0,101,101,0.03)",
+                }}
+              >
+                <span
+                  className="pl-4 pr-1 py-3 text-sm whitespace-nowrap select-none"
+                  style={{ color: "var(--on-surface-variant)" }}
+                >
+                  좌표.to/go/
+                </span>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlug(e.target.value.replace(/\s+/g, "-"));
+                    setResult(null);
+                  }}
+                  placeholder="내-포트폴리오"
+                  className="flex-1 py-3 pr-4 bg-transparent outline-none text-base"
+                  required
+                />
+              </div>
+
+              <input
+                type="url"
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
+                placeholder="연결할 URL을 입력하세요"
+                className="w-full py-3 px-4 rounded-xl outline-none text-base"
+                style={{
+                  background: "var(--surface-lowest)",
+                  boxShadow: "0 2px 32px rgba(0,101,101,0.03)",
+                }}
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl font-semibold text-base transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{
+                  background: "var(--on-background)",
+                  color: "var(--surface-lowest)",
+                }}
+              >
+                {loading ? "생성 중..." : "생성하기"}
               </button>
+            </form>
+
+            {/* Error */}
+            {result?.error && (
+              <div
+                className="mt-4 p-3 rounded-xl text-sm"
+                style={{ background: "#fef2f2", color: "#b91c1c" }}
+              >
+                {result.error}
+                {result.suggested && (
+                  <button
+                    onClick={() => {
+                      setSlug(result.suggested!);
+                      setResult(null);
+                    }}
+                    className="block mt-1 underline"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    대안: {result.suggested}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Success */}
+            {result?.url && (
+              <div
+                className="mt-4 p-3 rounded-xl"
+                style={{ background: "rgba(0,128,128,0.08)" }}
+              >
+                <p
+                  className="text-sm font-medium mb-1"
+                  style={{ color: "var(--primary)" }}
+                >
+                  생성 완료!
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-semibold break-all">
+                    {result.url}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className="shrink-0 px-3 py-1 text-xs rounded-full transition"
+                    style={{
+                      background: "var(--secondary-container)",
+                      color: "var(--on-surface)",
+                    }}
+                  >
+                    {copied ? "복사됨!" : "복사"}
+                  </button>
+                </div>
+                <p
+                  className="text-xs mt-1"
+                  style={{ color: "var(--on-surface-variant)" }}
+                >
+                  30일간 유효
+                </p>
+              </div>
             )}
           </div>
-        )}
-
-        {/* Success */}
-        {result?.url && (
-          <div className="mt-4 max-w-lg p-4 bg-[var(--accent-light)] border border-teal-200 rounded-xl">
-            <p className="text-sm text-teal-800 mb-2 font-medium">
-              생성 완료!
-            </p>
-            <div className="flex items-center gap-2">
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-lg font-mono font-semibold text-teal-900 hover:underline break-all"
-              >
-                {result.url}
-              </a>
-              <button
-                onClick={handleCopy}
-                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-white border border-teal-200 rounded-lg hover:bg-teal-50 transition"
-              >
-                {copied ? "복사됨!" : "복사"}
-              </button>
-            </div>
-            <p className="text-xs text-teal-600 mt-2">
-              30일간 유효
-            </p>
-          </div>
-        )}
+        </div>
       </section>
 
-      {/* Use cases */}
-      <section className="px-6 py-12 border-t border-stone-200">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-6">
-            이런 곳에서 쓰세요
+      {/* Feature Selection */}
+      <section className="px-8 py-16" style={{ background: "var(--surface-low)" }}>
+        <div className="max-w-5xl mx-auto">
+          <h2
+            className="text-sm font-medium mb-2 tracking-wider uppercase"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            나에게 맞는 좌표 타입을 선택하세요
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+            <TypeCard
+              active
+              title="무료"
+              desc="한글 URL 즉시 생성. 30일 유효."
+              features={["한글 슬러그", "30일 유효", "일 10개 생성"]}
+            />
+            <TypeCard
+              title="프리미엄 좌표"
+              desc="나만의 이름으로 영구 URL."
+              features={["영구 네임스페이스", "서브링크 20개", "프로필 페이지"]}
+              highlight
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Premium Features */}
+      <section className="px-8 py-16">
+        <div className="max-w-5xl mx-auto">
+          <h2
+            className="text-sm font-medium mb-8 tracking-wider uppercase"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            프리미엄 전용 기능
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
-            <UseCase
-              emoji="📇"
-              title="명함 · 포트폴리오"
-              example="좌표.to/홍길동"
-              desc="내 이름으로 된 링크 허브"
+            <FeatureCard
+              title="디지털 명함"
+              desc="좌표.to/홍길동으로 접속하면 나만의 프로필 페이지가 열립니다."
             />
-            <UseCase
-              emoji="🎓"
-              title="강의 · 세미나"
-              example="좌표.to/go/실습자료"
-              desc="말로 불러주면 바로 접속"
+            <FeatureCard
+              title="실시간 분석"
+              desc="클릭 수, 날짜별 추이를 대시보드에서 한눈에 확인하세요."
             />
-            <UseCase
-              emoji="🏪"
-              title="매장 · 행사"
-              example="좌표.to/go/신메뉴"
-              desc="전단지에 QR 없이 한글로"
+            <FeatureCard
+              title="무제한 서브도메인"
+              desc="좌표.to/홍길동/노션, /유튜브, /깃허브... 자유롭게 추가."
             />
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="px-6 py-12 border-t border-stone-200">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-2">나만의 이름이 필요하세요?</h2>
-          <p className="text-[var(--muted)] mb-6">
-            좌표.to/홍길동 같은 영구 개인 URL을 예약하세요.
-          </p>
-          <a
-            href="/reserve"
-            className="inline-block px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+      <section
+        className="px-8 py-16"
+        style={{
+          background: "linear-gradient(135deg, var(--primary), var(--primary-container))",
+        }}
+      >
+        <div className="max-w-5xl mx-auto text-center">
+          <h2
+            className="text-3xl sm:text-4xl font-extrabold text-white mb-4"
+            style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            개인 좌표 예약하기
-          </a>
+            당신만의 감각적인 좌표를
+            <br />
+            지금 바로 만들어보세요.
+          </h2>
+          <div className="flex gap-3 justify-center mt-8">
+            <a
+              href="/reserve"
+              className="px-6 py-3 rounded-full font-semibold text-sm"
+              style={{
+                background: "var(--surface-lowest)",
+                color: "var(--on-background)",
+              }}
+            >
+              무료로 시작하기
+            </a>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-8 border-t border-stone-200 text-center text-sm text-[var(--muted)]">
-        좌표.to — 짧고 의미있는 한글 URL
+      <footer className="px-8 py-8 text-center">
+        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
+          좌표.to
+        </span>
       </footer>
     </div>
   );
 }
 
-function UseCase({
-  emoji,
+function TypeCard({
   title,
-  example,
   desc,
+  features,
+  highlight,
+  active,
 }: {
-  emoji: string;
   title: string;
-  example: string;
   desc: string;
+  features: string[];
+  highlight?: boolean;
+  active?: boolean;
 }) {
   return (
-    <div className="p-5 bg-[var(--surface)] rounded-xl border border-stone-200 shadow-sm">
-      <div className="text-2xl mb-3">{emoji}</div>
-      <h3 className="font-semibold mb-1">{title}</h3>
-      <p className="font-mono text-sm text-[var(--accent)] mb-2">{example}</p>
-      <p className="text-sm text-[var(--muted)]">{desc}</p>
+    <div
+      className="p-6 rounded-2xl transition-all"
+      style={{
+        background: highlight
+          ? "var(--on-background)"
+          : "var(--surface-lowest)",
+        color: highlight ? "var(--surface-lowest)" : "var(--on-surface)",
+        boxShadow: active ? "0 0 0 2px var(--primary)" : "none",
+      }}
+    >
+      <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>
+        {title}
+      </h3>
+      <p className="text-sm mb-4 opacity-70">{desc}</p>
+      <ul className="space-y-1.5">
+        {features.map((f) => (
+          <li key={f} className="text-sm flex items-center gap-2">
+            <span
+              style={{ color: highlight ? "#76d6d5" : "var(--primary)" }}
+            >
+              ✓
+            </span>
+            {f}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FeatureCard({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div
+      className="p-6 rounded-2xl"
+      style={{
+        background: "var(--surface-lowest)",
+        boxShadow: "0 2px 48px rgba(0,0,0,0.03)",
+      }}
+    >
+      <h3
+        className="font-bold mb-2"
+        style={{ fontFamily: "Manrope, sans-serif" }}
+      >
+        {title}
+      </h3>
+      <p className="text-sm" style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}>
+        {desc}
+      </p>
     </div>
   );
 }

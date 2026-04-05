@@ -2,86 +2,122 @@
 
 ## Product Context
 - **What this is:** 한글로 된 짧고 의미있는 URL 단축 서비스
-- **Who it's for:** 한국의 교육자, 강사, 프리랜서, 오프라인 행사 진행자
-- **Space/industry:** URL 단축 + 개인 브랜딩 (한국 시장 특화)
+- **Who it's for:** 한국의 교육자, 강사, 프리랜서, 크리에이터, 소상공인
 - **Project type:** 웹 앱 (URL 단축 + 개인 네임스페이스 + 프로필 페이지)
 
+## Creative North Star
+**"The Digital Curator."** URL 관리를 하이엔드 에디토리얼 경험으로. 한글의 기하학적 아름다움을 살리고, 비대칭 레이아웃과 톤 깊이로 프리미엄 느낌.
+
 ## Aesthetic Direction
-- **Direction:** Editorial/Magazine
-- **Decoration level:** Intentional (한글 URL 미리보기가 시각적 앵커)
-- **Mood:** 조용하지만 자신감 있는. 한글이 주인공이고 나머지는 배경. 교육자가 전문적으로 느끼는 도구.
-- **Reference sites:** dub.co (미니멀 대시보드), linktree (프로필 개념)
+- **Direction:** High-End Editorial
+- **Decoration level:** Intentional (글래스모피즘, 톤 레이어링)
+- **Mood:** 프리미엄, 권위있지만 친근한. 잡지 표지 같은 타이포그래피.
+
+## Colors — Deep Mint & Charcoal
+
+### Core Palette
+- **Primary:** #006565 (deep mint)
+- **Primary Container:** #008080 (teal)
+- **On Background:** #1a1c1c (charcoal, #000 금지)
+- **On Surface:** #1a1c1c
+- **On Surface Variant:** #444746
+- **Outline Variant:** #bdc9c8
+- **Surface:** #f9f9f9
+- **Surface Container Lowest:** #ffffff
+- **Surface Container Low:** #f3f3f3
+- **Surface Container:** #ededed
+- **Surface Container High:** #e8e8e8
+- **Surface Container Highest:** #e2e2e2
+- **Secondary Container:** #e2dfde
+- **On Secondary Container:** #1c1b1b
+- **Error:** #ba1a1a
+- **On Error:** #ffffff
+
+### Rules
+- **No-Line Rule:** 1px 보더로 섹션 구분 금지. 배경색 톤 차이로만 구분.
+- **No Pure Black:** #000000 사용 금지. 항상 #1a1c1c (charcoal) 사용.
+- **Ghost Border:** 접근성을 위해 보더가 필요한 경우 outline_variant를 15% 투명도로.
+
+### Glass & Gradient
+- 플로팅 요소: surface-container-lowest 80% 투명도 + backdrop-blur(12-20px)
+- CTA 버튼: primary → primary_container 135도 그라디언트
+
+### CSS Variables
+```css
+:root {
+  --primary: #006565;
+  --primary-container: #008080;
+  --on-background: #1a1c1c;
+  --on-surface: #1a1c1c;
+  --on-surface-variant: #444746;
+  --outline-variant: #bdc9c8;
+  --surface: #f9f9f9;
+  --surface-lowest: #ffffff;
+  --surface-low: #f3f3f3;
+  --surface-container: #ededed;
+  --surface-high: #e8e8e8;
+  --surface-highest: #e2e2e2;
+  --secondary-container: #e2dfde;
+  --error: #ba1a1a;
+}
+```
 
 ## Typography
-- **Display/Hero:** Pretendard Variable 700-900 (44-60px) — 한국어 최적 가변폰트, 큰 사이즈에서 한글이 아름다움
-- **Body:** Pretendard Variable 400 (16px base) — 동일 폰트로 일관성, 무게 조절로 위계
-- **UI/Labels:** Pretendard Variable 500 (14px) — same as body
-- **Data/Tables:** Geist Mono (tabular-nums 지원) — URL 표시, 통계
-- **Code:** Geist Mono
-- **Loading:** CDN `https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css`
-- **Scale:** 12 / 14 / 16 / 18 / 20 / 24 / 30 / 36 / 44 / 60 px
-
-## Color
-- **Approach:** Restrained (1 accent + warm neutrals, 한글이 눈에 띄어야 함)
-- **Primary/Accent:** #0F766E (teal-700) — 신뢰, 안정, URL 서비스에 적합
-- **Accent light:** #CCFBF1 (teal-100) — 성공 배경, 강조 배경
-- **Accent hover:** #0D9488 (teal-600) — 호버/인터랙션 상태
-- **Surface:** #FFFFFF — 카드, 입력 필드
-- **Background:** #FAFAF9 (stone-50) — 따뜻한 페이지 배경
-- **Foreground:** #1C1917 (stone-900) — 주요 텍스트
-- **Muted:** #78716C (stone-500) — 보조 텍스트, 플레이스홀더
-- **Border:** #E7E5E4 (stone-200) — 구분선, 입력 필드 테두리
-- **Semantic:**
-  - Success: #CCFBF1 bg / #0F766E text
-  - Error: #FEF2F2 bg / #B91C1C text
-  - Warning: #FFFBEB bg / #92400E text
-  - Info: #EFF6FF bg / #1D4ED8 text
-- **Dark mode:** 추후 (MVP에서는 라이트 모드만)
+- **Display/Hero:** Manrope 700-800 (매거진 헤더 느낌, 큰 사이즈)
+- **Headline/Title:** Manrope (영문) + Plus Jakarta Sans (한국어, Bold)
+- **Body/Labels:** Plus Jakarta Sans 400-500 (줄 간격 1.6-1.8 필수, 한글 가독성)
+- **Loading:**
+  ```html
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet"/>
+  ```
+- **Scale:** 12 / 14 / 16 / 18 / 22 / 28 / 36 / 45 / 57 px
 
 ## Spacing
 - **Base unit:** 4px
-- **Density:** Comfortable
-- **Scale:** 2xs(2px) xs(4px) sm(8px) md(16px) lg(24px) xl(32px) 2xl(48px) 3xl(64px)
+- **Density:** Spacious (에디토리얼 느낌을 위해 넓은 여백)
+- **Scale:** 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 / 96 px
+- **한국어 텍스트:** line-height 1.6-1.8 필수
 
 ## Layout
-- **Approach:** Grid-disciplined
-- **Alignment:** 좌측 정렬 기본 (editorial 느낌, 한국 서비스와 차별화)
-- **Max content width:** 768px (max-w-3xl)
-- **Grid:** 모바일 1col / sm(640px) 2-3col
-- **Border radius:** sm(8px) md(12px) lg(16px) full(9999px)
+- **Approach:** Asymmetric Editorial
+- **Grid:** 비대칭 마진 (왼쪽 마진을 더 크게 해서 에디토리얼 느낌)
+- **Max content width:** 1024px
+- **Border radius:** md(12px) xl(16px) 2xl(24px) full(9999px)
+
+## Elevation & Depth — Tonal Layering
+- **원칙:** UI를 고급 종이 층으로 취급. 전통적 그림자 대신 톤 레이어링.
+- **Ambient Shadow (Whisper Shadow):** blur 32-64px, opacity 4-6%, tinted dark teal-grey
+- **Ghost Border:** outline_variant 15% opacity (접근성 필요 시만)
 
 ## Motion
-- **Approach:** Minimal-functional
+- **Approach:** Intentional
 - **Easing:** enter(ease-out) exit(ease-in) move(ease-in-out)
-- **Duration:** micro(50-100ms) short(150-250ms) medium(250-400ms)
-- **사용처:** 폼 포커스 링, 복사 확인 피드백, 버튼 호버/활성
+- **Duration:** micro(100ms) short(200ms) medium(350ms)
 
-## Component Patterns
-- **Input fields:** rounded-xl, surface bg, stone-200 border, teal focus ring
-- **Primary button:** foreground bg, white text, rounded-xl, active:scale-[0.98]
-- **Secondary button:** surface bg, stone-200 border, rounded-lg
-- **Cards:** surface bg, stone-200 border, rounded-xl, shadow-sm
-- **Success state:** accent-light bg, teal-200 border
-- **Error state:** red-50 bg, red-100 border
+## Components
 
-## CSS Variables
-```css
-:root {
-  --background: #FAFAF9;
-  --foreground: #1C1917;
-  --surface: #FFFFFF;
-  --accent: #0F766E;
-  --accent-light: #CCFBF1;
-  --accent-hover: #0D9488;
-  --muted: #78716C;
-  --border: #E7E5E4;
-}
-```
+### Input Fields
+- surface-container-lowest 배경
+- 포커스 시 primary 색상 + Whisper Shadow 글로우
+- radius: xl (16px)
+
+### Buttons
+- **Primary (Dark):** on-background (#1a1c1c) 배경, surface 텍스트. 라이트 캔버스 위의 다크 버튼.
+- **CTA (Mint):** primary → primary-container 135도 그라디언트
+- **Ghost:** on-surface-variant 텍스트, 배경 없음. 호버 시 surface-container-high
+
+### Cards & Lists
+- **구분선 금지.** spacing(24px+) 또는 톤 차이로 구분.
+- 비대칭 그리드로 큐레이션된 갤러리 느낌.
+
+### Chips
+- secondary-container 배경 + on-secondary-container 텍스트
+- rounded-full
 
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-04-06 | Initial design system | /design-consultation, 경쟁사 조사(dub.co, linktree) 기반 |
-| 2026-04-06 | Teal accent (#0F766E) | 신뢰감, URL 서비스 전통(Bitly도 초록계열), 한글과 대비 좋음 |
-| 2026-04-06 | 좌측 정렬 기본 | 한국 서비스와 차별화, editorial 느낌, 가독성 우수 |
-| 2026-04-06 | Pretendard only | 한국어 전용 최적 폰트, 가변폰트로 무게 조절만으로 위계 |
+| 2026-04-06 | Deep Mint & Charcoal 팔레트 | stitch 디자인 시스템 적용 |
+| 2026-04-06 | Manrope + Plus Jakarta Sans | 에디토리얼 타이포, 한글 가독성 |
+| 2026-04-06 | No-Line, Tonal Layering | 프리미엄 느낌, 보더 없는 디자인 |
+| 2026-04-06 | Glassmorphism for floating elements | 깊이감 + 모던 |

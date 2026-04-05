@@ -1,27 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
-  --surface: #ffffff;
-  --accent: #0f766e;
-  --accent-light: #ccfbf1;
-  --accent-hover: #0d9488;
-  --muted: #78716c;
-  --border: #e7e5e4;
+  --primary: #006565;
+  --primary-container: #008080;
+  --on-background: #1a1c1c;
+  --on-surface: #1a1c1c;
+  --on-surface-variant: #444746;
+  --outline-variant: #bdc9c8;
+  --surface: #f9f9f9;
+  --surface-lowest: #ffffff;
+  --surface-low: #f3f3f3;
+  --surface-container: #ededed;
+  --surface-high: #e8e8e8;
+  --surface-highest: #e2e2e2;
+  --secondary-container: #e2dfde;
+  --error: #ba1a1a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--surface);
+  --color-foreground: var(--on-background);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Pretendard Variable", Pretendard, -apple-system,
-    BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI",
-    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+  background: var(--surface);
+  color: var(--on-background);
+  font-family: "Plus Jakarta Sans", "Pretendard Variable", Pretendard,
+    -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+  line-height: 1.7;
 }
