@@ -137,12 +137,15 @@ export default function Home() {
       )}
 
       <div className="mt-12 text-center">
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 mb-1">
           나만의 이름으로 된 영구 URL이 필요하신가요?
         </p>
-        <p className="text-sm text-gray-500 font-medium">
-          좌표.to/홍길동 같은 개인 네임스페이스를 준비하고 있습니다.
-        </p>
+        <a
+          href="/reserve"
+          className="text-sm text-blue-600 font-medium hover:underline"
+        >
+          좌표.to/홍길동 같은 개인 좌표 예약하기 →
+        </a>
       </div>
     </main>
   );
