@@ -12,6 +12,7 @@ export default function Home() {
     suggested?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,9 +25,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, target_url: targetUrl }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         setResult({ error: data.error, suggested: data.suggested });
       } else {
@@ -39,114 +38,205 @@ export default function Home() {
     }
   }
 
-  function useSuggested() {
-    if (result?.suggested) {
-      setSlug(result.suggested);
-      setResult(null);
+  function handleCopy() {
+    if (result?.url) {
+      navigator.clipboard.writeText(result.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-white">
-      <h1 className="text-4xl font-bold mb-2">좌표.to</h1>
-      <p className="text-lg text-gray-500 mb-8">짧고 의미있는 한글 URL</p>
+    <div className="min-h-screen bg-[var(--background)]">
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-6 py-4 max-w-3xl mx-auto">
+        <span className="text-lg font-bold tracking-tight">좌표.to</span>
+        <a
+          href="/reserve"
+          className="text-sm text-[var(--accent)] font-medium hover:underline"
+        >
+          내 이름 예약
+        </a>
+      </nav>
 
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md space-y-4"
-      >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            한글 슬러그
-          </label>
-          <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
-            <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-r">
+      {/* Hero */}
+      <section className="px-6 pt-12 pb-16 max-w-3xl mx-auto">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-4">
+          한글로 기억되는
+          <br />
+          <span className="text-[var(--accent)]">짧은 주소</span>
+        </h1>
+        <p className="text-lg text-[var(--muted)] max-w-lg mb-2">
+          강의실에서 부르면 30명이 바로 접속하는 URL.
+          <br />
+          영어 암호 대신 한글로 만드세요.
+        </p>
+
+        {/* Live preview */}
+        <div className="mt-8 mb-6 py-3 px-5 bg-[var(--surface)] rounded-xl border border-stone-200 inline-block shadow-sm">
+          <span className="text-[var(--muted)] text-sm">미리보기 </span>
+          <span className="font-mono text-lg font-semibold">
+            좌표.to/go/
+            <span className="text-[var(--accent)]">
+              {slug || "오늘강의"}
+            </span>
+          </span>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-3 max-w-lg">
+          <div className="flex items-center bg-[var(--surface)] border border-stone-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:border-transparent shadow-sm">
+            <span className="pl-4 pr-1 py-3 text-[var(--muted)] text-sm whitespace-nowrap select-none">
               좌표.to/go/
             </span>
             <input
               type="text"
               value={slug}
-              onChange={(e) => setSlug(e.target.value)}
+              onChange={(e) => {
+                setSlug(e.target.value);
+                setResult(null);
+              }}
               placeholder="오늘강의"
-              className="flex-1 px-3 py-2 outline-none"
+              className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg"
               required
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            연결할 URL
-          </label>
           <input
             type="url"
             value={targetUrl}
             onChange={(e) => setTargetUrl(e.target.value)}
-            placeholder="https://docs.google.com/..."
-            className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="연결할 URL (https://...)"
+            className="w-full py-3 px-4 bg-[var(--surface)] border border-stone-200 rounded-xl outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent text-base shadow-sm"
             required
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition"
-        >
-          {loading ? "생성 중..." : "좌표 만들기"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[var(--foreground)] text-white rounded-xl font-semibold text-base hover:opacity-90 disabled:opacity-50 transition-opacity active:scale-[0.98]"
+          >
+            {loading ? "생성 중..." : "좌표 만들기"}
+          </button>
+        </form>
 
-      {result?.error && (
-        <div className="mt-6 w-full max-w-md p-4 bg-red-50 rounded-lg">
-          <p className="text-red-700 text-sm">{result.error}</p>
-          {result.suggested && (
-            <button
-              onClick={useSuggested}
-              className="mt-2 text-sm text-blue-600 hover:underline"
-            >
-              대안 사용: {result.suggested} →
-            </button>
-          )}
-        </div>
-      )}
-
-      {result?.url && (
-        <div className="mt-6 w-full max-w-md p-4 bg-green-50 rounded-lg">
-          <p className="text-sm text-gray-600 mb-1">생성 완료!</p>
-          <div className="flex items-center gap-2">
-            <a
-              href={result.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-lg font-mono text-green-700 hover:underline break-all"
-            >
-              {result.url}
-            </a>
-            <button
-              onClick={() => navigator.clipboard.writeText(result.url!)}
-              className="shrink-0 px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50"
-            >
-              복사
-            </button>
+        {/* Error */}
+        {result?.error && (
+          <div className="mt-4 max-w-lg p-4 bg-red-50 border border-red-100 rounded-xl">
+            <p className="text-red-700 text-sm">{result.error}</p>
+            {result.suggested && (
+              <button
+                onClick={() => {
+                  setSlug(result.suggested!);
+                  setResult(null);
+                }}
+                className="mt-2 text-sm text-[var(--accent)] hover:underline"
+              >
+                대안 사용: {result.suggested} →
+              </button>
+            )}
           </div>
-          <p className="text-xs text-gray-400 mt-2">
-            30일간 유효 · 삭제 토큰: {result.delete_token?.slice(0, 8)}...
-          </p>
-        </div>
-      )}
+        )}
 
-      <div className="mt-12 text-center">
-        <p className="text-sm text-gray-400 mb-1">
-          나만의 이름으로 된 영구 URL이 필요하신가요?
-        </p>
-        <a
-          href="/reserve"
-          className="text-sm text-blue-600 font-medium hover:underline"
-        >
-          좌표.to/홍길동 같은 개인 좌표 예약하기 →
-        </a>
-      </div>
-    </main>
+        {/* Success */}
+        {result?.url && (
+          <div className="mt-4 max-w-lg p-4 bg-[var(--accent-light)] border border-teal-200 rounded-xl">
+            <p className="text-sm text-teal-800 mb-2 font-medium">
+              생성 완료!
+            </p>
+            <div className="flex items-center gap-2">
+              <a
+                href={result.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-mono font-semibold text-teal-900 hover:underline break-all"
+              >
+                {result.url}
+              </a>
+              <button
+                onClick={handleCopy}
+                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-white border border-teal-200 rounded-lg hover:bg-teal-50 transition"
+              >
+                {copied ? "복사됨!" : "복사"}
+              </button>
+            </div>
+            <p className="text-xs text-teal-600 mt-2">
+              30일간 유효
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* Use cases */}
+      <section className="px-6 py-12 border-t border-stone-200">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-6">
+            이런 곳에서 쓰세요
+          </h2>
+          <div className="grid sm:grid-cols-3 gap-6">
+            <UseCase
+              emoji="🎓"
+              title="강의실"
+              example="좌표.to/go/AI실습"
+              desc="프로젝터에 띄우면 수강생이 바로 접속"
+            />
+            <UseCase
+              emoji="📇"
+              title="명함"
+              example="좌표.to/홍길동"
+              desc="한글 이름으로 된 나만의 링크 허브"
+            />
+            <UseCase
+              emoji="📋"
+              title="전단지"
+              example="좌표.to/go/신메뉴"
+              desc="QR 없이도 누구나 입력 가능"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="px-6 py-12 border-t border-stone-200">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-2">나만의 이름이 필요하세요?</h2>
+          <p className="text-[var(--muted)] mb-6">
+            좌표.to/홍길동 같은 영구 개인 URL을 예약하세요.
+          </p>
+          <a
+            href="/reserve"
+            className="inline-block px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
+          >
+            개인 좌표 예약하기
+          </a>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="px-6 py-8 border-t border-stone-200 text-center text-sm text-[var(--muted)]">
+        좌표.to — 짧고 의미있는 한글 URL
+      </footer>
+    </div>
+  );
+}
+
+function UseCase({
+  emoji,
+  title,
+  example,
+  desc,
+}: {
+  emoji: string;
+  title: string;
+  example: string;
+  desc: string;
+}) {
+  return (
+    <div className="p-5 bg-[var(--surface)] rounded-xl border border-stone-200 shadow-sm">
+      <div className="text-2xl mb-3">{emoji}</div>
+      <h3 className="font-semibold mb-1">{title}</h3>
+      <p className="font-mono text-sm text-[var(--accent)] mb-2">{example}</p>
+      <p className="text-sm text-[var(--muted)]">{desc}</p>
+    </div>
   );
 }
