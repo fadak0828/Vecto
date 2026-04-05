@@ -75,7 +75,7 @@ export default function Home() {
           <span className="text-[var(--accent)]">짧은 주소</span>
         </h1>
         <p className="text-lg text-[var(--muted)] max-w-lg mb-2">
-          강의실에서 부르면 30명이 바로 접속하는 URL.
+          말로 불러주면 바로 접속할 수 있는 URL.
           <br />
           영어 암호 대신 한글로 만드세요.
         </p>
@@ -86,7 +86,7 @@ export default function Home() {
           <span className="font-mono text-lg font-semibold">
             좌표.to/go/
             <span className="text-[var(--accent)]">
-              {slug || "오늘강의"}
+              {slug || "내-포트폴리오"}
             </span>
           </span>
         </div>
@@ -104,7 +104,7 @@ export default function Home() {
                 setSlug(e.target.value.replace(/\s+/g, "-"));
                 setResult(null);
               }}
-              placeholder="오늘강의"
+              placeholder="내-포트폴리오"
               className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg"
               required
             />
@@ -183,22 +183,22 @@ export default function Home() {
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             <UseCase
-              emoji="🎓"
-              title="강의실"
-              example="좌표.to/go/AI실습"
-              desc="프로젝터에 띄우면 수강생이 바로 접속"
-            />
-            <UseCase
               emoji="📇"
-              title="명함"
+              title="명함 · 포트폴리오"
               example="좌표.to/홍길동"
-              desc="한글 이름으로 된 나만의 링크 허브"
+              desc="내 이름으로 된 링크 허브"
             />
             <UseCase
-              emoji="📋"
-              title="전단지"
+              emoji="🎓"
+              title="강의 · 세미나"
+              example="좌표.to/go/실습자료"
+              desc="말로 불러주면 바로 접속"
+            />
+            <UseCase
+              emoji="🏪"
+              title="매장 · 행사"
               example="좌표.to/go/신메뉴"
-              desc="QR 없이도 누구나 입력 가능"
+              desc="전단지에 QR 없이 한글로"
             />
           </div>
         </div>
