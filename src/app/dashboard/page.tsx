@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import { AvatarUpload } from "@/components/avatar-upload";
+import { ClickStats } from "@/components/click-stats";
 
 type Namespace = {
   id: string;
@@ -319,15 +321,13 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--muted)] mb-1">
-                      프로필 이미지 URL
+                    <label className="block text-xs font-medium text-[var(--muted)] mb-2">
+                      프로필 이미지
                     </label>
-                    <input
-                      type="url"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full py-2.5 px-3 border border-[var(--border)] rounded-xl outline-none focus:ring-2 focus:ring-[var(--accent)] text-sm"
+                    <AvatarUpload
+                      userId={user!.id}
+                      currentUrl={avatarUrl || null}
+                      onUploaded={(url) => setAvatarUrl(url)}
                     />
                   </div>
                   <button
@@ -355,6 +355,9 @@ export default function DashboardPage() {
                 {links.length}/20 링크
               </span>
             </div>
+
+            {/* 클릭 통계 */}
+            <ClickStats namespaceId={namespace.id} />
 
             {/* 서브링크 목록 */}
             <div className="space-y-2">
