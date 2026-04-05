@@ -147,6 +147,6 @@ export async function POST(request: NextRequest) {
     slug: data.slug,
     delete_token: deleteToken,
     expires_at: data.expires_at,
-    url: `${request.nextUrl.origin}/go/${data.slug}`,
+    url: `https://좌표.to/go/${data.slug}`,
   });
 }

@@ -93,7 +93,7 @@ export default function Home() {
               type="text"
               value={slug}
               onChange={(e) => {
-                setSlug(e.target.value);
+                setSlug(e.target.value.replace(/\s+/g, "-"));
                 setResult(null);
               }}
               placeholder="오늘강의"
