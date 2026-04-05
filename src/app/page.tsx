@@ -86,12 +86,6 @@ export default function Home() {
       {/* Hero */}
       <section className="px-8 pt-16 pb-20 max-w-5xl mx-auto">
         <div className="max-w-2xl">
-          <p
-            className="text-sm font-medium mb-4 tracking-wider uppercase"
-            style={{ color: "var(--primary)" }}
-          >
-            디지털 큐레이터
-          </p>
           <h1
             className="text-5xl sm:text-6xl font-extrabold leading-[1.1] mb-6"
             style={{ fontFamily: "Manrope, sans-serif" }}
@@ -104,9 +98,9 @@ export default function Home() {
             className="text-lg max-w-lg mb-10"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
           >
-            좌표.to는 URL을 의미 있는 한글 주소로 변환합니다.
+            길고 복잡한 URL을 한글로 줄이세요.
             <br />
-            명함에도, 강의실에서도, 전단지에서도 바로 쓸 수 있습니다.
+            말로 불러줄 수 있고, 바로 기억할 수 있는 주소.
           </p>
 
           {/* URL 생성 폼 — Glass Card */}
@@ -260,19 +254,19 @@ export default function Home() {
             className="text-sm font-medium mb-2 tracking-wider uppercase"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            나에게 맞는 좌표 타입을 선택하세요
+            무료로 시작하고, 필요하면 업그레이드하세요
           </h2>
           <div className="grid sm:grid-cols-2 gap-4 mt-6">
             <TypeCard
               active
               title="무료"
               desc="한글 URL 즉시 생성. 30일 유효."
-              features={["한글 슬러그", "30일 유효", "일 10개 생성"]}
+              features={["한글 주소 생성", "30일간 유효", "하루 10개까지"]}
             />
             <TypeCard
-              title="프리미엄 좌표"
+              title="내 이름 좌표"
               desc="나만의 이름으로 영구 URL."
-              features={["영구 네임스페이스", "서브링크 20개", "프로필 페이지"]}
+              features={["나만의 영구 주소", "하위 링크 20개", "개인 프로필 페이지"]}
               highlight
             />
           </div>
@@ -286,19 +280,19 @@ export default function Home() {
             className="text-sm font-medium mb-8 tracking-wider uppercase"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            프리미엄 전용 기능
+            내 이름으로 할 수 있는 것
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             <FeatureCard
-              title="디지털 명함"
-              desc="좌표.to/홍길동으로 접속하면 나만의 프로필 페이지가 열립니다."
+              title="개인 프로필"
+              desc="좌표.to/홍길동 하나로 내 모든 링크를 모아 공유하세요."
             />
             <FeatureCard
-              title="실시간 분석"
-              desc="클릭 수, 날짜별 추이를 대시보드에서 한눈에 확인하세요."
+              title="클릭 분석"
+              desc="누가 언제 클릭했는지, 날짜별 추이를 한눈에."
             />
             <FeatureCard
-              title="무제한 서브도메인"
+              title="하위 주소"
               desc="좌표.to/홍길동/노션, /유튜브, /깃허브... 자유롭게 추가."
             />
           </div>
@@ -317,9 +311,9 @@ export default function Home() {
             className="text-3xl sm:text-4xl font-extrabold text-white mb-4"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            당신만의 감각적인 좌표를
+            내 이름, 내 주소.
             <br />
-            지금 바로 만들어보세요.
+            지금 바로 시작하세요.
           </h2>
           <div className="flex gap-3 justify-center mt-8">
             <a

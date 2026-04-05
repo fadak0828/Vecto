@@ -26,11 +26,11 @@ export function validateSlug(slug: string): {
   error?: string;
 } {
   if (!slug || slug.length === 0) {
-    return { valid: false, error: "슬러그를 입력해주세요." };
+    return { valid: false, error: "주소를 입력해주세요." };
   }
 
   if (slug.length > 30) {
-    return { valid: false, error: "슬러그는 30자 이하여야 합니다." };
+    return { valid: false, error: "주소는 30자 이하여야 합니다." };
   }
 
   if (!SLUG_REGEX.test(slug)) {

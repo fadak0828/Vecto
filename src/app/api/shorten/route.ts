@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     const suggested = slug + "2";
     return NextResponse.json(
       {
-        error: "이미 사용 중인 슬러그입니다.",
+        error: "이미 사용 중인 주소입니다.",
         suggested,
       },
       { status: 409 }

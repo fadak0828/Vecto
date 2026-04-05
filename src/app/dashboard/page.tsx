@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault(); setAdding(true); setAddError("");
-    if (links.length >= 20) { setAddError("서브링크는 최대 20개까지입니다."); setAdding(false); return; }
+    if (links.length >= 20) { setAddError("하위 링크는 최대 20개까지 추가할 수 있습니다."); setAdding(false); return; }
     const { error } = await supabase.from("slugs").insert({ slug: newSlug, target_url: newUrl, namespace_id: namespace!.id, owner_id: user!.id });
     if (error) { setAddError("추가 실패: " + error.message); } else { setNewSlug(""); setNewUrl(""); await loadData(); }
     setAdding(false);
@@ -230,7 +230,7 @@ export default function DashboardPage() {
             {/* Upsell banner */}
             <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
               <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>나만의 맞춤 배너 좌표를 확보하세요.</h3>
-              <p className="text-sm opacity-80 mb-4">프리미엄 내용 돌아보기</p>
+              <p className="text-sm opacity-80 mb-4">내 이름으로 영구 좌표를 만들어보세요.</p>
             </div>
           </section>
         )}
