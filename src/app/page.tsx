@@ -48,27 +48,34 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{ background: "var(--surface)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 max-w-5xl mx-auto">
+      <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <span
           className="text-xl font-bold tracking-tight"
           style={{ fontFamily: "Manrope, sans-serif" }}
         >
           좌표.to
         </span>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <a
             href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline"
             style={{ color: "var(--on-surface-variant)" }}
           >
             대시보드
           </a>
           <a
             href="/reserve"
-            className="text-sm hover:opacity-70 transition-opacity"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline"
             style={{ color: "var(--on-surface-variant)" }}
           >
             이름 예약하기
+          </a>
+          <a
+            href="/pricing"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            요금제
           </a>
           <a
             href="/auth/login"
@@ -84,10 +91,10 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="px-8 pt-16 pb-20 max-w-5xl mx-auto">
+      <section className="px-6 sm:px-8 pt-10 sm:pt-16 pb-14 sm:pb-20 max-w-5xl mx-auto">
         <div className="max-w-2xl">
           <h1
-            className="text-5xl sm:text-6xl font-extrabold leading-[1.1] mb-6"
+            className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-4 sm:mb-6"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
             한글로 기억되는
@@ -95,7 +102,7 @@ export default function Home() {
             짧은 주소, 좌표.to
           </h1>
           <p
-            className="text-lg max-w-lg mb-10"
+            className="text-base sm:text-lg max-w-lg mb-8 sm:mb-10"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
           >
             길고 복잡한 URL을 한글로 줄이세요.
@@ -247,8 +254,33 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Mobile-only nav links */}
+      <div className="flex sm:hidden gap-3 px-6 pb-6">
+        <a
+          href="/dashboard"
+          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+        >
+          대시보드
+        </a>
+        <a
+          href="/reserve"
+          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+        >
+          이름 예약하기
+        </a>
+        <a
+          href="/pricing"
+          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+        >
+          요금제
+        </a>
+      </div>
+
       {/* Feature Selection */}
-      <section className="px-8 py-16" style={{ background: "var(--surface-low)" }}>
+      <section className="px-6 sm:px-8 py-12 sm:py-16" style={{ background: "var(--surface-low)" }}>
         <div className="max-w-5xl mx-auto">
           <h2
             className="text-sm font-medium mb-2 tracking-wider uppercase"
@@ -256,7 +288,7 @@ export default function Home() {
           >
             무료로 시작하고, 필요하면 업그레이드하세요
           </h2>
-          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
             <TypeCard
               active
               title="무료"
@@ -273,8 +305,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Premium Features */}
-      <section className="px-8 py-16">
+      {/* Premium Features — asymmetric layout */}
+      <section className="px-6 sm:px-8 py-12 sm:py-16">
         <div className="max-w-5xl mx-auto">
           <h2
             className="text-sm font-medium mb-8 tracking-wider uppercase"
@@ -282,11 +314,25 @@ export default function Home() {
           >
             내 이름으로 할 수 있는 것
           </h2>
-          <div className="grid sm:grid-cols-3 gap-6">
-            <FeatureCard
-              title="개인 프로필"
-              desc="좌표.to/홍길동 하나로 내 모든 링크를 모아 공유하세요."
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div
+              className="p-8 rounded-2xl sm:row-span-2"
+              style={{
+                background: "var(--on-background)",
+                color: "var(--surface-lowest)",
+              }}
+            >
+              <h3
+                className="text-xl font-bold mb-3"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                개인 프로필
+              </h3>
+              <p className="text-sm opacity-70" style={{ lineHeight: 1.7 }}>
+                좌표.to/홍길동 하나로 내 모든 링크를 모아 공유하세요.
+                나만의 디지털 명함을 만들어보세요.
+              </p>
+            </div>
             <FeatureCard
               title="클릭 분석"
               desc="누가 언제 클릭했는지, 날짜별 추이를 한눈에."
@@ -301,14 +347,14 @@ export default function Home() {
 
       {/* CTA */}
       <section
-        className="px-8 py-16"
+        className="px-6 sm:px-8 py-12 sm:py-16"
         style={{
           background: "linear-gradient(135deg, var(--primary), var(--primary-container))",
         }}
       >
         <div className="max-w-5xl mx-auto text-center">
           <h2
-            className="text-3xl sm:text-4xl font-extrabold text-white mb-4"
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
             내 이름, 내 주소.

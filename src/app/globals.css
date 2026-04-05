@@ -20,7 +20,7 @@
 @theme inline {
   --color-background: var(--surface);
   --color-foreground: var(--on-background);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
 }
 
 body {
@@ -30,4 +30,29 @@ body {
     -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;
   line-height: 1.7;
+}
+
+/* Focus styles for keyboard accessibility */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove focus ring for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Minimum touch target for interactive elements */
+button, a, input, select, textarea {
+  min-height: 44px;
+}
+
+/* Small buttons/chips override */
+[class*="text-xs"][class*="rounded-full"],
+[class*="text-xs"][class*="rounded-lg"] {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
 }

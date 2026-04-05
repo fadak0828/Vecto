@@ -102,15 +102,16 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: "var(--surface)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 max-w-5xl mx-auto">
+      <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
         <div className="flex items-center gap-4">
+          <a href="/settings" className="text-sm hover:opacity-70 transition-opacity hidden sm:inline" style={{ color: "var(--on-surface-variant)" }}>설정</a>
           <span className="text-sm hidden sm:inline" style={{ color: "var(--on-surface-variant)" }}>{user?.email}</span>
           <button onClick={handleLogout} className="text-sm hover:opacity-70" style={{ color: "var(--on-surface-variant)" }}>로그아웃</button>
         </div>
       </nav>
 
-      <main className="px-8 py-8 max-w-5xl mx-auto">
+      <main className="px-6 sm:px-8 py-6 sm:py-8 max-w-5xl mx-auto">
         {!namespace ? (
           /* Claim */
           <section className="max-w-lg">
@@ -140,40 +141,42 @@ export default function DashboardPage() {
 
             {/* Profile card */}
             <div className="p-6 rounded-2xl" style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 48px rgba(0,0,0,0.03)" }}>
-              <div className="flex items-start gap-4">
-                {namespace.avatar_url ? (
-                  <img src={namespace.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white" style={{ background: "var(--primary)" }}>
-                    {(namespace.display_name || namespace.name)[0]}
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {namespace.avatar_url ? (
+                    <img src={namespace.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shrink-0" style={{ background: "var(--primary)" }}>
+                      {(namespace.display_name || namespace.name)[0]}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{namespace.display_name || namespace.name}</h2>
+                    <p className="text-sm font-mono" style={{ color: "var(--primary)" }}>좌표.to/{namespace.name}</p>
+                    {namespace.bio && <p className="text-sm mt-1" style={{ color: "var(--on-surface-variant)" }}>{namespace.bio}</p>}
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{namespace.display_name || namespace.name}</h2>
-                  <p className="text-sm font-mono" style={{ color: "var(--primary)" }}>좌표.to/{namespace.name}</p>
-                  {namespace.bio && <p className="text-sm mt-1" style={{ color: "var(--on-surface-variant)" }}>{namespace.bio}</p>}
                 </div>
                 <div className="flex gap-2">
-                  <a href={`/${namespace.name}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 text-xs rounded-full" style={{ background: "var(--secondary-container)", color: "var(--on-surface)" }}>프로필 보기</a>
-                  <button onClick={() => setEditingProfile(!editingProfile)} className="px-3 py-1.5 text-xs rounded-full" style={{ background: "var(--secondary-container)", color: "var(--on-surface)" }}>
+                  <a href={`/${namespace.name}`} target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs rounded-full" style={{ background: "var(--secondary-container)", color: "var(--on-surface)" }}>프로필 보기</a>
+                  <button onClick={() => setEditingProfile(!editingProfile)} className="px-3 py-2 text-xs rounded-full" style={{ background: "var(--secondary-container)", color: "var(--on-surface)" }}>
                     {editingProfile ? "취소" : "편집"}
                   </button>
                 </div>
               </div>
 
               {editingProfile && (
-                <form onSubmit={handleSaveProfile} className="mt-6 pt-6 space-y-3" style={{ borderTop: "1px solid var(--surface-high)" }}>
+                <form onSubmit={handleSaveProfile} className="mt-6 pt-6 space-y-3" style={{ background: "var(--surface-low)", margin: "24px -24px -24px", padding: "24px", borderRadius: "0 0 16px 16px" }}>
                   <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: "var(--on-surface-variant)" }}>프로필 이미지</label>
                     <AvatarUpload userId={user!.id} currentUrl={avatarUrl || null} onUploaded={(url) => setAvatarUrl(url)} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: "var(--on-surface-variant)" }}>표시 이름</label>
-                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={namespace.name} className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-low)" }} />
+                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={namespace.name} className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-lowest)" }} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: "var(--on-surface-variant)" }}>한줄 소개</label>
-                    <input type="text" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="AI 기업강의 전문 강사" className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-low)" }} />
+                    <input type="text" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="AI 기업강의 전문 강사" className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-lowest)" }} />
                   </div>
                   <button type="submit" disabled={savingProfile} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: "var(--primary)" }}>
                     {savingProfile ? "저장 중..." : "프로필 저장"}
@@ -191,7 +194,6 @@ export default function DashboardPage() {
 
               {links.length === 0 ? (
                 <div className="py-10 text-center rounded-2xl" style={{ background: "var(--surface-lowest)" }}>
-                  <p className="text-3xl mb-2">📎</p>
                   <p className="font-medium mb-1">아직 링크가 없습니다</p>
                   <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>아래에서 첫 번째 링크를 추가하세요.</p>
                 </div>

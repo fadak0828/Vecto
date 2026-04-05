@@ -37,10 +37,14 @@ export default async function NamespacePage({ params }: Props) {
   if (!ns) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8" style={{ background: "var(--surface)" }}>
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl" style={{ background: "var(--surface-low)" }}>{decoded[0]}</div>
-          <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>{decoded}</h1>
-          <p className="mb-6" style={{ color: "var(--on-surface-variant)" }}>이 좌표는 아직 주인이 없습니다.</p>
+        <div className="max-w-md">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shrink-0" style={{ background: "var(--surface-low)", color: "var(--on-surface-variant)" }}>{decoded[0]}</div>
+            <div>
+              <h1 className="text-2xl font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{decoded}</h1>
+              <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>이 좌표는 아직 주인이 없습니다.</p>
+            </div>
+          </div>
           <a href="/reserve" className="inline-block px-5 py-2.5 rounded-full text-sm font-medium text-white" style={{ background: "var(--on-background)" }}>이 이름 예약하기</a>
           <div className="mt-4"><a href="/" className="text-sm" style={{ color: "var(--on-surface-variant)" }}>좌표.to 메인으로 →</a></div>
         </div>
@@ -53,37 +57,44 @@ export default async function NamespacePage({ params }: Props) {
   return (
     <main className="min-h-screen" style={{ background: "var(--surface)" }}>
       <div className="max-w-lg mx-auto px-6 py-16">
-        {/* Profile header */}
-        <div className="text-center mb-10">
-          {ns.avatar_url ? (
-            <img src={ns.avatar_url} alt={displayName} className="w-24 h-24 rounded-full object-cover mx-auto mb-4" style={{ border: "3px solid var(--primary)" }} />
-          ) : (
-            <div className="w-24 h-24 rounded-full text-white flex items-center justify-center mx-auto mb-4 text-4xl font-bold" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
-              {displayName[0]}
+        {/* Profile header — left-aligned, editorial */}
+        <div className="mb-10">
+          <div className="flex items-center gap-5 mb-4">
+            {ns.avatar_url ? (
+              <img src={ns.avatar_url} alt={displayName} className="w-20 h-20 rounded-full object-cover shrink-0" style={{ border: "3px solid var(--primary)" }} />
+            ) : (
+              <div className="w-20 h-20 rounded-full text-white flex items-center justify-center shrink-0 text-3xl font-bold" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
+                {displayName[0]}
+              </div>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{displayName}</h1>
+              <p className="text-xs font-mono mt-1" style={{ color: "var(--on-surface-variant)" }}>좌표.to/{ns.name}</p>
             </div>
-          )}
-          <h1 className="text-2xl font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{displayName}</h1>
-          {ns.bio && <p className="mt-1" style={{ color: "var(--on-surface-variant)" }}>{ns.bio}</p>}
-          <p className="text-xs font-mono mt-2" style={{ color: "var(--on-surface-variant)" }}>좌표.to/{ns.name}</p>
+          </div>
+          {ns.bio && <p className="mt-2" style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}>{ns.bio}</p>}
         </div>
 
         {/* Links */}
         {links.length === 0 ? (
-          <div className="text-center py-10" style={{ color: "var(--on-surface-variant)" }}>아직 등록된 링크가 없습니다.</div>
+          <div className="py-10 rounded-2xl" style={{ background: "var(--surface-lowest)" }}>
+            <p className="font-medium mb-1 text-center">아직 등록된 링크가 없습니다</p>
+          </div>
         ) : (
           <div className="space-y-3">
             {links.map((link) => (
               <a key={link.slug} href={link.target_url} target="_blank" rel="noopener noreferrer"
-                className="block p-4 rounded-xl text-center transition-all hover:translate-y-[-2px]"
+                className="flex items-center gap-3 p-4 rounded-xl transition-all hover:translate-y-[-2px]"
                 style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 32px rgba(0,0,0,0.03)" }}
               >
                 <span className="font-medium">{link.slug}</span>
+                <span className="ml-auto text-xs" style={{ color: "var(--on-surface-variant)" }}>→</span>
               </a>
             ))}
           </div>
         )}
 
-        <div className="mt-16 text-center">
+        <div className="mt-16">
           <a href="/" className="text-xs" style={{ color: "var(--on-surface-variant)" }}>좌표.to에서 나만의 좌표 만들기</a>
         </div>
       </div>
