@@ -19,11 +19,31 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8" style={{ background: "var(--surface)" }}>
-        <div className="max-w-sm text-center">
-          <div className="text-4xl mb-4">📧</div>
-          <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>이메일을 확인하세요</h1>
-          <p style={{ color: "var(--on-surface-variant)" }}><strong>{email}</strong>로 로그인 링크를 보냈습니다.</p>
+      <main className="min-h-screen flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
+        <div className="max-w-xl mt-24">
+          <p
+            className="text-xs font-medium mb-4 tracking-wider uppercase"
+            style={{ color: "var(--primary)" }}
+          >
+            로그인 링크 전송 완료
+          </p>
+          <h1
+            className="text-3xl sm:text-4xl font-extrabold mb-4 leading-[1.15]"
+            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
+          >
+            이메일을 확인하세요.
+          </h1>
+          <p style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}>
+            <strong style={{ color: "var(--on-background)" }}>{email}</strong>
+            로 로그인 링크를 보냈습니다. 메일함에서 링크를 눌러 로그인을 완료하세요.
+          </p>
+          <a
+            href="/"
+            className="inline-block mt-8 text-sm"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            ← 메인으로
+          </a>
         </div>
       </main>
     );
