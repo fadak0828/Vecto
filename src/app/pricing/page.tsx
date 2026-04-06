@@ -113,7 +113,7 @@ export default function PricingPage() {
             className="text-base sm:text-lg max-w-2xl"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
           >
-            좌표.to/내이름 — 말로 전달할 수 있는 영구 URL.
+            좌표.to/내이름 — 말로 전달할 수 있는 전용 주소.
             <br />
             강의실에서 프로젝터에 띄우면 모두가 바로 입력합니다.
           </p>
@@ -193,7 +193,7 @@ export default function PricingPage() {
             >
               <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
                 <strong>무료 플랜</strong>도 있어요. 좌표.to/go/단축URL 형태로
-                하루 10개, 30일 만료로 사용할 수 있습니다.{" "}
+                하루 10개, 7일 만료로 사용할 수 있습니다.{" "}
                 <a href="/" style={{ color: "var(--primary)" }}>
                   무료로 시작하기 →
                 </a>
@@ -223,9 +223,9 @@ export default function PricingPage() {
             </p>
 
             <div className="space-y-3 mb-6">
-              <Feature text="좌표.to/내이름 영구 URL" />
+              <Feature text="좌표.to/내이름 전용 주소" />
               <Feature text="프로필 페이지 (소개 + 아바타)" />
-              <Feature text="하위 링크 20개" />
+              <Feature text="하위 링크 무제한" />
               <Feature text="클릭 통계 (7일 분석)" />
               <Feature text="커스텀 디지털 명함" />
             </div>
@@ -329,13 +329,13 @@ export default function PricingPage() {
                 />
                 <ComparisonRow
                   label="만료"
-                  free="30일"
-                  premium="기간권 동안 영구"
+                  free="7일"
+                  premium="구독 동안 유지"
                 />
                 <ComparisonRow
                   label="하위 링크"
                   free="—"
-                  premium="20개"
+                  premium="무제한"
                   even
                 />
                 <ComparisonRow

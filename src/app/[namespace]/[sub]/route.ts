@@ -6,7 +6,7 @@ import { escapeHtml } from "@/lib/html-escape";
  * GET /:namespace/:sub
  *
  * 네임스페이스 서브링크 리다이렉트.
- * 좌표.to/홍길동/노션 → target_url로 302
+ * 좌표.to/[내이름]/노션 → target_url로 302
  */
 export async function GET(
   _request: NextRequest,
