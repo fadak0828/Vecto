@@ -50,21 +50,53 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8" style={{ background: "var(--surface)" }}>
-      <div className="max-w-sm w-full">
-        <a href="/" className="text-xl font-bold tracking-tight mb-8 block" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
-        <h1 className="text-3xl font-extrabold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>로그인</h1>
-        <p className="mb-8" style={{ color: "var(--on-surface-variant)" }}>이메일로 로그인 링크를 받으세요.</p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일 주소"
-            className="w-full py-3 px-4 rounded-xl outline-none text-base" style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 32px rgba(0,0,0,0.03)" }} required />
-          <button type="submit" disabled={loading} className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
-            style={{ background: "var(--on-background)", color: "var(--surface-lowest)" }}>
-            {loading ? "전송 중..." : "로그인 링크 받기"}
-          </button>
-        </form>
-        {error && <p className="mt-4 text-sm" style={{ color: "var(--error)" }}>{error}</p>}
-        <a href="/" className="block mt-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>← 메인으로</a>
+    <main className="min-h-screen flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
+      <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl">
+        {/* Left editorial column */}
+        <div className="md:col-span-7 md:pr-8">
+          <p
+            className="text-xs font-medium mb-4 tracking-wider uppercase"
+            style={{ color: "var(--primary)" }}
+          >
+            로그인
+          </p>
+          <h1
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.05] mb-6"
+            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
+          >
+            내 좌표로 돌아오는 길.
+          </h1>
+          <p
+            className="text-base sm:text-lg max-w-md"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+          >
+            이메일 한 통으로 로그인합니다. 비밀번호 없이, 안전하게.
+          </p>
+        </div>
+
+        {/* Right form column */}
+        <div className="md:col-span-5">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-3 p-6 sm:p-8 rounded-2xl"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(16px)",
+              boxShadow: "var(--shadow-whisper-strong)",
+            }}
+          >
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일 주소"
+              className="w-full py-3 px-4 rounded-xl outline-none text-base" style={{ background: "var(--surface-lowest)" }} required />
+            <button type="submit" disabled={loading} className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ background: "var(--on-background)", color: "var(--surface-lowest)" }}>
+              {loading ? "전송 중..." : "로그인 링크 받기"}
+            </button>
+            {error && <p className="text-sm pt-1" style={{ color: "var(--error)" }}>{error}</p>}
+          </form>
+          <a href="/" className="inline-block mt-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>← 메인으로</a>
+        </div>
       </div>
     </main>
   );
