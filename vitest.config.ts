@@ -8,9 +8,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.{ts,tsx}"],
-    environmentMatchGlobs: [
-      ["tests/**/*.component.test.tsx", "jsdom"],
-    ],
+    // 컴포넌트 테스트는 파일 상단에 `// @vitest-environment jsdom` 주석 추가
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

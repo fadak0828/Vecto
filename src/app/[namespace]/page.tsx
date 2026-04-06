@@ -22,12 +22,12 @@ export default async function NamespacePage({ params }: Props) {
   const decoded = decodeURIComponent(namespace);
   if (["go", "api", "auth", "dashboard", "reserve", "_next"].includes(decoded)) return null;
 
-  let ns: { id: string; name: string; display_name: string | null; bio: string | null; avatar_url: string | null } | null = null;
+  let ns: { id: string; name: string; display_name: string | null; bio: string | null; avatar_url: string | null; payment_status: string; paid_until: string | null } | null = null;
   let links: { slug: string; target_url: string }[] = [];
 
   try {
     const supabase = getSupabase();
-    const { data: nsData } = await supabase.from("namespaces").select("id, name, display_name, bio, avatar_url").eq("name", decoded).maybeSingle();
+    const { data: nsData } = await supabase.from("namespaces").select("id, name, display_name, bio, avatar_url, payment_status, paid_until").eq("name", decoded).maybeSingle();
     if (nsData) {
       ns = nsData;
       const { data: slugs } = await supabase.from("slugs").select("slug, target_url").eq("namespace_id", nsData.id).order("created_at", { ascending: true });
@@ -36,6 +36,11 @@ export default async function NamespacePage({ params }: Props) {
   } catch { /* fallback */ }
 
   if (!ns) {
+    notFound();
+  }
+
+  // 결제 안 한 namespace는 공개 프로필 차단 (claim만 하고 결제 안 한 사용자)
+  if (ns.payment_status === "free") {
     notFound();
   }
 
@@ -61,6 +66,15 @@ export default async function NamespacePage({ params }: Props) {
           </div>
           {ns.bio && <p className="mt-2" style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}>{ns.bio}</p>}
         </div>
+
+        {/* 만료 배너 */}
+        {ns.payment_status === "expired" && (
+          <div className="p-4 rounded-xl mb-6" style={{ background: "rgba(186,26,26,0.06)" }}>
+            <p className="text-sm" style={{ color: "var(--error)" }}>
+              이 프로필의 이용권이 만료되었습니다. 일부 기능이 제한될 수 있습니다.
+            </p>
+          </div>
+        )}
 
         {/* Links */}
         {links.length === 0 ? (

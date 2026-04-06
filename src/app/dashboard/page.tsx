@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { ClickStats } from "@/components/click-stats";
+import { PaymentStatus } from "@/components/payment-status";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 
 type Namespace = {
@@ -12,6 +13,8 @@ type Namespace = {
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  payment_status: string;
+  paid_until: string | null;
 };
 
 type SubLink = {
@@ -55,7 +58,7 @@ export default function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { window.location.href = "/auth/login"; return; }
     setUser({ id: user.id, email: user.email ?? "" });
-    const { data: ns } = await supabase.from("namespaces").select("id, name, display_name, bio, avatar_url").eq("owner_id", user.id).maybeSingle();
+    const { data: ns } = await supabase.from("namespaces").select("id, name, display_name, bio, avatar_url, payment_status, paid_until").eq("owner_id", user.id).maybeSingle();
     if (ns) {
       setNamespace(ns);
       setDisplayName(ns.display_name ?? "");
@@ -73,7 +76,7 @@ export default function DashboardPage() {
     const check = validateSlug(claimName);
     if (!check.valid) { setClaimError(check.error!); setClaiming(false); return; }
     // unique constraint에 의존 (TOCTOU 방지)
-    const { data, error } = await supabase.from("namespaces").insert({ name: claimName, owner_id: user!.id }).select("id, name, display_name, bio, avatar_url").single();
+    const { data, error } = await supabase.from("namespaces").insert({ name: claimName, owner_id: user!.id }).select("id, name, display_name, bio, avatar_url, payment_status, paid_until").single();
     if (error) {
       if (error.code === "23505") {
         setClaimError("이미 사용 중인 이름입니다.");
@@ -82,6 +85,9 @@ export default function DashboardPage() {
       }
     } else {
       setNamespace(data);
+      // 결제 페이지로 이동
+      window.location.href = "/pricing";
+      return;
     }
     setClaiming(false);
   }
@@ -164,7 +170,7 @@ export default function DashboardPage() {
 
       <main className="px-6 sm:px-8 py-6 sm:py-8 max-w-5xl mx-auto">
         {!namespace ? (
-          /* Claim */
+          /* Claim — 이름 예약 후 결제 페이지로 이동 */
           <section className="max-w-lg">
             <h1 className="text-4xl font-extrabold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>내 좌표 만들기</h1>
             <p className="mb-8" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 영구 URL을 만드세요.</p>
@@ -177,6 +183,7 @@ export default function DashboardPage() {
                 {claiming ? "생성 중..." : "이 이름으로 시작하기"}
               </button>
               {claimError && <p className="text-sm" style={{ color: "var(--error)" }}>{claimError}</p>}
+              <p className="text-xs text-center" style={{ color: "var(--on-surface-variant)" }}>이름 등록 후 결제 페이지로 이동합니다.</p>
             </form>
           </section>
         ) : (
@@ -186,6 +193,9 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-extrabold" style={{ fontFamily: "Manrope, sans-serif" }}>대시보드</h1>
               <p style={{ color: "var(--on-surface-variant)" }}>당신만의 디지털 좌표를 관리하세요.</p>
             </div>
+
+            {/* Payment status */}
+            <PaymentStatus paymentStatus={namespace.payment_status} paidUntil={namespace.paid_until} />
 
             {/* Stats row */}
             <ClickStats namespaceId={namespace.id} />
@@ -292,11 +302,14 @@ export default function DashboardPage() {
               </form>
             </div>
 
-            {/* Upsell banner */}
-            <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
-              <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>나만의 맞춤 배너 좌표를 확보하세요.</h3>
-              <p className="text-sm opacity-80 mb-4">내 이름으로 영구 좌표를 만들어보세요.</p>
-            </div>
+            {/* Upsell banner — free 상태에서만 표시 */}
+            {namespace.payment_status === "free" && (
+              <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
+                <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>프리미엄으로 업그레이드하세요</h3>
+                <p className="text-sm opacity-80 mb-4">월 990원부터. 영구 URL + 프로필 페이지.</p>
+                <a href="/pricing" className="inline-block px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "rgba(255,255,255,0.2)" }}>요금제 보기 →</a>
+              </div>
+            )}
           </section>
         )}
       </main>

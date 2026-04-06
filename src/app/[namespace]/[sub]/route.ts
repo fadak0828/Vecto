@@ -28,10 +28,10 @@ export async function GET(
   try {
     const supabase = getSupabase();
 
-    // 네임스페이스 조회
+    // 네임스페이스 조회 (결제 상태 포함)
     const { data: ns } = await supabase
       .from("namespaces")
-      .select("id")
+      .select("id, payment_status, paid_until")
       .eq("name", nsName)
       .maybeSingle();
 
@@ -40,6 +40,28 @@ export async function GET(
         status: 404,
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
+    }
+
+    // 결제 상태 체크
+    // - free: claim만 하고 결제 안 한 namespace → 차단
+    // - expired 30일+: 만료 후 grace period 종료 → 차단
+    // - active or expired (0-30일): 통과
+    if (ns.payment_status === "free") {
+      return new NextResponse(unpaidHtml(nsName), {
+        status: 402,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+    if (ns.payment_status === "expired" && ns.paid_until) {
+      const daysSinceExpiry = Math.floor(
+        (Date.now() - new Date(ns.paid_until).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSinceExpiry > 30) {
+        return new NextResponse(expiredHtml(nsName), {
+          status: 410,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      }
     }
 
     // 서브링크 조회
@@ -82,6 +104,20 @@ function notFoundHtml(ns: string, sub: string) {
 <style>body{font-family:Pretendard,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fafaf9}
 .box{text-align:center;padding:2rem}.title{font-size:1.5rem;font-weight:bold;margin-bottom:.5rem}.desc{color:#78716c;margin-bottom:1.5rem}a{color:#0f766e;text-decoration:none}</style></head>
 <body><div class="box"><div class="title">좌표를 찾을 수 없습니다</div><div class="desc">${escapeHtml(ns)}/${escapeHtml(sub)}에 해당하는 링크가 없습니다.</div><a href="/${escapeHtml(ns)}">${escapeHtml(ns)}의 프로필 보기 →</a></div></body></html>`;
+}
+
+function expiredHtml(ns: string) {
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>좌표.to - 이용권 만료</title>
+<style>body{font-family:Pretendard,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fafaf9}
+.box{text-align:center;padding:2rem}.title{font-size:1.5rem;font-weight:bold;margin-bottom:.5rem}.desc{color:#78716c;margin-bottom:1.5rem}a{color:#0f766e;text-decoration:none}</style></head>
+<body><div class="box"><div class="title">이용권이 만료되었습니다</div><div class="desc">${escapeHtml(ns)}의 이용권이 만료되어 리다이렉트가 중지되었습니다.</div><a href="https://좌표.to/pricing">이용권 갱신하기 →</a></div></body></html>`;
+}
+
+function unpaidHtml(ns: string) {
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>좌표.to - 결제 필요</title>
+<style>body{font-family:Pretendard,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fafaf9}
+.box{text-align:center;padding:2rem}.title{font-size:1.5rem;font-weight:bold;margin-bottom:.5rem}.desc{color:#78716c;margin-bottom:1.5rem}a{color:#0f766e;text-decoration:none}</style></head>
+<body><div class="box"><div class="title">아직 활성화되지 않은 좌표</div><div class="desc">${escapeHtml(ns)}는 결제 후 활성화됩니다.</div><a href="https://좌표.to/pricing">이용권 결제하기 →</a></div></body></html>`;
 }
 
 function errorHtml() {
