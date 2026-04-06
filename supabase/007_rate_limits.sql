@@ -1,11 +1,14 @@
 -- Rate limiting 테이블 (서버리스 호환, in-memory 불가)
 CREATE TABLE IF NOT EXISTS rate_limits (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   ip TEXT NOT NULL,
   endpoint TEXT NOT NULL,
   count INTEGER DEFAULT 1,
-  window_start TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (ip, endpoint, window_start::date)
+  window_start TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rate_limits_unique
+  ON rate_limits(ip, endpoint, (window_start::date));
 
 CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup
   ON rate_limits(ip, endpoint, window_start);
