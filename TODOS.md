@@ -45,6 +45,13 @@
 - 만료 알림 horizon: grandfather 사용자에게 30일 전 알림 추가
 - 타임존: 만료 계산을 KST 기준으로 (현재 UTC)
 
+### 디자인 리뷰 후속 (v0.2.1 PR에서 deferred)
+- **F-H** 404/네임스페이스 not-found 페이지 — 가운데 정렬 + `?` 아이콘-인-서클. 같은 비대칭 에디토리얼 트리트먼트 적용 필요. (`src/app/[namespace]/page.tsx`)
+- **F-I** 홈 hero 아래 2컬럼 대칭 feature grid — DESIGN.md 비대칭 에디토리얼과 충돌. 60/40 스플릿으로 강조 카드를 더 크게 분리하는 방향 검토. (`src/app/page.tsx:291-304`)
+- **F-J** 본문 헤딩에 `text-wrap: pretty` 적용 — 한국어 orphan 입자 방지 폴리시
+- **F-K** `prefers-reduced-motion` 처리 — 모든 `transition-*`이 무조건 적용됨. DESIGN.md "intentional motion" 원칙
+- **F-L** nav 탭 타깃 width — `min-height` 대신 `padding`으로 처리해 자연 너비 확보
+
 ### 장기 개선
 - HTML route handler를 React 컴포넌트로 전환 (XSS 근본 원인 제거)
 - Dashboard/Settings 공통 컴포넌트 추출 (코드 중복 제거)
