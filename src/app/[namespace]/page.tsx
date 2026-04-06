@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 
 type Props = { params: Promise<{ namespace: string }> };
@@ -35,21 +36,7 @@ export default async function NamespacePage({ params }: Props) {
   } catch { /* fallback */ }
 
   if (!ns) {
-    return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8" style={{ background: "var(--surface)" }}>
-        <div className="max-w-md">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold shrink-0" style={{ background: "var(--surface-low)", color: "var(--on-surface-variant)" }}>{decoded[0]}</div>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>{decoded}</h1>
-              <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>이 좌표는 아직 주인이 없습니다.</p>
-            </div>
-          </div>
-          <a href="/reserve" className="inline-block px-5 py-2.5 rounded-full text-sm font-medium text-white" style={{ background: "var(--on-background)" }}>이 이름 예약하기</a>
-          <div className="mt-4"><a href="/" className="text-sm" style={{ color: "var(--on-surface-variant)" }}>좌표.to 메인으로 →</a></div>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   const displayName = ns.display_name || ns.name;
