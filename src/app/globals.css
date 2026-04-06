@@ -37,6 +37,10 @@ body {
     -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
     "Noto Sans KR", sans-serif;
   line-height: 1.7;
+  /* Korean text must wrap at word boundaries, not character boundaries.
+     Without this, text-wrap: balance can split 짧은 / 좌표 mid-word. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* Focus styles for keyboard accessibility */
