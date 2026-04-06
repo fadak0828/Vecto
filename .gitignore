@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# Claude Code local tooling (machine-specific paths, dev preview launchers)
+/.claude/

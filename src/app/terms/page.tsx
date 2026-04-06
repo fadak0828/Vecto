@@ -26,7 +26,7 @@ export default function TermsPage() {
               <li>&ldquo;서비스&rdquo;란 좌표.to가 제공하는 한글 URL 단축, 개인 네임스페이스, 프로필 페이지 및 관련 부가 기능을 말합니다.</li>
               <li>&ldquo;이용자&rdquo;란 본 약관에 따라 서비스를 이용하는 자를 말합니다.</li>
               <li>&ldquo;네임스페이스&rdquo;란 이용자에게 부여되는 고유한 URL 경로(예: 좌표.to/이름)를 말합니다.</li>
-              <li>&ldquo;무료 URL&rdquo;이란 회원가입 없이 생성 가능한 임시 단축 URL(30일 유효)을 말합니다.</li>
+              <li>&ldquo;무료 URL&rdquo;이란 회원가입 없이 생성 가능한 임시 단축 URL(7일 유효)을 말합니다.</li>
             </ol>
           </Section>
 
@@ -39,8 +39,8 @@ export default function TermsPage() {
 
           <Section title="제4조 (서비스의 제공)">
             <ol className="list-decimal pl-5 space-y-2">
-              <li>무료 URL 단축 서비스: 회원가입 없이 이용 가능. IP당 일일 10개, 월 30개 제한. 생성 후 30일간 유효.</li>
-              <li>프리미엄 네임스페이스: 회원가입 및 결제 후 이용 가능. 영구 URL, 최대 20개 하위 링크, 프로필 페이지 포함.</li>
+              <li>무료 URL 단축 서비스: 회원가입 없이 이용 가능. IP당 일일 10개, 월 30개 제한. 생성 후 7일간 유효.</li>
+              <li>프리미엄 네임스페이스: 회원가입 및 결제 후 이용 가능. 구독 기간 동안 유지되는 전용 주소, 무제한 하위 링크, 프로필 페이지 포함.</li>
               <li>서비스는 연중무휴 제공을 원칙으로 하나, 시스템 점검 등 불가피한 경우 일시 중단할 수 있습니다.</li>
             </ol>
           </Section>

@@ -19,7 +19,7 @@ export default function ReservePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
+    <main className="min-h-screen flex flex-col p-6 sm:p-16" style={{ background: "var(--surface)" }}>
       <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl">
@@ -41,7 +41,9 @@ export default function ReservePage() {
             className="text-base sm:text-lg max-w-md"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
           >
-            좌표.to/홍길동 같은 나만의 영구 URL을 예약하세요. 한 번 등록하면, 평생 내 것.
+            좌표.to/[내이름].
+            <br />
+            사람들에게 기억되는 나만의 주소.
           </p>
         </div>
 
@@ -58,7 +60,7 @@ export default function ReservePage() {
           >
             <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "var(--surface-lowest)" }}>
               <span className="pl-4 pr-1 py-3 text-sm whitespace-nowrap" style={{ color: "var(--on-surface-variant)" }}>좌표.to/</span>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value.replace(/\s+/g, "-"))} placeholder="홍길동" className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg" required />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value.replace(/\s+/g, "-"))} placeholder="내이름" className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg" required />
             </div>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일 주소"
               className="w-full py-3 px-4 rounded-xl outline-none" style={{ background: "var(--surface-lowest)" }} required />

@@ -23,7 +23,7 @@ export function PaymentStatus({
             className="text-xs mt-0.5"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            프리미엄으로 업그레이드하여 영구 URL을 확보하세요.
+            프리미엄으로 업그레이드하여 전용 주소를 확보하세요.
           </p>
         </div>
         <a

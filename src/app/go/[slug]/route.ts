@@ -78,7 +78,7 @@ function expiredHtml(slug: string) {
 .desc{color:#6b7280;margin-bottom:1.5rem}a{color:#2563eb;text-decoration:none}</style></head>
 <body><div class="box">
 <div class="title">이 좌표는 만료되었습니다</div>
-<div class="desc">/go/${escapeHtml(slug)}의 유효기간(30일)이 지났습니다.</div>
+<div class="desc">/go/${escapeHtml(slug)}의 유효기간(7일)이 지났습니다.</div>
 <a href="/">좌표.to에서 새로 만들기 →</a>
 </div></body></html>`;
 }

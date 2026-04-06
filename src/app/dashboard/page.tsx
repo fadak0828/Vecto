@@ -107,7 +107,6 @@ export default function DashboardPage() {
 
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault(); setAdding(true); setAddError("");
-    if (links.length >= 20) { setAddError("하위 링크는 최대 20개까지 추가할 수 있습니다."); setAdding(false); return; }
     // 슬러그 검증
     const slugCheck = validateSlug(newSlug);
     if (!slugCheck.valid) { setAddError(slugCheck.error!); setAdding(false); return; }
@@ -173,11 +172,11 @@ export default function DashboardPage() {
           /* Claim — 이름 예약 후 결제 페이지로 이동 */
           <section className="max-w-lg">
             <h1 className="text-4xl font-extrabold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>내 좌표 만들기</h1>
-            <p className="mb-8" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 영구 URL을 만드세요.</p>
+            <p className="mb-8" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 전용 주소를 만드세요.</p>
             <form onSubmit={handleClaim} className="space-y-3">
               <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 32px rgba(0,0,0,0.03)" }}>
                 <span className="pl-4 pr-1 py-3 text-sm whitespace-nowrap" style={{ color: "var(--on-surface-variant)" }}>좌표.to/</span>
-                <input type="text" value={claimName} onChange={(e) => setClaimName(e.target.value.replace(/\s+/g, "-"))} placeholder="홍길동" className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg" required />
+                <input type="text" value={claimName} onChange={(e) => setClaimName(e.target.value.replace(/\s+/g, "-"))} placeholder="내이름" className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg" required />
               </div>
               <button type="submit" disabled={claiming} className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: "var(--on-background)", color: "var(--surface-lowest)" }}>
                 {claiming ? "생성 중..." : "이 이름으로 시작하기"}
@@ -256,7 +255,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold" style={{ fontFamily: "Manrope, sans-serif" }}>좌표 및 링크 관리</h2>
-                <span className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{links.length}/20</span>
+                <span className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{links.length}개</span>
               </div>
 
               {links.length === 0 ? (
@@ -306,7 +305,7 @@ export default function DashboardPage() {
             {namespace.payment_status === "free" && (
               <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
                 <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>프리미엄으로 업그레이드하세요</h3>
-                <p className="text-sm opacity-80 mb-4">월 990원부터. 영구 URL + 프로필 페이지.</p>
+                <p className="text-sm opacity-80 mb-4">월 742원부터. 전용 주소 + 프로필 페이지.</p>
                 <a href="/pricing" className="inline-block px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "rgba(255,255,255,0.2)" }}>요금제 보기 →</a>
               </div>
             )}

@@ -43,34 +43,40 @@ body {
   overflow-wrap: break-word;
 }
 
-/* Focus styles for keyboard accessibility */
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+/* These rules live in @layer base so Tailwind utilities (in @layer utilities)
+   take precedence over them — important so `hidden` / `sm:inline` actually
+   hide nav links on mobile, and `outline-none` actually disables focus ring
+   on wrapped inputs. */
+@layer base {
+  /* Focus styles for keyboard accessibility — outline naturally follows each
+     element's own border-radius in modern browsers, so we don't override it. */
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 
-/* Remove focus ring for mouse users */
-*:focus:not(:focus-visible) {
-  outline: none;
-}
+  /* Remove focus ring for mouse users */
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
 
-/* Minimum touch target for form controls */
-button, input, select, textarea {
-  min-height: 44px;
-}
+  /* Minimum touch target for form controls */
+  button, input, select, textarea {
+    min-height: 44px;
+  }
 
-/* Tap target for nav/header links (body links keep natural height) */
-nav a, header a {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-}
+  /* Tap target for nav/header links (body links keep natural height) */
+  nav a, header a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 
-/* Small buttons/chips override */
-[class*="text-xs"][class*="rounded-full"],
-[class*="text-xs"][class*="rounded-lg"] {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
+  /* Small buttons/chips override */
+  [class*="text-xs"][class*="rounded-full"],
+  [class*="text-xs"][class*="rounded-lg"] {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
