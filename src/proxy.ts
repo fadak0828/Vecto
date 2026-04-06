@@ -82,17 +82,22 @@ export async function proxy(request: NextRequest) {
         }
       );
 
-      const windowStart =
-        limit.window === "day"
-          ? new Date(new Date().toISOString().split("T")[0]).toISOString()
-          : new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const today = new Date().toISOString().split("T")[0];
 
-      const { count } = await supabase
+      const query = supabase
         .from("rate_limits")
         .select("*", { count: "exact", head: true })
         .eq("ip", ip)
-        .eq("endpoint", pathname)
-        .gte("window_start", windowStart);
+        .eq("endpoint", pathname);
+
+      // day 윈도우: window_date 기준, hour 윈도우: window_start 기준
+      if (limit.window === "day") {
+        query.eq("window_date", today);
+      } else {
+        query.gte("window_start", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+      }
+
+      const { count } = await query;
 
       if ((count ?? 0) >= limit.max) {
         return NextResponse.json(
@@ -108,6 +113,7 @@ export async function proxy(request: NextRequest) {
       await supabase.from("rate_limits").insert({
         ip,
         endpoint: pathname,
+        window_date: today,
         window_start: new Date().toISOString(),
       });
     } catch {

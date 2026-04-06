@@ -3,12 +3,12 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   ip TEXT NOT NULL,
   endpoint TEXT NOT NULL,
-  count INTEGER DEFAULT 1,
+  window_date DATE NOT NULL DEFAULT CURRENT_DATE,
   window_start TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rate_limits_unique
-  ON rate_limits(ip, endpoint, (window_start::date));
+  ON rate_limits(ip, endpoint, window_date);
 
 CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup
   ON rate_limits(ip, endpoint, window_start);
