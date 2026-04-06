@@ -95,11 +95,9 @@ export default function Home() {
         <div className="max-w-2xl">
           <h1
             className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-4 sm:mb-6"
-            style={{ fontFamily: "Manrope, sans-serif" }}
+            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
           >
-            한글로 기억되는
-            <br />
-            짧은 주소, 좌표.to
+            한글로 기억되는 짧은 주소, 좌표.to
           </h1>
           <p
             className="text-base sm:text-lg max-w-lg mb-8 sm:mb-10"
@@ -116,8 +114,7 @@ export default function Home() {
             style={{
               background: "rgba(255,255,255,0.8)",
               backdropFilter: "blur(16px)",
-              boxShadow:
-                "0 4px 64px rgba(0,101,101,0.04), 0 1px 3px rgba(0,0,0,0.03)",
+              boxShadow: "var(--shadow-whisper-strong)",
             }}
           >
             <p
@@ -320,6 +317,7 @@ export default function Home() {
               style={{
                 background: "var(--on-background)",
                 color: "var(--surface-lowest)",
+                boxShadow: "var(--shadow-whisper-strong)",
               }}
             >
               <h3
@@ -407,7 +405,9 @@ function TypeCard({
           ? "var(--on-background)"
           : "var(--surface-lowest)",
         color: highlight ? "var(--surface-lowest)" : "var(--on-surface)",
-        boxShadow: active ? "0 0 0 2px var(--primary)" : "none",
+        boxShadow: active
+          ? "0 0 0 2px var(--primary), var(--shadow-whisper-strong)"
+          : "var(--shadow-whisper)",
       }}
     >
       <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>
@@ -418,7 +418,7 @@ function TypeCard({
         {features.map((f) => (
           <li key={f} className="text-sm flex items-center gap-2">
             <span
-              style={{ color: highlight ? "#76d6d5" : "var(--primary)" }}
+              style={{ color: highlight ? "var(--surface-lowest)" : "var(--primary)" }}
             >
               ✓
             </span>
@@ -436,7 +436,7 @@ function FeatureCard({ title, desc }: { title: string; desc: string }) {
       className="p-6 rounded-2xl"
       style={{
         background: "var(--surface-lowest)",
-        boxShadow: "0 2px 48px rgba(0,0,0,0.03)",
+        boxShadow: "var(--shadow-whisper)",
       }}
     >
       <h3
