@@ -11,15 +11,22 @@ type Stats = {
 export function ClickStats({ namespaceId }: { namespaceId: string }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch(`/api/stats?namespace_id=${namespaceId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("stats fetch failed");
+        return r.json();
+      })
       .then((data) => {
         setStats(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, [namespaceId]);
 
   if (loading) {
@@ -29,6 +36,19 @@ export function ClickStats({ namespaceId }: { namespaceId: string }) {
         style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
       >
         통계 로딩 중...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="p-5 rounded-2xl text-center"
+        style={{ background: "var(--surface-lowest)" }}
+      >
+        <p className="text-sm" style={{ color: "var(--error)" }}>
+          통계를 불러올 수 없습니다.
+        </p>
       </div>
     );
   }

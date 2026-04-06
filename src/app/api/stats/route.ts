@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase-server";
 
 /**
  * GET /api/stats?namespace_id=xxx
  *
  * 최근 7일간 날짜별 클릭 수 반환.
+ * 인증 필수: 요청자가 해당 namespace의 소유자여야 함.
  */
 export async function GET(request: NextRequest) {
   const namespaceId = request.nextUrl.searchParams.get("namespace_id");
@@ -12,9 +13,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "namespace_id 필요" }, { status: 400 });
   }
 
-  const supabase = getSupabase();
+  const supabase = await createClient();
 
-  // 이 네임스페이스의 slug id 목록
+  // 인증 확인
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+  }
+
+  // namespace 소유권 확인
+  const { data: ns } = await supabase
+    .from("namespaces")
+    .select("id")
+    .eq("id", namespaceId)
+    .eq("owner_id", user.id)
+    .maybeSingle();
+
+  if (!ns) {
+    return NextResponse.json(
+      { error: "이 namespace에 대한 권한이 없습니다." },
+      { status: 403 }
+    );
+  }
+
+  // 이 네임스페이스의 slug 목록 (링크별 클릭 수)
   const { data: slugs } = await supabase
     .from("slugs")
     .select("id, slug, click_count")
@@ -24,26 +48,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ total: 0, daily: [], links: [] });
   }
 
-  const slugIds = slugs.map((s) => s.id);
-
-  // 최근 7일 날짜별 클릭
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
-
-  const { data: logs } = await supabase
-    .from("click_logs")
-    .select("slug_id, clicked_at")
-    .in("slug_id", slugIds)
-    .gte("clicked_at", sevenDaysAgo)
-    .order("clicked_at", { ascending: true });
-
-  // 날짜별 집계
-  const dailyMap: Record<string, number> = {};
-  (logs ?? []).forEach((log) => {
-    const date = log.clicked_at.split("T")[0];
-    dailyMap[date] = (dailyMap[date] || 0) + 1;
+  // SQL 집계로 최근 7일 날짜별 클릭 가져오기
+  const { data: dailyData } = await supabase.rpc("get_daily_stats", {
+    ns_id: namespaceId,
+    days: 7,
   });
+
+  // 날짜별 맵 생성
+  const dailyMap: Record<string, number> = {};
+  (dailyData ?? []).forEach(
+    (row: { day: string; total_clicks: number }) => {
+      dailyMap[row.day] = Number(row.total_clicks);
+    }
+  );
 
   // 7일치 빈 날짜 채우기
   const daily: { date: string; clicks: number }[] = [];

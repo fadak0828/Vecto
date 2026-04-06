@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { ClickStats } from "@/components/click-stats";
+import { validateSlug, validateUrl } from "@/lib/slug-validation";
 
 type Namespace = {
   id: string;
@@ -38,8 +39,16 @@ export default function DashboardPage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
+
+  // 자동 사라지는 메시지
+  const showMsg = useCallback((setter: (v: { type: "success" | "error"; text: string } | null) => void, type: "success" | "error", text: string) => {
+    setter({ type, text });
+    setTimeout(() => setter(null), 3000);
+  }, []);
 
   async function loadData() {
     setLoading(true);
@@ -60,33 +69,75 @@ export default function DashboardPage() {
 
   async function handleClaim(e: React.FormEvent) {
     e.preventDefault(); setClaiming(true); setClaimError("");
-    const { data: existing } = await supabase.from("namespaces").select("id").eq("name", claimName).maybeSingle();
-    if (existing) { setClaimError("이미 사용 중인 이름입니다."); setClaiming(false); return; }
-    const { data: slugConflict } = await supabase.from("slugs").select("id").eq("slug", claimName).is("namespace_id", null).maybeSingle();
-    if (slugConflict) { await supabase.from("slugs").delete().eq("id", slugConflict.id); }
+    // 슬러그 검증
+    const check = validateSlug(claimName);
+    if (!check.valid) { setClaimError(check.error!); setClaiming(false); return; }
+    // unique constraint에 의존 (TOCTOU 방지)
     const { data, error } = await supabase.from("namespaces").insert({ name: claimName, owner_id: user!.id }).select("id, name, display_name, bio, avatar_url").single();
-    if (error) { setClaimError("생성 실패: " + error.message); } else { setNamespace(data); }
+    if (error) {
+      if (error.code === "23505") {
+        setClaimError("이미 사용 중인 이름입니다.");
+      } else {
+        setClaimError("생성 실패: " + error.message);
+      }
+    } else {
+      setNamespace(data);
+    }
     setClaiming(false);
   }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault(); setSavingProfile(true);
     const { error } = await supabase.from("namespaces").update({ display_name: displayName || null, bio: bio || null, avatar_url: avatarUrl || null }).eq("id", namespace!.id);
-    if (!error) { setNamespace({ ...namespace!, display_name: displayName || null, bio: bio || null, avatar_url: avatarUrl || null }); setEditingProfile(false); }
+    if (error) {
+      showMsg(setProfileMsg, "error", "저장에 실패했습니다: " + error.message);
+    } else {
+      setNamespace({ ...namespace!, display_name: displayName || null, bio: bio || null, avatar_url: avatarUrl || null });
+      setEditingProfile(false);
+      showMsg(setProfileMsg, "success", "프로필이 저장되었습니다.");
+    }
     setSavingProfile(false);
   }
 
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault(); setAdding(true); setAddError("");
     if (links.length >= 20) { setAddError("하위 링크는 최대 20개까지 추가할 수 있습니다."); setAdding(false); return; }
+    // 슬러그 검증
+    const slugCheck = validateSlug(newSlug);
+    if (!slugCheck.valid) { setAddError(slugCheck.error!); setAdding(false); return; }
+    const urlCheck = validateUrl(newUrl);
+    if (!urlCheck.valid) { setAddError(urlCheck.error!); setAdding(false); return; }
     const { error } = await supabase.from("slugs").insert({ slug: newSlug, target_url: newUrl, namespace_id: namespace!.id, owner_id: user!.id });
-    if (error) { setAddError("추가 실패: " + error.message); } else { setNewSlug(""); setNewUrl(""); await loadData(); }
+    if (error) {
+      if (error.code === "23505") {
+        setAddError("이미 사용 중인 링크 이름입니다.");
+      } else {
+        setAddError("추가 실패: " + error.message);
+      }
+    } else {
+      setNewSlug(""); setNewUrl(""); await loadData();
+    }
     setAdding(false);
   }
 
   async function handleDeleteLink(id: string) {
-    await supabase.from("slugs").delete().eq("id", id);
+    // 2-step: 첫 클릭은 확인 요청, 두번째 클릭은 실제 삭제
+    if (deletingId !== id) {
+      setDeletingId(id);
+      setTimeout(() => setDeletingId((prev) => (prev === id ? null : prev)), 3000);
+      return;
+    }
+    // 실제 삭제
+    const prevLinks = [...links];
     setLinks(links.filter((l) => l.id !== id));
+    setDeletingId(null);
+    const { error } = await supabase.from("slugs").delete().eq("id", id);
+    if (error) {
+      // 롤백
+      setLinks(prevLinks);
+      setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
+      setTimeout(() => setAddError(""), 3000);
+    }
   }
 
   async function handleLogout() { await supabase.auth.signOut(); window.location.href = "/"; }
@@ -164,6 +215,12 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {profileMsg && (
+                <p className="mt-3 text-sm" style={{ color: profileMsg.type === "error" ? "var(--error)" : "var(--primary)" }}>
+                  {profileMsg.text}
+                </p>
+              )}
+
               {editingProfile && (
                 <form onSubmit={handleSaveProfile} className="mt-6 pt-6 space-y-3" style={{ background: "var(--surface-low)", margin: "24px -24px -24px", padding: "24px", borderRadius: "0 0 16px 16px" }}>
                   <div>
@@ -176,7 +233,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: "var(--on-surface-variant)" }}>한줄 소개</label>
-                    <input type="text" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="AI 기업강의 전문 강사" className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-lowest)" }} />
+                    <input type="text" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="AI 기업강의 전문 강사" maxLength={200} className="w-full py-2.5 px-3 rounded-xl outline-none text-sm" style={{ background: "var(--surface-lowest)" }} />
                   </div>
                   <button type="submit" disabled={savingProfile} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: "var(--primary)" }}>
                     {savingProfile ? "저장 중..." : "프로필 저장"}
@@ -206,7 +263,13 @@ export default function DashboardPage() {
                         <div className="text-sm truncate" style={{ color: "var(--on-surface-variant)" }}>→ {link.target_url}</div>
                       </div>
                       <span className="text-xs tabular-nums shrink-0" style={{ color: "var(--on-surface-variant)" }}>{link.click_count.toLocaleString()}회</span>
-                      <button onClick={() => handleDeleteLink(link.id)} className="text-xs px-2 py-1 rounded-lg hover:opacity-70 shrink-0" style={{ color: "var(--error)" }}>삭제</button>
+                      <button
+                        onClick={() => handleDeleteLink(link.id)}
+                        className="text-xs px-2 py-1 rounded-lg hover:opacity-70 shrink-0 transition-colors"
+                        style={{ color: deletingId === link.id ? "var(--surface-lowest)" : "var(--error)", background: deletingId === link.id ? "var(--error)" : "transparent" }}
+                      >
+                        {deletingId === link.id ? "정말 삭제?" : "삭제"}
+                      </button>
                     </div>
                   ))}
                 </div>

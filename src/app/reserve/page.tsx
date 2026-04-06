@@ -13,7 +13,7 @@ export default function ReservePage() {
     try {
       const res = await fetch("/api/namespace/reserve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email }) });
       const data = await res.json();
-      if (!res.ok) { setResult({ error: data.error }); } else { setResult({ message: data.message }); }
+      if (!res.ok) { setResult({ error: data.error }); } else { setResult({ message: data.message }); setName(""); setEmail(""); }
     } catch { setResult({ error: "네트워크 오류가 발생했습니다." }); }
     finally { setLoading(false); }
   }
@@ -38,8 +38,13 @@ export default function ReservePage() {
           </button>
         </form>
 
-        {result?.error && <div className="mt-4 p-3 rounded-xl text-sm" style={{ background: "#fef2f2", color: "#b91c1c" }}>{result.error}</div>}
-        {result?.message && <div className="mt-4 p-3 rounded-xl text-sm" style={{ background: "rgba(0,128,128,0.08)", color: "var(--primary)" }}>{result.message}</div>}
+        {result?.error && <div className="mt-4 p-3 rounded-xl text-sm" style={{ background: "#fef2f2", color: "var(--error)" }}>{result.error}</div>}
+        {result?.message && (
+          <div className="mt-4 p-4 rounded-xl text-sm space-y-1" style={{ background: "rgba(0,128,128,0.08)", color: "var(--primary)" }}>
+            <p className="font-medium">{result.message}</p>
+            <p style={{ color: "var(--on-surface-variant)" }}>입력하신 이메일로 안내를 보내드리겠습니다.</p>
+          </div>
+        )}
 
         <a href="/" className="block mt-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>← 메인으로</a>
       </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { validateSlug, validateUrl } from "@/lib/slug-validation";
 
 type Namespace = {
   id: string;
@@ -16,6 +17,7 @@ type SubLink = {
   id: string;
   slug: string;
   target_url: string;
+  click_count: number;
 };
 
 export default function SettingsPage() {
@@ -28,13 +30,28 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [newSlug, setNewSlug] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  const showMsg = useCallback(
+    (
+      setter: (v: { type: "success" | "error"; text: string } | null) => void,
+      type: "success" | "error",
+      text: string
+    ) => {
+      setter({ type, text });
+      setTimeout(() => setter(null), 3000);
+    },
+    []
+  );
 
   async function loadData() {
     setLoading(true);
@@ -58,7 +75,7 @@ export default function SettingsPage() {
       setAvatarUrl(ns.avatar_url ?? "");
       const { data: slugs } = await supabase
         .from("slugs")
-        .select("id, slug, target_url")
+        .select("id, slug, target_url, click_count")
         .eq("namespace_id", ns.id)
         .order("created_at", { ascending: true });
       setLinks(slugs ?? []);
@@ -70,7 +87,7 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!namespace) return;
     setSaving(true);
-    await supabase
+    const { error } = await supabase
       .from("namespaces")
       .update({
         display_name: displayName || null,
@@ -78,12 +95,17 @@ export default function SettingsPage() {
         avatar_url: avatarUrl || null,
       })
       .eq("id", namespace.id);
-    setNamespace({
-      ...namespace,
-      display_name: displayName || null,
-      bio: bio || null,
-      avatar_url: avatarUrl || null,
-    });
+    if (error) {
+      showMsg(setSaveMsg, "error", "저장에 실패했습니다: " + error.message);
+    } else {
+      setNamespace({
+        ...namespace,
+        display_name: displayName || null,
+        bio: bio || null,
+        avatar_url: avatarUrl || null,
+      });
+      showMsg(setSaveMsg, "success", "프로필이 저장되었습니다.");
+    }
     setSaving(false);
   }
 
@@ -91,13 +113,38 @@ export default function SettingsPage() {
     e.preventDefault();
     if (!namespace || !user) return;
     setAdding(true);
+    setAddError("");
+    // 검증
+    const slugCheck = validateSlug(newSlug);
+    if (!slugCheck.valid) {
+      setAddError(slugCheck.error!);
+      setAdding(false);
+      return;
+    }
+    const urlCheck = validateUrl(newUrl);
+    if (!urlCheck.valid) {
+      setAddError(urlCheck.error!);
+      setAdding(false);
+      return;
+    }
+    if (links.length >= 20) {
+      setAddError("하위 링크는 최대 20개까지 추가할 수 있습니다.");
+      setAdding(false);
+      return;
+    }
     const { error } = await supabase.from("slugs").insert({
       slug: newSlug,
       target_url: newUrl,
       namespace_id: namespace.id,
       owner_id: user.id,
     });
-    if (!error) {
+    if (error) {
+      if (error.code === "23505") {
+        setAddError("이미 사용 중인 링크 이름입니다.");
+      } else {
+        setAddError("추가 실패: " + error.message);
+      }
+    } else {
       setNewSlug("");
       setNewUrl("");
       await loadData();
@@ -106,8 +153,21 @@ export default function SettingsPage() {
   }
 
   async function handleDeleteLink(id: string) {
-    await supabase.from("slugs").delete().eq("id", id);
+    // 2-step 삭제
+    if (deletingId !== id) {
+      setDeletingId(id);
+      setTimeout(() => setDeletingId((prev) => (prev === id ? null : prev)), 3000);
+      return;
+    }
+    const prevLinks = [...links];
     setLinks(links.filter((l) => l.id !== id));
+    setDeletingId(null);
+    const { error } = await supabase.from("slugs").delete().eq("id", id);
+    if (error) {
+      setLinks(prevLinks);
+      setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
+      setTimeout(() => setAddError(""), 3000);
+    }
   }
 
   if (loading) {
@@ -264,6 +324,7 @@ export default function SettingsPage() {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="디지털 크리에이터 | 서울 기반"
+                  maxLength={200}
                   className="w-full py-3 px-4 rounded-xl outline-none text-base"
                   style={{ background: "var(--surface-lowest)" }}
                 />
@@ -277,6 +338,20 @@ export default function SettingsPage() {
               >
                 {saving ? "저장 중..." : "프로필 저장"}
               </button>
+
+              {saveMsg && (
+                <p
+                  className="text-sm"
+                  style={{
+                    color:
+                      saveMsg.type === "error"
+                        ? "var(--error)"
+                        : "var(--primary)",
+                  }}
+                >
+                  {saveMsg.text}
+                </p>
+              )}
             </form>
           </section>
 
@@ -306,20 +381,38 @@ export default function SettingsPage() {
                     style={{ background: "var(--surface-low)" }}
                   >
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold truncate">{link.slug}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold truncate">{link.slug}</h4>
+                        <span
+                          className="text-xs tabular-nums shrink-0"
+                          style={{ color: "var(--on-surface-variant)" }}
+                        >
+                          {link.click_count.toLocaleString()}회
+                        </span>
+                      </div>
                       <p
                         className="text-sm truncate"
                         style={{ color: "var(--on-surface-variant)" }}
                       >
-                        {link.target_url}
+                        → {link.target_url}
                       </p>
                     </div>
                     <button
                       onClick={() => handleDeleteLink(link.id)}
-                      className="text-xs px-3 py-2 rounded-lg opacity-50 hover:opacity-100 transition-opacity"
-                      style={{ color: "var(--error)" }}
+                      className="text-xs px-3 py-2 rounded-lg transition-colors"
+                      style={{
+                        color:
+                          deletingId === link.id
+                            ? "var(--surface-lowest)"
+                            : "var(--error)",
+                        background:
+                          deletingId === link.id
+                            ? "var(--error)"
+                            : "transparent",
+                        opacity: deletingId === link.id ? 1 : 0.5,
+                      }}
                     >
-                      삭제
+                      {deletingId === link.id ? "정말 삭제?" : "삭제"}
                     </button>
                   </div>
                 ))}
@@ -366,6 +459,11 @@ export default function SettingsPage() {
               >
                 {adding ? "추가 중..." : "+ 새 링크 추가"}
               </button>
+              {addError && (
+                <p className="text-sm" style={{ color: "var(--error)" }}>
+                  {addError}
+                </p>
+              )}
             </form>
           </section>
         </div>
@@ -396,7 +494,10 @@ export default function SettingsPage() {
 
               <div
                 className="w-full rounded-[2rem] overflow-hidden flex flex-col"
-                style={{ background: "var(--surface-lowest)", minHeight: "560px" }}
+                style={{
+                  background: "var(--surface-lowest)",
+                  minHeight: "560px",
+                }}
               >
                 {/* Cover */}
                 <div
@@ -501,7 +602,10 @@ export default function SettingsPage() {
           >
             좌표.to
           </span>
-          <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
+          <span
+            className="text-xs"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
             © 2026 좌표.to
           </span>
         </div>

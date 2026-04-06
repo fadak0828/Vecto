@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     Date.now() + 30 * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  // DB 삽입
+  // DB 삽입 (unique constraint로 race condition 방지)
   const { data, error } = await supabase
     .from("slugs")
     .insert({
@@ -135,6 +135,13 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    // unique constraint violation = 동시 요청으로 인한 충돌
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { error: "이미 사용 중인 주소입니다.", suggested: slug + "2" },
+        { status: 409 }
+      );
+    }
     console.error("Slug creation failed:", error);
     return NextResponse.json(
       { error: "URL 생성에 실패했습니다: " + error.message },

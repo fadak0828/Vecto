@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { escapeHtml } from "@/lib/html-escape";
 
 /**
  * GET /go/:slug
@@ -12,7 +13,15 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const decoded = decodeURIComponent(slug);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    return new NextResponse(notFoundHtml("invalid-slug"), {
+      status: 400,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
 
   const supabase = getSupabase();
 
@@ -55,7 +64,7 @@ function notFoundHtml(slug: string) {
 .desc{color:#6b7280;margin-bottom:1.5rem}a{color:#2563eb;text-decoration:none}</style></head>
 <body><div class="box">
 <div class="title">좌표를 찾을 수 없습니다</div>
-<div class="desc">/go/${slug}에 해당하는 URL이 없습니다.</div>
+<div class="desc">/go/${escapeHtml(slug)}에 해당하는 URL이 없습니다.</div>
 <a href="/">좌표.to에서 새로 만들기 →</a>
 </div></body></html>`;
 }
@@ -69,7 +78,7 @@ function expiredHtml(slug: string) {
 .desc{color:#6b7280;margin-bottom:1.5rem}a{color:#2563eb;text-decoration:none}</style></head>
 <body><div class="box">
 <div class="title">이 좌표는 만료되었습니다</div>
-<div class="desc">/go/${slug}의 유효기간(30일)이 지났습니다.</div>
+<div class="desc">/go/${escapeHtml(slug)}의 유효기간(30일)이 지났습니다.</div>
 <a href="/">좌표.to에서 새로 만들기 →</a>
 </div></body></html>`;
 }
