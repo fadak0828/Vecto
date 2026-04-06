@@ -263,8 +263,8 @@ export default function PricingPage() {
             좌표.to
           </span>
           <div className="flex gap-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>
-            <a href="#" className="hover:opacity-70 transition-opacity">이용약관</a>
-            <a href="#" className="hover:opacity-70 transition-opacity">개인정보 처리방침</a>
+            <a href="/terms" className="hover:opacity-70 transition-opacity">이용약관</a>
+            <a href="/privacy" className="hover:opacity-70 transition-opacity">개인정보 처리방침</a>
           </div>
           <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
             © 2026 좌표.to
