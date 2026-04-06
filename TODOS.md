@@ -2,13 +2,14 @@
 
 ## 다음 작업 (우선순위순)
 
-### 자동 테스트 구축
-- escapeHtml 유닛 테스트
-- validateSlug / validateUrl 유닛 테스트
-- API route 통합 테스트 (shorten, stats, reserve)
-- proxy.ts rate limiting 테스트
-- 삭제 에러 핸들링 + UI 롤백 E2E 테스트
-- **Why:** 현재 테스트 코드 제로. 회귀 안전망 없음.
+### ~~자동 테스트 구축~~ ✅ Fixed on main, 2026-04-06
+- ~~escapeHtml 유닛 테스트~~ → 8개 테스트
+- ~~validateSlug / validateUrl 유닛 테스트~~ → 16개 테스트
+- ~~API route 로직 테스트 (shorten 검증, race condition)~~ → 10개 테스트
+- ~~proxy.ts rate limiting + CSP + auth 경로 테스트~~ → 8개 테스트
+- ~~Open redirect 방어 테스트~~ → 7개 테스트
+- ~~CI 파이프라인 (GitHub Actions)~~ → push/PR마다 자동 실행
+- E2E 테스트 (삭제 UI 롤백 등) → 미구현, 추후 Playwright 도입 시
 
 ### 프로덕션 모니터링
 - 에러 추적 (Sentry 또는 유사)
