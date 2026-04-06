@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const ROTATING_SLUGS = ["오픈채팅", "청첩장", "이력서", "메뉴판"];
+const TYPING_SPEED_MS = 110;
+const DELETING_SPEED_MS = 55;
+const PAUSE_AFTER_TYPED_MS = 1400;
+const PAUSE_BEFORE_NEXT_MS = 350;
 
 export default function Home() {
   const [slug, setSlug] = useState("");
@@ -13,6 +19,46 @@ export default function Home() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [rotatingText, setRotatingText] = useState("");
+  const [rotatingIndex, setRotatingIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (slug.length > 0) return;
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setRotatingText(ROTATING_SLUGS[0]);
+      return;
+    }
+
+    const target = ROTATING_SLUGS[rotatingIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting && rotatingText === target) {
+      timeout = setTimeout(() => setIsDeleting(true), PAUSE_AFTER_TYPED_MS);
+    } else if (isDeleting && rotatingText === "") {
+      timeout = setTimeout(() => {
+        setIsDeleting(false);
+        setRotatingIndex((i) => (i + 1) % ROTATING_SLUGS.length);
+      }, PAUSE_BEFORE_NEXT_MS);
+    } else {
+      timeout = setTimeout(
+        () => {
+          setRotatingText((prev) =>
+            isDeleting
+              ? target.slice(0, prev.length - 1)
+              : target.slice(0, prev.length + 1)
+          );
+        },
+        isDeleting ? DELETING_SPEED_MS : TYPING_SPEED_MS
+      );
+    }
+
+    return () => clearTimeout(timeout);
+  }, [rotatingText, rotatingIndex, isDeleting, slug]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,15 +143,13 @@ export default function Home() {
             className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-4 sm:mb-6"
             style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
           >
-            한글로 기억되는 짧은 주소, 좌표.to
+            이름이 곧 주소.
           </h1>
           <p
             className="text-base sm:text-lg max-w-lg mb-8 sm:mb-10"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
           >
-            길고 복잡한 URL을 한글로 줄이세요.
-            <br />
-            말로 불러줄 수 있고, 바로 기억할 수 있는 주소.
+            말로 부르고, 한 번에 기억합니다.
           </p>
 
           {/* URL 생성 폼 — Glass Card */}
@@ -121,28 +165,37 @@ export default function Home() {
               className="text-xs font-medium mb-1 tracking-wider uppercase"
               style={{ color: "var(--on-surface-variant)" }}
             >
-              나만의 좌표 만들기
+              좌표 만들기
             </p>
 
             {/* Live preview */}
-            <div className="mb-4">
+            <div className="mb-4 overflow-hidden">
               <span
-                className="text-2xl font-bold"
+                className="text-xl sm:text-2xl font-bold whitespace-nowrap"
                 style={{ fontFamily: "Manrope, sans-serif" }}
               >
                 좌표.to/go/
                 <span style={{ color: "var(--primary)" }}>
-                  {slug || "내-포트폴리오"}
+                  {slug || rotatingText}
+                  {!slug && (
+                    <span
+                      aria-hidden="true"
+                      style={{ opacity: 0.4, marginLeft: 1 }}
+                    >
+                      |
+                    </span>
+                  )}
                 </span>
               </span>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div
-                className="flex items-center rounded-xl overflow-hidden"
+                className="flex items-center rounded-xl overflow-hidden focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
                 style={{
-                  background: "var(--surface-lowest)",
-                  boxShadow: "0 2px 32px rgba(0,101,101,0.03)",
+                  background: "var(--surface-container)",
+                  boxShadow: "inset 0 0 0 1px rgba(0,101,101,0.06)",
+                  outlineColor: "var(--primary)",
                 }}
               >
                 <span
@@ -158,7 +211,7 @@ export default function Home() {
                     setSlug(e.target.value.replace(/\s+/g, "-"));
                     setResult(null);
                   }}
-                  placeholder="내-포트폴리오"
+                  placeholder={ROTATING_SLUGS[rotatingIndex]}
                   className="flex-1 py-3 pr-4 bg-transparent outline-none text-base"
                   required
                 />
@@ -171,8 +224,8 @@ export default function Home() {
                 placeholder="연결할 URL을 입력하세요"
                 className="w-full py-3 px-4 rounded-xl outline-none text-base"
                 style={{
-                  background: "var(--surface-lowest)",
-                  boxShadow: "0 2px 32px rgba(0,101,101,0.03)",
+                  background: "var(--surface-container)",
+                  boxShadow: "inset 0 0 0 1px rgba(0,101,101,0.06)",
                 }}
                 required
               />
@@ -243,7 +296,7 @@ export default function Home() {
                   className="text-xs mt-1"
                   style={{ color: "var(--on-surface-variant)" }}
                 >
-                  30일간 유효
+                  7일간 유효
                 </p>
               </div>
             )}
@@ -252,52 +305,129 @@ export default function Home() {
       </section>
 
       {/* Mobile-only nav links */}
-      <nav className="flex sm:hidden gap-3 px-6 pb-6">
+      <nav className="flex sm:hidden gap-2 px-6 pb-6">
         <a
           href="/dashboard"
-          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
         >
           대시보드
         </a>
         <a
           href="/reserve"
-          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
         >
-          이름 예약하기
+          이름 예약
         </a>
         <a
           href="/pricing"
-          className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
+          style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
         >
           요금제
         </a>
       </nav>
 
-      {/* Feature Selection */}
-      <section className="px-6 sm:px-8 py-12 sm:py-16" style={{ background: "var(--surface-low)" }}>
+      {/* Two-tier choice — asymmetric editorial split (5/12 free + 7/12 premium) */}
+      <section
+        className="px-6 sm:px-8 py-12 sm:py-20"
+        style={{ background: "var(--surface-low)" }}
+      >
         <div className="max-w-5xl mx-auto">
           <h2
-            className="text-sm font-medium mb-2 tracking-wider uppercase"
+            className="text-sm font-medium mb-8 tracking-wider uppercase"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            무료로 시작하고, 필요하면 업그레이드하세요
+            두 가지 시작.
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            <TypeCard
-              active
-              title="무료"
-              desc="한글 URL 즉시 생성. 30일 유효."
-              features={["한글 주소 생성", "30일간 유효", "하루 10개까지"]}
-            />
-            <TypeCard
-              title="내 이름 좌표"
-              desc="나만의 이름으로 영구 URL."
-              features={["나만의 영구 주소", "하위 링크 20개", "개인 프로필 페이지"]}
-              highlight
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-stretch">
+            {/* Free — secondary, lighter, 5/12 */}
+            <div
+              className="lg:col-span-5 p-7 sm:p-8 rounded-2xl flex flex-col"
+              style={{
+                background: "var(--surface-lowest)",
+                boxShadow: "var(--shadow-whisper)",
+              }}
+            >
+              <p
+                className="text-xs font-medium mb-3 tracking-wider uppercase"
+                style={{ color: "var(--on-surface-variant)" }}
+              >
+                체험
+              </p>
+              <h3
+                className="text-2xl font-bold mb-2"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                무료
+              </h3>
+              <p
+                className="text-sm mb-2"
+                style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
+              >
+                한글 URL 즉시 생성. 7일 후 자동 만료.
+              </p>
+              <p
+                className="text-sm mb-7"
+                style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}
+              >
+                ₩0
+              </p>
+              <ul className="space-y-2.5 mt-auto">
+                {["한글 주소 생성", "7일간 유효", "하루 10개까지"].map((f) => (
+                  <li key={f} className="text-sm flex items-center gap-2.5">
+                    <span style={{ color: "var(--primary)" }}>✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Premium — dominant, dark, 7/12 */}
+            <div
+              className="lg:col-span-7 p-8 sm:p-10 rounded-2xl flex flex-col"
+              style={{
+                background: "var(--on-background)",
+                color: "var(--surface-lowest)",
+                boxShadow: "var(--shadow-whisper-strong)",
+              }}
+            >
+              <p
+                className="text-xs font-medium mb-3 tracking-wider uppercase"
+                style={{ opacity: 0.55 }}
+              >
+                추천 · 유료
+              </p>
+              <h3
+                className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 break-all"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                좌표.to/[내이름]
+              </h3>
+              <p
+                className="text-base font-bold mb-2"
+                style={{ lineHeight: 1.7 }}
+              >
+                사람들에게 기억되는 나만의 주소.
+              </p>
+              <p className="text-sm mb-7" style={{ opacity: 0.55 }}>
+                월 ₩742부터 · 12개월 ₩8,900
+              </p>
+              <ul className="space-y-2.5 mt-auto">
+                {[
+                  "나만의 전용 주소",
+                  "하위 링크 무제한",
+                  "개인 프로필 페이지",
+                  "클릭 분석 대시보드",
+                ].map((f) => (
+                  <li key={f} className="text-sm flex items-center gap-2.5">
+                    <span style={{ color: "#76d6d5" }}>✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -309,7 +439,7 @@ export default function Home() {
             className="text-sm font-medium mb-8 tracking-wider uppercase"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            내 이름으로 할 수 있는 것
+            이름 하나면 됩니다.
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div
@@ -327,8 +457,8 @@ export default function Home() {
                 개인 프로필
               </h3>
               <p className="text-sm opacity-70" style={{ lineHeight: 1.7 }}>
-                좌표.to/홍길동 하나로 내 모든 링크를 모아 공유하세요.
-                나만의 디지털 명함을 만들어보세요.
+                좌표.to/[내이름] 하나로 모든 링크를 모읍니다.
+                디지털 명함, 끝.
               </p>
             </div>
             <FeatureCard
@@ -337,7 +467,7 @@ export default function Home() {
             />
             <FeatureCard
               title="하위 주소"
-              desc="좌표.to/홍길동/노션, /유튜브, /깃허브... 자유롭게 추가."
+              desc="좌표.to/[내이름]/노션, /유튜브, /깃허브. 무제한 추가."
             />
           </div>
         </div>
@@ -380,52 +510,6 @@ export default function Home() {
           좌표.to
         </span>
       </footer>
-    </div>
-  );
-}
-
-function TypeCard({
-  title,
-  desc,
-  features,
-  highlight,
-  active,
-}: {
-  title: string;
-  desc: string;
-  features: string[];
-  highlight?: boolean;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className="p-6 rounded-2xl transition-all"
-      style={{
-        background: highlight
-          ? "var(--on-background)"
-          : "var(--surface-lowest)",
-        color: highlight ? "var(--surface-lowest)" : "var(--on-surface)",
-        boxShadow: active
-          ? "0 0 0 2px var(--primary), var(--shadow-whisper-strong)"
-          : "var(--shadow-whisper)",
-      }}
-    >
-      <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>
-        {title}
-      </h3>
-      <p className="text-sm mb-4 opacity-70">{desc}</p>
-      <ul className="space-y-1.5">
-        {features.map((f) => (
-          <li key={f} className="text-sm flex items-center gap-2">
-            <span
-              style={{ color: highlight ? "var(--surface-lowest)" : "var(--primary)" }}
-            >
-              ✓
-            </span>
-            {f}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
