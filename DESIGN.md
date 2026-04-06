@@ -88,6 +88,13 @@
 - **원칙:** UI를 고급 종이 층으로 취급. 전통적 그림자 대신 톤 레이어링.
 - **Ambient Shadow (Whisper Shadow):** blur 32-64px, opacity 4-6%, tinted dark teal-grey
 - **Ghost Border:** outline_variant 15% opacity (접근성 필요 시만)
+- **CSS 변수 (globals.css):**
+  - `--shadow-whisper` — 일반 카드 elevation
+  - `--shadow-whisper-strong` — hero glass card, 강조 카드, dark profile card
+
+## Korean Text Wrapping
+- **원칙:** 한글은 글자 단위가 아닌 단어 단위로 줄바꿈해야 함. `text-wrap: balance`와 함께 쓸 때는 반드시 `word-break: keep-all`도 적용 (그렇지 않으면 "짧은" → "짧" / "은"처럼 단어가 깨짐).
+- **globals.css:** body에 `word-break: keep-all` + `overflow-wrap: break-word` 전역 설정.
 
 ## Motion
 - **Approach:** Intentional
