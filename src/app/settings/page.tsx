@@ -127,11 +127,6 @@ export default function SettingsPage() {
       setAdding(false);
       return;
     }
-    if (links.length >= 20) {
-      setAddError("하위 링크는 최대 20개까지 추가할 수 있습니다.");
-      setAdding(false);
-      return;
-    }
     const { error } = await supabase.from("slugs").insert({
       slug: newSlug,
       target_url: newUrl,
@@ -368,7 +363,7 @@ export default function SettingsPage() {
                 className="text-sm"
                 style={{ color: "var(--on-surface-variant)" }}
               >
-                {links.length}/20
+                {links.length}개
               </span>
             </div>
 
