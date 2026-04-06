@@ -44,9 +44,16 @@ body {
   outline: none;
 }
 
-/* Minimum touch target for interactive elements */
-button, a, input, select, textarea {
+/* Minimum touch target for form controls */
+button, input, select, textarea {
   min-height: 44px;
+}
+
+/* Tap target for nav/header links (body links keep natural height) */
+nav a, header a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Small buttons/chips override */

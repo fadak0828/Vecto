@@ -255,7 +255,7 @@ export default function Home() {
       </section>
 
       {/* Mobile-only nav links */}
-      <div className="flex sm:hidden gap-3 px-6 pb-6">
+      <nav className="flex sm:hidden gap-3 px-6 pb-6">
         <a
           href="/dashboard"
           className="flex-1 text-center text-sm py-2.5 rounded-xl transition-opacity hover:opacity-90"
@@ -277,7 +277,7 @@ export default function Home() {
         >
           요금제
         </a>
-      </div>
+      </nav>
 
       {/* Feature Selection */}
       <section className="px-6 sm:px-8 py-12 sm:py-16" style={{ background: "var(--surface-low)" }}>
