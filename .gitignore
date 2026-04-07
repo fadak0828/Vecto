@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Stale npm lockfile — project is bun-native, bun.lock is source of truth
 package-lock.json
+
+# Local screenshot tmp dir for /design-review
+.gstack-tmp/
