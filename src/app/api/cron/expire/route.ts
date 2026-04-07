@@ -71,15 +71,17 @@ export async function GET(request: NextRequest) {
     // 이메일 동시 발송 (Promise.allSettled로 일부 실패 허용)
     const emailPromises = warningNamespaces.map(async (ns) => {
       try {
-        const { data: user } = await supabase
-          .from("users")
-          .select("email")
-          .eq("id", ns.owner_id)
-          .maybeSingle();
+        // Auth users live in the auth schema, not public.users
+        // (public.users was dropped in 010_fix_user_fks.sql).
+        // service_role client is required for auth.admin.getUserById.
+        const { data: userResult } = await supabase.auth.admin.getUserById(
+          ns.owner_id,
+        );
+        const email = userResult?.user?.email;
 
-        if (user?.email) {
+        if (email) {
           await sendRenewalEmail(
-            user.email,
+            email,
             ns.name,
             new Date(ns.paid_until),
           );
