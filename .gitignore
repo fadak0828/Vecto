@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Claude Code local tooling (machine-specific paths, dev preview launchers)
 /.claude/
+
+# Working plans (local scratch — promote to docs/ if worth keeping)
+/.plans/

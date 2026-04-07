@@ -4,6 +4,26 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.4.0] - 2026-04-07
+
+### Added
+- **단축 링크에 QR 코드 자동 생성** — 생성 결과 카드에 즉시 스캔 가능한 QR 표시. 강사가 강의 화면에서 학생 폰으로 1탭 공유. `qrcode` 라이브러리(50KB) lazy import로 hero LCP 영향 0. 클라이언트 사이드 생성 → 서버 비용 0. QR 클릭 시 PNG 이미지가 클립보드로 (카톡/슬랙에 paste). 미지원 브라우저는 URL 텍스트로 graceful fallback.
+- **PC 데스크톱 라이브 ghost preview** — 1024px+ 화면에서 폼 오른쪽에 결과 패널이 항상 표시됨. 사용자가 슬러그를 타이핑하는 즉시 우측에 URL + QR이 미리 렌더링되어 "내가 만들고 있다"는 즉각적 시각 피드백. 생성 클릭 시 같은 자리에서 ghost → real로 자연스럽게 전환. 비어있던 700px 우측 공간이 이제 데모 영역.
+- **단축 링크 클릭 = 복사** — 결과 URL 텍스트를 클릭하면 클립보드 복사 (별도 복사 버튼 제거). hover 시 미세한 background tint로 affordance 신호. 키보드 접근성 위해 button + aria-label.
+- **프리미엄 가치 진술 카드 6개** — pricing 페이지의 방어적 "무료 vs 프리미엄" 비교 표 제거. 대신 "프리미엄으로 얻는 것" 섹션에 카드 6개: 내 이름이 곧 주소 / 하위 링크 무제한 / 프로필 페이지 자동 생성 / 클릭 분석 대시보드 / 만료 신경 쓰지 않기 / 발음할 수 있는 URL. 비교 table 대신 가치 statement, 아래 헤드라인: "짧은 주소가 아니라, 기억되는 주소."
+
+### Changed
+- **단축 링크 생성 속도 ~3x 개선** — `/api/shorten`이 생성 전 4번의 sequential SELECT (daily count, monthly count, namespace 충돌, slug 충돌)로 한국→Vercel→Supabase 왕복을 5번 함. `Promise.all`로 병렬화하여 round-trip 5번 → 2번. 한국 사용자 체감 약 1초 단축.
+- **결과 카드 표시 포맷에서 `https://` 제거** — 코드베이스 다른 모든 곳(홈 라이브 프리뷰, 대시보드 sublink 목록, pricing 페이지)이 이미 `좌표.to/...` 형태로 표시 중인데 결과 카드 한 곳만 풀 URL이었음. 일관성 + 한글 브랜딩 강조. 클립보드 복사는 풀 URL 그대로 (브라우저 호환성 유지).
+- **결과 카드 글씨 키움 + QR 사이즈 키움** — URL 텍스트 14px → 20-24px (text-xl/2xl, Manrope bold). QR 다운로드 버튼 제거하고 QR 자체가 클릭 가능한 큰 영역으로. 모바일에서 카드 너비 가득(≈290px), PC에서 288px. Whisper Shadow + 흰 padding 카드.
+- **Pricing 모바일 reorder** — 모바일에서 hero 바로 아래에 결제 카드(프리미엄 이용권 + 결제하기 버튼)를 배치. plan selector(3/6/12개월)는 그 아래로. 사용자가 첫 화면에서 바로 결제 가능. 데스크톱은 기존 좌우 split 유지.
+- **월 가격 우선 hierarchy** — pricing 페이지 전체를 monthly-first로. 각 plan 카드에서 월 가격이 큰 글씨, 총액이 작게. Purchase card도 동일. Hero "월 990원부터" → "월 약 740원부터" (실제 최저 monthlyPrice와 정합).
+- **월 가격 표시 약 X원으로 깔끔하게** — 967원/817원/742원처럼 끝자리 지저분한 숫자 대신 10단위로 내림(`Math.floor(p/10)*10`) + "약" prefix. 약 960원 / 약 810원 / 약 740원. 항상 실제보다 낮게(under-represent) → 사용자 친화 + 정직(총 결제 라인은 정확 금액 그대로).
+
+### Fixed
+- **모든 페이지 nav 수직 정렬 버그** — `globals.css`의 `nav a { display: inline-flex; align-items: center }` 룰을 Tailwind의 `sm:inline` 클래스가 덮어써서 텍스트가 44px 터치 타겟 박스 위쪽에 붙던 버그. 홈/pricing/dashboard nav 모두 `hidden sm:inline-flex`로 교체. 픽셀 단위 정렬 검증됨.
+- **Pricing hero "월 990원부터" 가격 정합성** — 실제 최저 monthlyPrice는 742원인데 hero는 990원으로 표시되던 텍스트 mismatch 수정.
+
 ## [0.3.0] - 2026-04-06
 
 ### Changed
