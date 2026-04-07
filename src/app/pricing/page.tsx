@@ -45,7 +45,7 @@ export default function PricingPage() {
         return;
       }
 
-      const { paymentId } = await res.json();
+      const { paymentId, customerName } = await res.json();
 
       setLoading("billing_key");
 
@@ -62,7 +62,9 @@ export default function PricingPage() {
         issueName: "좌표.to 프리미엄 구독",
         displayAmount: MONTHLY_PRICE,
         currency: "KRW",
-        customer: { customerId: paymentId },
+        // customer.fullName 은 KPN 등 일부 PG 의 빌링키 발급 필수 필드.
+        // 누락 시 issue-prepare/v2 가 ParsePgRawResponseFailed 로 400.
+        customer: { customerId: paymentId, fullName: customerName },
       });
 
       if (response?.code) {
