@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Working plans (local scratch — promote to docs/ if worth keeping)
 /.plans/
+
+# Stale npm lockfile — project is bun-native, bun.lock is source of truth
+package-lock.json
