@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PLANS, type Plan } from "@/lib/pricing";
+import { PLANS, roughMonthly, type Plan } from "@/lib/pricing";
 
 export default function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan>(PLANS[1]); // 6개월 기본 선택
@@ -82,7 +82,7 @@ export default function PricingPage() {
         <div className="flex items-center gap-3 sm:gap-6">
           <a
             href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex"
             style={{ color: "var(--on-surface-variant)" }}
           >
             대시보드
@@ -100,29 +100,31 @@ export default function PricingPage() {
         </div>
       </nav>
 
-      <main className="px-6 sm:px-8 pt-8 sm:pt-16 pb-20 max-w-5xl mx-auto">
-        {/* Hero */}
-        <section className="mb-12 sm:mb-20 max-w-3xl">
+      <main className="px-6 sm:px-8 pt-6 sm:pt-16 pb-20 max-w-5xl mx-auto">
+        {/* Hero — compact on mobile so purchase card lands high */}
+        <section className="mb-6 sm:mb-20 max-w-3xl">
           <h1
-            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-4 sm:mb-6"
+            className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            월 <span style={{ color: "var(--primary)" }}>990원</span>부터.
+            월 <span style={{ color: "var(--primary)" }}>약 740원</span>부터.
           </h1>
           <p
-            className="text-base sm:text-lg max-w-2xl"
-            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+            className="text-sm sm:text-lg max-w-2xl"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
             좌표.to/내이름 — 말로 전달할 수 있는 전용 주소.
-            <br />
-            강의실에서 프로젝터에 띄우면 모두가 바로 입력합니다.
+            <span className="hidden sm:inline">
+              <br />
+              강의실에서 프로젝터에 띄우면 모두가 바로 입력합니다.
+            </span>
           </p>
         </section>
 
-        {/* Plan Selector */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Plan Selector — mobile: purchase card first; desktop: plans left, purchase right */}
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 lg:items-start">
           {/* Plans */}
-          <div className="lg:col-span-7 space-y-4">
+          <div className="order-2 lg:order-none lg:col-span-7 space-y-4">
             {PLANS.map((plan) => (
               <button
                 key={plan.periodMonths}
@@ -168,20 +170,29 @@ export default function PricingPage() {
                   </div>
                   <p
                     className="text-sm mt-1"
-                    style={{
-                      opacity: 0.6,
-                    }}
+                    style={{ opacity: 0.6 }}
                   >
-                    월 ₩{plan.monthlyPrice.toLocaleString()} 환산
+                    총 ₩{plan.price.toLocaleString()} 결제
                   </p>
                 </div>
-                <div className="text-right">
-                  <span
-                    className="text-2xl font-extrabold"
-                    style={{ fontFamily: "Manrope, sans-serif" }}
-                  >
-                    ₩{plan.price.toLocaleString()}
-                  </span>
+                <div className="text-right shrink-0">
+                  <div className="flex items-baseline gap-1 justify-end">
+                    <span
+                      className="text-sm font-medium"
+                      style={{ opacity: 0.6 }}
+                    >
+                      약
+                    </span>
+                    <span
+                      className="text-3xl sm:text-4xl font-extrabold leading-none"
+                      style={{ fontFamily: "Manrope, sans-serif" }}
+                    >
+                      ₩{roughMonthly(plan.monthlyPrice).toLocaleString()}
+                    </span>
+                    <span className="text-sm font-medium" style={{ opacity: 0.7 }}>
+                      / 월
+                    </span>
+                  </div>
                 </div>
               </button>
             ))}
@@ -203,7 +214,7 @@ export default function PricingPage() {
 
           {/* Purchase Card */}
           <div
-            className="lg:col-span-5 p-6 sm:p-8 rounded-2xl sticky top-8"
+            className="order-1 lg:order-none lg:col-span-5 p-6 sm:p-8 rounded-2xl lg:sticky lg:top-8"
             style={{
               background: "var(--surface-lowest)",
               boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
@@ -231,21 +242,42 @@ export default function PricingPage() {
             </div>
 
             <div
-              className="flex items-end justify-between py-4 mb-6"
+              className="py-5 mb-6"
               style={{
                 borderTop: "1px solid var(--surface-container)",
                 borderBottom: "1px solid var(--surface-container)",
               }}
             >
-              <span className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
-                총 결제 금액
-              </span>
-              <span
-                className="text-3xl font-extrabold"
-                style={{ fontFamily: "Manrope, sans-serif" }}
+              <div className="flex items-baseline gap-1.5">
+                <span
+                  className="text-base font-medium"
+                  style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}
+                >
+                  약
+                </span>
+                <span
+                  className="text-4xl sm:text-5xl font-extrabold"
+                  style={{ fontFamily: "Manrope, sans-serif" }}
+                >
+                  ₩{roughMonthly(selectedPlan.monthlyPrice).toLocaleString()}
+                </span>
+                <span
+                  className="text-base font-medium"
+                  style={{ color: "var(--on-surface-variant)" }}
+                >
+                  / 월
+                </span>
+              </div>
+              <p
+                className="text-xs mt-2"
+                style={{ color: "var(--on-surface-variant)" }}
               >
-                ₩{selectedPlan.price.toLocaleString()}
-              </span>
+                {selectedPlan.label} 총{" "}
+                <span className="font-bold">
+                  ₩{selectedPlan.price.toLocaleString()}
+                </span>{" "}
+                결제
+              </p>
             </div>
 
             <button
@@ -285,77 +317,53 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Comparison Table */}
+        {/* Premium benefits — value statements, not comparison */}
         <section className="mt-20 sm:mt-32">
-          <h3
-            className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12"
-            style={{ fontFamily: "Manrope, sans-serif" }}
+          <p
+            className="text-xs font-bold uppercase tracking-widest mb-3"
+            style={{ color: "var(--primary)" }}
           >
-            무료 vs 프리미엄
+            프리미엄으로 얻는 것
+          </p>
+          <h3
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4 sm:mb-6"
+            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
+          >
+            짧은 주소가 아니라,
+            <br />
+            기억되는 주소.
           </h3>
-          <div className="overflow-x-auto -mx-6 px-6">
-            <table
-              className="w-full text-left"
-              style={{ borderSpacing: "0 12px", borderCollapse: "separate" }}
-            >
-              <thead>
-                <tr>
-                  <th
-                    className="px-6 sm:px-8 pb-4 text-xs font-bold uppercase tracking-widest"
-                    style={{ color: "var(--on-surface-variant)" }}
-                  >
-                    기능
-                  </th>
-                  <th
-                    className="px-6 sm:px-8 pb-4 text-xs font-bold uppercase tracking-widest"
-                    style={{ color: "var(--on-surface-variant)" }}
-                  >
-                    무료
-                  </th>
-                  <th
-                    className="px-6 sm:px-8 pb-4 text-xs font-bold uppercase tracking-widest"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    프리미엄
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <ComparisonRow
-                  label="URL 구조"
-                  free="좌표.to/go/..."
-                  premium="좌표.to/내이름"
-                  even
-                />
-                <ComparisonRow
-                  label="만료"
-                  free="7일"
-                  premium="구독 동안 유지"
-                />
-                <ComparisonRow
-                  label="하위 링크"
-                  free="—"
-                  premium="무제한"
-                  even
-                />
-                <ComparisonRow
-                  label="프로필 페이지"
-                  free="—"
-                  premium="소개 + 아바타"
-                />
-                <ComparisonRow
-                  label="클릭 분석"
-                  free="7일"
-                  premium="7일 + 링크별 통계"
-                  even
-                />
-                <ComparisonRow
-                  label="가격"
-                  free="₩0"
-                  premium="월 ₩742~990"
-                />
-              </tbody>
-            </table>
+          <p
+            className="text-base sm:text-lg max-w-2xl mb-8 sm:mb-12"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+          >
+            좌표.to/내이름은 명함, 강의 슬라이드, 인스타 바이오 어디에나 어울립니다.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <BenefitCard
+              title="내 이름이 곧 주소"
+              desc="좌표.to/내이름. 사람들이 한 번 보면 잊지 않습니다. 명함 대신, 슬랙 프로필 대신, 한 줄로."
+            />
+            <BenefitCard
+              title="하위 링크 무제한"
+              desc="/노션, /유튜브, /깃허브... 원하는 만큼 추가하세요. 모든 링크를 한 곳에 모읍니다."
+            />
+            <BenefitCard
+              title="프로필 페이지 자동 생성"
+              desc="소개 + 아바타로 나만의 랜딩 페이지가 완성됩니다. 디지털 명함, 끝."
+            />
+            <BenefitCard
+              title="클릭 분석 대시보드"
+              desc="누가 언제 어디서 클릭했는지 한눈에. 강의 후기, 마케팅 효과를 데이터로."
+            />
+            <BenefitCard
+              title="만료 신경 쓰지 않기"
+              desc="구독하는 동안 주소는 영원히 당신의 것. 7일 만료 없이 계속 사용하세요."
+            />
+            <BenefitCard
+              title="발음할 수 있는 URL"
+              desc="bit.ly/3jAzD9F를 전화로 불러본 적 있나요? 좌표.to/홍길동은 한 번에 통합니다."
+            />
           </div>
         </section>
       </main>
@@ -401,45 +409,30 @@ function Feature({ text }: { text: string }) {
   );
 }
 
-function ComparisonRow({
-  label,
-  free,
-  premium,
-  even,
-}: {
-  label: string;
-  free: string;
-  premium: string;
-  even?: boolean;
-}) {
+function BenefitCard({ title, desc }: { title: string; desc: string }) {
   return (
-    <tr>
-      <td
-        className="px-6 sm:px-8 py-5 rounded-l-xl font-medium"
+    <div
+      className="rounded-2xl p-6 sm:p-7 transition-all hover:translate-x-0.5"
+      style={{
+        background: "var(--surface-lowest)",
+        boxShadow: "var(--shadow-whisper)",
+      }}
+    >
+      <h4
+        className="text-lg sm:text-xl font-bold mb-2 break-keep"
         style={{
-          background: even ? "var(--surface-low)" : "var(--surface-lowest)",
+          fontFamily: "Manrope, sans-serif",
+          color: "var(--on-background)",
         }}
       >
-        {label}
-      </td>
-      <td
-        className="px-6 sm:px-8 py-5"
-        style={{
-          background: even ? "var(--surface-low)" : "var(--surface-lowest)",
-          color: "var(--on-surface-variant)",
-        }}
+        {title}
+      </h4>
+      <p
+        className="text-sm sm:text-base break-keep"
+        style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
       >
-        {free}
-      </td>
-      <td
-        className="px-6 sm:px-8 py-5 rounded-r-xl font-bold"
-        style={{
-          background: even ? "var(--surface-low)" : "var(--surface-lowest)",
-          color: "var(--primary)",
-        }}
-      >
-        {premium}
-      </td>
-    </tr>
+        {desc}
+      </p>
+    </div>
   );
 }

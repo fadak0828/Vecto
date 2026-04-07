@@ -47,6 +47,15 @@ export function getPlan(periodMonths: number): Plan | null {
   return PLANS.find((p) => p.periodMonths === periodMonths) ?? null;
 }
 
+/**
+ * Round monthly price DOWN to nearest 10 for clean display.
+ * Always under-represents (never higher than actual). Use with "약" prefix.
+ * 967 → 960, 817 → 810, 742 → 740
+ */
+export function roughMonthly(price: number): number {
+  return Math.floor(price / 10) * 10;
+}
+
 export function validatePaymentAmount(
   periodMonths: number,
   amount: number,
