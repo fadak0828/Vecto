@@ -52,6 +52,14 @@
 - **F-K** `prefers-reduced-motion` 처리 — partially addressed in v0.3.0 (hero typing rotation respects it). 나머지 모든 `transition-*` 전역 처리 필요.
 - **F-L** nav 탭 타깃 width — partially addressed in v0.3.0 (룰을 `@layer base`로 옮겨서 cascade 정렬). `min-height` 대신 `padding` 전환은 미진행.
 
+### v0.4.0 follow-up (QR + perf + pricing PR에서 deferred)
+- **대시보드 sublink 항목별 QR** — 대시보드 링크 목록에 QR 모달 추가 (현재는 홈 결과 카드만 QR)
+- **/settings 페이지 sublink QR** — 동일하게 follow-up
+- **QR 색상/로고 커스터마이징** — 프리미엄 사용자가 brand color로 QR 칠할 수 있게
+- **QR sharing API (Web Share API)** — 모바일 native share sheet 통합
+- **Postgres RPC for shorten** — `Promise.all` 옵션 A 측정 후 더 빠르면 옵션 B로 전환 (1 round-trip)
+- **roughMonthly 디스플레이 — pricing/payment-prepare/webhook 정합성** — 사용자에게 표시되는 약 X원과 실제 결제 정확 금액의 onboarding 메시지 일관성 점검
+
 ### 장기 개선
 - HTML route handler를 React 컴포넌트로 전환 (XSS 근본 원인 제거)
 - Dashboard/Settings 공통 컴포넌트 추출 (코드 중복 제거)

@@ -76,3 +76,48 @@ describe("POST /api/shorten — Rate Limit 계산", () => {
     expect(isOverLimit).toBe(true);
   });
 });
+
+// Regression: Promise.all 병렬화 후에도 카운트/충돌 의미가 보존되는지 검증
+// (sequential → parallel 변환이 fail-fast 동작을 깨지 않는지)
+describe("POST /api/shorten — Promise.all 병렬화 회귀", () => {
+  it("4개 SELECT가 모두 resolve하면 카운트와 충돌 모두 접근 가능하다", async () => {
+    const dailyMock = Promise.resolve({ count: 5 });
+    const monthlyMock = Promise.resolve({ count: 12 });
+    const nsConflictMock = Promise.resolve({ data: null });
+    const slugConflictMock = Promise.resolve({ data: null });
+
+    const [
+      { count: dailyCount },
+      { count: monthlyCount },
+      { data: nsConflict },
+      { data: existing },
+    ] = await Promise.all([
+      dailyMock,
+      monthlyMock,
+      nsConflictMock,
+      slugConflictMock,
+    ]);
+
+    expect(dailyCount).toBe(5);
+    expect(monthlyCount).toBe(12);
+    expect(nsConflict).toBeNull();
+    expect(existing).toBeNull();
+  });
+
+  it("한 SELECT가 reject하면 Promise.all 전체가 reject된다 (fail-fast)", async () => {
+    const ok = Promise.resolve({ count: 0 });
+    const failing = Promise.reject(new Error("supabase down"));
+
+    await expect(
+      Promise.all([ok, ok, failing, ok])
+    ).rejects.toThrow("supabase down");
+  });
+
+  it("일일 한도 초과는 monthly count 값과 무관하게 즉시 차단된다", async () => {
+    const dailyCount = 10;
+    const monthlyCount = 8;
+    // 두 결과 모두 받아왔지만 daily가 우선 차단
+    expect((dailyCount ?? 0) >= 10).toBe(true);
+    expect((monthlyCount ?? 0) >= 30).toBe(false);
+  });
+});

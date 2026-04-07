@@ -161,8 +161,8 @@ export default function DashboardPage() {
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
         <div className="flex items-center gap-4">
-          <a href="/settings" className="text-sm hover:opacity-70 transition-opacity hidden sm:inline" style={{ color: "var(--on-surface-variant)" }}>설정</a>
-          <span className="text-sm hidden sm:inline" style={{ color: "var(--on-surface-variant)" }}>{user?.email}</span>
+          <a href="/settings" className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex" style={{ color: "var(--on-surface-variant)" }}>설정</a>
+          <span className="text-sm hidden sm:inline-flex sm:items-center" style={{ color: "var(--on-surface-variant)" }}>{user?.email}</span>
           <button onClick={handleLogout} className="text-sm hover:opacity-70" style={{ color: "var(--on-surface-variant)" }}>로그아웃</button>
         </div>
       </nav>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
             {namespace.payment_status === "free" && (
               <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
                 <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>프리미엄으로 업그레이드하세요</h3>
-                <p className="text-sm opacity-80 mb-4">월 742원부터. 전용 주소 + 프로필 페이지.</p>
+                <p className="text-sm opacity-80 mb-4">월 약 740원부터. 전용 주소 + 프로필 페이지.</p>
                 <a href="/pricing" className="inline-block px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "rgba(255,255,255,0.2)" }}>요금제 보기 →</a>
               </div>
             )}
