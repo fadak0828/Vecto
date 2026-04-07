@@ -11,7 +11,7 @@ describe("GET /api/cron/expire — 인증", () => {
 
   it("잘못된 secret은 거부한다", () => {
     const cronSecret = "test-secret-123";
-    const authHeader = "Bearer wrong-secret";
+    const authHeader: string = "Bearer wrong-secret";
     expect(authHeader === `Bearer ${cronSecret}`).toBe(false);
   });
 

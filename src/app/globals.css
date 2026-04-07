@@ -97,6 +97,18 @@ body {
   overflow-wrap: break-word;
 }
 
+/* Price display — Pretendard renders ₩ + Korean digits beautifully.
+   Manrope's Won glyph + comma combo looks slanted/italic. tabular-nums
+   ensures consistent digit width so prices don't shift on hover/loading. */
+.price-display {
+  font-family: "Pretendard Variable", Pretendard, "Plus Jakarta Sans",
+    -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum", "ss01";
+  letter-spacing: -0.02em;
+}
+
 /* These rules live in @layer base so Tailwind utilities (in @layer utilities)
    take precedence over them — important so `hidden` / `sm:inline` actually
    hide nav links on mobile, and `outline-none` actually disables focus ring

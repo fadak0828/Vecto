@@ -1,7 +1,7 @@
 export default function NotFound() {
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center p-8"
+      className="flex-1 flex flex-col items-center justify-center p-8"
       style={{ background: "var(--surface)" }}
     >
       <h1

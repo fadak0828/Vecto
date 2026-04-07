@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { ClickStats } from "@/components/click-stats";
 import { PaymentStatus } from "@/components/payment-status";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   ClickChartPreview,
   NamespacePillPreview,
@@ -22,6 +23,14 @@ type Namespace = {
   paid_until: string | null;
 };
 
+type Subscription = {
+  id: string;
+  status: "pending" | "active" | "past_due" | "canceled" | "failed";
+  current_period_end: string | null;
+  past_due_since: string | null;
+  failed_charge_count: number;
+};
+
 type SubLink = {
   id: string;
   slug: string;
@@ -33,8 +42,11 @@ export default function DashboardPage() {
   const supabase = createClient();
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [namespace, setNamespace] = useState<Namespace | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [links, setLinks] = useState<SubLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [claimName, setClaimName] = useState("");
   const [claimError, setClaimError] = useState("");
   const [claiming, setClaiming] = useState(false);
@@ -71,8 +83,42 @@ export default function DashboardPage() {
       setAvatarUrl(ns.avatar_url ?? "");
       const { data: slugs } = await supabase.from("slugs").select("id, slug, target_url, click_count").eq("namespace_id", ns.id).order("created_at", { ascending: true });
       setLinks(slugs ?? []);
+
+      // Subscription (D-H4 — JOIN via subscriptions_public view, RLS enforced).
+      // 가장 최근 구독 1건을 가져와 5-state 렌더링에 사용.
+      const { data: sub } = await supabase
+        .from("subscriptions_public")
+        .select("id, status, current_period_end, past_due_since, failed_charge_count")
+        .eq("namespace_id", ns.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setSubscription(sub ?? null);
     }
     setLoading(false);
+  }
+
+  async function handleCancelSubscription() {
+    if (!subscription) return;
+    setCanceling(true);
+    try {
+      const res = await fetch("/api/subscription/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription_id: subscription.id }),
+      });
+      if (res.ok) {
+        setCancelOpen(false);
+        await loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error ?? "해지 처리 중 오류가 발생했습니다.");
+      }
+    } catch {
+      alert("해지 처리 중 오류가 발생했습니다.");
+    } finally {
+      setCanceling(false);
+    }
   }
 
   async function handleClaim(e: React.FormEvent) {
@@ -89,10 +135,9 @@ export default function DashboardPage() {
         setClaimError("생성 실패: " + error.message);
       }
     } else {
+      // 무료 가입 = 즉시 namespace 소유 (CEO-E4). Pricing redirect 없음.
       setNamespace(data);
-      // 결제 페이지로 이동
-      window.location.href = "/pricing";
-      return;
+      await loadData();
     }
     setClaiming(false);
   }
@@ -154,14 +199,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: "var(--surface)" }}>
+      <main className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
         <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
       </main>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
@@ -174,10 +219,10 @@ export default function DashboardPage() {
 
       <main className="px-6 sm:px-8 py-6 sm:py-8 max-w-5xl mx-auto">
         {!namespace ? (
-          /* Claim — 이름 예약 후 결제 페이지로 이동 */
+          /* Claim — 무료 가입 = 즉시 namespace 소유 (v0.7.0 freemium) */
           <section className="max-w-lg">
             <h1 className="text-4xl font-extrabold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>내 좌표 만들기</h1>
-            <p className="mb-6" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 전용 주소를 만드세요.</p>
+            <p className="mb-6 break-keep" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 전용 주소를 무료로 만드세요.</p>
 
             {/* 라이브 미리보기 — 입력하면 실시간으로 슬러그 반영 */}
             <div className="mb-6">
@@ -190,19 +235,19 @@ export default function DashboardPage() {
                 <input type="text" value={claimName} onChange={(e) => setClaimName(e.target.value.replace(/\s+/g, "-"))} placeholder="내이름" className="flex-1 py-3 pr-4 bg-transparent outline-none text-lg" required />
               </div>
               <button type="submit" disabled={claiming} className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity" style={{ background: "var(--on-background)", color: "var(--surface-lowest)" }}>
-                {claiming ? "생성 중..." : "이 이름으로 시작하기"}
+                {claiming ? "생성 중..." : "무료로 시작하기"}
               </button>
               {claimError && <p className="text-sm" style={{ color: "var(--error)" }}>{claimError}</p>}
-              <p className="text-xs text-center" style={{ color: "var(--on-surface-variant)" }}>이름 등록 후 결제 페이지로 이동합니다.</p>
+              <p className="text-xs text-center break-keep" style={{ color: "var(--on-surface-variant)" }}>전 기능 무제한 무료. 카드 등록 없음.</p>
             </form>
 
-            {/* 미리보기 — 프리미엄으로 만들 수 있는 것 */}
+            {/* 미리보기 — 프리미엄으로 업그레이드하면 받는 것 */}
             <div className="mt-10">
               <p
                 className="text-xs font-bold uppercase tracking-widest mb-3"
                 style={{ color: "var(--primary)" }}
               >
-                결제하면 이렇게 됩니다
+                프리미엄으로 받는 것
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <ProfileCardPreview displayName={claimName || "내이름"} />
@@ -218,11 +263,23 @@ export default function DashboardPage() {
               <p style={{ color: "var(--on-surface-variant)" }}>당신만의 디지털 좌표를 관리하세요.</p>
             </div>
 
-            {/* Payment status */}
-            <PaymentStatus paymentStatus={namespace.payment_status} paidUntil={namespace.paid_until} namespaceSlug={namespace.name} displayName={namespace.display_name ?? undefined} />
+            {/* Payment status — 5-state */}
+            <PaymentStatus
+              subscription={subscription}
+              namespaceSlug={namespace.name}
+              displayName={namespace.display_name ?? undefined}
+              onCancel={
+                subscription?.status === "active"
+                  ? () => setCancelOpen(true)
+                  : undefined
+              }
+            />
 
-            {/* Stats row */}
-            <ClickStats namespaceId={namespace.id} />
+            {/* Stats row — paid gate (D-M4) */}
+            <ClickStats
+              namespaceId={namespace.id}
+              isPaid={subscription?.status === "active" || subscription?.status === "canceled"}
+            />
 
             {/* Profile card */}
             <div className="p-6 rounded-2xl" style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 48px rgba(0,0,0,0.03)" }}>
@@ -326,19 +383,27 @@ export default function DashboardPage() {
               </form>
             </div>
 
-            {/* Upsell banner — free 상태에서만 표시 */}
-            {namespace.payment_status === "free" && (
-              <div className="p-6 rounded-2xl text-white" style={{ background: "linear-gradient(135deg, var(--primary), var(--primary-container))" }}>
-                <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Manrope, sans-serif" }}>프리미엄으로 업그레이드하세요</h3>
-                <p className="text-sm opacity-80 mb-4">월 약 740원부터. 전용 주소 + 프로필 페이지.</p>
-                <a href="/pricing" className="inline-block px-4 py-2 rounded-lg text-sm font-medium" style={{ background: "rgba(255,255,255,0.2)" }}>요금제 보기 →</a>
-              </div>
-            )}
           </section>
         )}
       </main>
 
-      <footer className="px-8 py-6 text-center text-xs" style={{ color: "var(--on-surface-variant)" }}>좌표.to</footer>
+      {/* Cancel confirmation dialog */}
+      {subscription && (
+        <ConfirmDialog
+          open={cancelOpen}
+          title="구독을 해지하시겠어요?"
+          description={
+            subscription.current_period_end
+              ? `${new Date(subscription.current_period_end).toLocaleDateString("ko-KR")}까지는 프리미엄을 계속 이용할 수 있어요. 그 이후에는 프로필 페이지에 안내 1줄이 다시 표시됩니다.`
+              : "해지하시면 프로필 페이지에 안내 1줄이 다시 표시됩니다."
+          }
+          confirmLabel={canceling ? "처리 중..." : "해지"}
+          cancelLabel="돌아가기"
+          destructive
+          onConfirm={handleCancelSubscription}
+          onCancel={() => setCancelOpen(false)}
+        />
+      )}
     </div>
   );
 }

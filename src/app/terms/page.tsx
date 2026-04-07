@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { businessInfo } from "@/lib/business-info";
 
 export const metadata: Metadata = {
   title: "이용약관 — 좌표.to",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-3xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
       </nav>
@@ -57,7 +58,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="제6조 (서비스 이용 제한)">
-            회사는 이용자가 제5조의 의무를 위반한 경우, 사전 통지 없이 해당 URL을 삭제하거나 서비스 이용을 제한할 수 있습니다. 이용 제한에 대해 이의가 있는 경우 support@좌표.to로 문의할 수 있습니다.
+            회사는 이용자가 제5조의 의무를 위반한 경우, 사전 통지 없이 해당 URL을 삭제하거나 서비스 이용을 제한할 수 있습니다. 이용 제한에 대해 이의가 있는 경우 {businessInfo.email}로 문의할 수 있습니다.
           </Section>
 
           <Section title="제7조 (면책)">
@@ -69,16 +70,26 @@ export default function TermsPage() {
           </Section>
 
           <Section title="제8조 (환불)">
-            프리미엄 서비스 결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다. 환불 요청은 support@좌표.to로 접수하시기 바랍니다.
+            프리미엄 서비스 결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다. 환불 요청은 {businessInfo.email}로 접수하시기 바랍니다.
           </Section>
 
           <Section title="제9조 (분쟁 해결)">
-            본 약관과 관련된 분쟁은 대한민국 법률에 따르며, 관할 법원은 서울중앙지방법원으로 합니다.
+            본 약관과 관련된 분쟁은 대한민국 법률에 따르며, 관할 법원은 민사소송법에서 정한 관할 법원으로 합니다.
+          </Section>
+
+          <Section title="제10조 (사업자 정보)">
+            <ul className="space-y-1">
+              <li>상호: {businessInfo.name || "좌표.to"}</li>
+              <li>대표자: {businessInfo.representative || "등록 진행 중"}</li>
+              <li>사업자등록번호: {businessInfo.registrationNumber || "등록 진행 중"}</li>
+              <li>통신판매업 신고번호: {businessInfo.mailOrderNumber || "신고 진행 중"}</li>
+              <li>사업장 주소: {businessInfo.address || "등록 진행 중"}</li>
+              <li>이메일: {businessInfo.email}</li>
+              {businessInfo.phone && <li>전화: {businessInfo.phone}</li>}
+            </ul>
           </Section>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
@@ -89,20 +100,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "Manrope, sans-serif" }}>{title}</h2>
       <div className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{children}</div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="px-6 sm:px-8 py-8" style={{ background: "var(--surface-low)" }}>
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-3xl mx-auto">
-        <span className="font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</span>
-        <div className="flex gap-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>
-          <span className="font-medium" style={{ color: "var(--on-surface)" }}>이용약관</span>
-          <a href="/privacy" className="hover:opacity-70 transition-opacity">개인정보 처리방침</a>
-        </div>
-        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>© 2026 좌표.to</span>
-      </div>
-    </footer>
   );
 }

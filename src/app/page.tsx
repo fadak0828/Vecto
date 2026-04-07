@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PLANS, roughMonthly } from "@/lib/pricing";
+import { MONTHLY_PRICE } from "@/lib/pricing";
 import {
   ClickChartPreview,
   NamespacePillPreview,
   ProfileCardPreview,
+  RotatingSlug,
 } from "@/components/premium-previews";
 
 /** Strip http:// or https:// prefix for display (clipboard copy keeps full URL) */
@@ -214,7 +215,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <span
@@ -225,25 +226,11 @@ export default function Home() {
         </span>
         <div className="flex items-center gap-3 sm:gap-6">
           <a
-            href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            대시보드
-          </a>
-          <a
-            href="/reserve"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            이름 예약하기
-          </a>
-          <a
             href="/pricing"
             className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            요금제
+            프리미엄
           </a>
           <a
             href="/auth/login"
@@ -691,25 +678,11 @@ export default function Home() {
       {/* Mobile-only nav links */}
       <nav className="flex sm:hidden gap-2 px-6 pb-6">
         <a
-          href="/dashboard"
-          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
-        >
-          대시보드
-        </a>
-        <a
-          href="/reserve"
-          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
-          style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
-        >
-          이름 예약
-        </a>
-        <a
           href="/pricing"
           className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
           style={{ background: "var(--surface-container)", color: "var(--on-surface)" }}
         >
-          요금제
+          프리미엄
         </a>
       </nav>
 
@@ -720,15 +693,15 @@ export default function Home() {
             className="text-xs font-bold uppercase tracking-widest mb-3"
             style={{ color: "var(--primary)" }}
           >
-            결제하면 이렇게 됩니다
+            이렇게 만들어집니다
           </p>
           <h2
             className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 break-keep"
             style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
           >
-            짧은 주소가 아니라,
+            한번에 기억되는
             <br />
-            기억되는 주소.
+            나만의 주소를 만드세요.
           </h2>
           <p
             className="text-base sm:text-lg max-w-2xl mb-8 sm:mb-10"
@@ -737,9 +710,19 @@ export default function Home() {
             텍스트 설명보다 한 번 보는 게 빠릅니다.
           </p>
 
-          {/* 1. Namespace pill — full width */}
-          <div className="mb-8">
-            <NamespacePillPreview slug="홍길동" />
+          {/* 1. Namespace pill — rotating slug, browser-bar style */}
+          <div className="mb-8 max-w-md">
+            <NamespacePillPreview hideCursor wide>
+              <RotatingSlug
+                words={[
+                  "내이름",
+                  "우리가게",
+                  "행사이름",
+                  "포트폴리오",
+                  "강의실",
+                ]}
+              />
+            </NamespacePillPreview>
             <p
               className="text-sm mt-3"
               style={{ color: "var(--on-surface-variant)" }}
@@ -781,7 +764,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA — pricing card with explicit price hint */}
+      {/* CTA — free signup primary, premium soft mention */}
       <section
         className="px-6 sm:px-8 py-12 sm:py-20"
         style={{
@@ -790,7 +773,7 @@ export default function Home() {
       >
         <div className="max-w-3xl mx-auto text-center">
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4"
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4 break-keep"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
             내 이름, 내 주소.
@@ -798,49 +781,27 @@ export default function Home() {
             지금 바로 시작하세요.
           </h2>
           <p
-            className="text-white/85 mb-8"
+            className="text-white/85 mb-8 break-keep"
             style={{ lineHeight: 1.7 }}
           >
-            <span className="block text-xs font-medium tracking-wider uppercase mb-1 text-white/60">
-              월
-            </span>
-            <span
-              className="text-4xl sm:text-5xl font-extrabold"
-              style={{ fontFamily: "Manrope, sans-serif", color: "var(--primary-light)" }}
-            >
-              약 ₩{roughMonthly(PLANS.reduce((min, p) => p.monthlyPrice < min.monthlyPrice ? p : min, PLANS[0]).monthlyPrice).toLocaleString()}
-            </span>
-            <span className="text-base sm:text-lg text-white/70 ml-1">
-              부터
-            </span>
+            전 기능 무제한 무료. 카드 등록 없이 좌표.to/내이름 영구 보관.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <div className="flex justify-center">
             <a
-              href="/pricing"
+              href="/dashboard"
               className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-base shadow-lg hover:scale-[1.02] transition-transform"
               style={{
                 background: "var(--surface-lowest)",
                 color: "var(--on-background)",
               }}
             >
-              결제 페이지로 →
-            </a>
-            <a
-              href="/reserve"
-              className="w-full sm:w-auto px-6 py-3 rounded-full font-medium text-sm text-white/90 hover:text-white transition-colors"
-            >
-              먼저 이름만 예약하기
+              내 좌표 만들기 →
             </a>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="px-8 py-8 text-center">
-        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
-          좌표.to
-        </span>
-      </footer>
     </div>
   );
 }

@@ -168,7 +168,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <main
-        className="min-h-screen flex items-center justify-center"
+        className="flex-1 flex items-center justify-center"
         style={{ background: "var(--surface)" }}
       >
         <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
@@ -179,7 +179,7 @@ export default function SettingsPage() {
   if (!namespace) {
     return (
       <main
-        className="min-h-screen flex flex-col items-center justify-center p-8"
+        className="flex-1 flex flex-col items-center justify-center p-8"
         style={{ background: "var(--surface)" }}
       >
         <h1
@@ -202,7 +202,7 @@ export default function SettingsPage() {
   const previewName = displayName || namespace.name;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-6xl mx-auto">
         <a
@@ -585,26 +585,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
-
-      <footer
-        className="px-6 sm:px-8 py-8"
-        style={{ background: "var(--surface-low)" }}
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-6xl mx-auto">
-          <span
-            className="font-bold tracking-tight"
-            style={{ fontFamily: "Manrope, sans-serif" }}
-          >
-            좌표.to
-          </span>
-          <span
-            className="text-xs"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            © 2026 좌표.to
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

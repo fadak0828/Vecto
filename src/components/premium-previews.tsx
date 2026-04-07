@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * 프리미엄 혜택 미니 미리보기 컴포넌트.
  * 모두 inline SVG + CSS, 외부 의존성/이미지 없음.
@@ -15,40 +17,53 @@
 /* ──────────────────────────────────────────────────────────
  * 1. NamespacePillPreview — 브라우저 주소 바 스타일 pill
  *
- * 기본 모드: w-full max-w-md, 슬러그 truncate flex-1, blink 커서 표시.
- * 고정폭 모드 (slugStyle 또는 hideCursor 지정 시): 컨텐츠 폭으로 축소,
- * 슬러그는 inline-block 고정폭, 커서 없음. 크로스 페이드용.
+ * 모드:
+ *   - 기본: w-full max-w-md, 슬러그 truncate flex-1, blink 커서 표시
+ *   - 고정폭 (slugStyle 또는 hideCursor 지정 시): 컨텐츠 폭으로 축소,
+ *     슬러그는 inline-block 고정폭, 커서 없음. 크로스 페이드용
+ *   - wide: w-full로 컨테이너 채움. 브라우저 주소창 느낌 — 좌측 lock,
+ *     중앙 URL, 우측 bookmark/share 아이콘. 슬러그는 좌측 정렬
+ *
+ * children prop: 제공되면 slug 텍스트 대신 렌더링됨. RotatingSlug 같은
+ * 애니메이션 컴포넌트를 슬러그 자리에 끼워 넣을 때 사용.
  * ────────────────────────────────────────────────────────── */
 export function NamespacePillPreview({
   slug = "내이름",
   className = "",
   slugStyle,
   hideCursor = false,
+  wide = false,
+  children,
 }: {
   slug?: string;
   className?: string;
   slugStyle?: React.CSSProperties;
   hideCursor?: boolean;
+  wide?: boolean;
+  children?: React.ReactNode;
 }) {
-  const isFixedMode = !!slugStyle || hideCursor;
+  const isFixedMode = !wide && (!!slugStyle || hideCursor || !!children);
+  const containerClass = wide
+    ? "flex items-center gap-2.5 pl-4 pr-3 py-3 rounded-full w-full"
+    : isFixedMode
+      ? "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full"
+      : "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full w-full max-w-md";
   return (
     <div className={className}>
       <div
-        className={
-          isFixedMode
-            ? "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full"
-            : "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full w-full max-w-md"
-        }
+        className={containerClass}
         style={{
           background: "var(--surface-lowest)",
-          boxShadow: "var(--shadow-whisper)",
+          boxShadow: wide
+            ? "0 1px 3px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.6), var(--shadow-whisper)"
+            : "var(--shadow-whisper)",
           border: "1px solid var(--surface-container)",
         }}
       >
         {/* lock icon */}
         <svg
-          width="14"
-          height="14"
+          width={wide ? 15 : 14}
+          height={wide ? 15 : 14}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -61,30 +76,69 @@ export function NamespacePillPreview({
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
-        <span
-          className="text-sm sm:text-base font-medium tracking-tight truncate"
-          style={{
-            fontFamily: "Manrope, sans-serif",
-            color: "var(--on-surface-variant)",
-          }}
-        >
-          좌표.to/
-        </span>
+        {/* URL group — 좌표.to/ + slug 사이 gap 제거, 연속된 URL로 읽힘 */}
         <span
           className={
-            isFixedMode
-              ? "text-sm sm:text-base font-bold tracking-tight inline-block text-left"
-              : "text-sm sm:text-base font-bold tracking-tight truncate flex-1"
+            wide
+              ? "flex items-baseline flex-1 min-w-0"
+              : "flex items-baseline min-w-0"
           }
-          style={{
-            fontFamily: "Manrope, sans-serif",
-            color: "var(--on-background)",
-            ...(slugStyle ?? {}),
-          }}
+          style={{ fontFamily: "Manrope, sans-serif" }}
         >
-          {slug || "내이름"}
+          <span
+            className="text-sm sm:text-base font-medium tracking-tight"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            좌표.to/
+          </span>
+          <span
+            className={
+              wide
+                ? "text-sm sm:text-base font-bold tracking-tight inline-block text-left"
+                : isFixedMode
+                  ? "text-sm sm:text-base font-bold tracking-tight inline-block text-left"
+                  : "text-sm sm:text-base font-bold tracking-tight truncate flex-1"
+            }
+            style={{
+              color: "var(--on-background)",
+              ...(slugStyle ?? {}),
+            }}
+          >
+            {children ?? (slug || "내이름")}
+          </span>
         </span>
-        {!hideCursor && (
+        {wide && (
+          <>
+            {/* divider — subtle browser chrome detail */}
+            <span
+              className="block w-px h-5"
+              style={{ background: "var(--surface-container)", flexShrink: 0 }}
+              aria-hidden="true"
+            />
+            {/* bookmark / star icon — universally browser-like */}
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="flex items-center justify-center w-7 h-7 rounded-full transition-colors hover:bg-[var(--surface-low)]"
+              style={{ flexShrink: 0, color: "var(--on-surface-variant)" }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </button>
+          </>
+        )}
+        {!wide && !hideCursor && !children && (
           <span
             className="ppv-blink inline-block w-[2px] h-4 motion-safe:[animation:ppv-blink_1.1s_steps(1)_infinite]"
             style={{ background: "var(--primary)", flexShrink: 0 }}
@@ -93,6 +147,64 @@ export function NamespacePillPreview({
         )}
       </div>
     </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────
+ * 1b. RotatingSlug — 여러 단어를 크로스페이드로 순환
+ *
+ * 사용처: home 페이지 hero NamespacePillPreview의 슬러그 자리.
+ *   <NamespacePillPreview hideCursor>
+ *     <RotatingSlug words={["내이름", "우리가게", ...]} />
+ *   </NamespacePillPreview>
+ *
+ * 구현: 모든 단어를 absolute로 겹쳐 렌더, opacity transition으로 크로스페이드.
+ * 첫 단어를 relative로 두어 컨테이너 자연 폭을 결정 (대신 invisible spacer가
+ * 가장 긴 단어 폭을 보장).
+ * ────────────────────────────────────────────────────────── */
+export function RotatingSlug({
+  words,
+  intervalMs = 2200,
+}: {
+  words: string[];
+  intervalMs?: number;
+}) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (words.length <= 1) return;
+    const t = setInterval(() => {
+      setIdx((i) => (i + 1) % words.length);
+    }, intervalMs);
+    return () => clearInterval(t);
+  }, [words.length, intervalMs]);
+
+  // 가장 긴 단어로 컨테이너 폭 확보 (CLS 방지)
+  const widest = words.reduce((a, b) => (b.length > a.length ? b : a), "");
+
+  return (
+    <span
+      className="relative inline-block align-baseline"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {/* invisible spacer — sets min-width to widest word */}
+      <span aria-hidden="true" className="invisible">
+        {widest}
+      </span>
+      {words.map((w, i) => (
+        <span
+          key={w}
+          aria-hidden={i === idx ? undefined : true}
+          className="absolute inset-0 motion-safe:transition-opacity motion-safe:duration-700 motion-reduce:transition-none"
+          style={{
+            opacity: i === idx ? 1 : 0,
+          }}
+        >
+          {w}
+        </span>
+      ))}
+    </span>
   );
 }
 

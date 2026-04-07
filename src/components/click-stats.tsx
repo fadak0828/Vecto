@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ClickChartPreview } from "./premium-previews";
 
 type Stats = {
   total: number;
@@ -8,12 +9,29 @@ type Stats = {
   links: { slug: string; clicks: number }[];
 };
 
-export function ClickStats({ namespaceId }: { namespaceId: string }) {
+/**
+ * ClickStats — 클릭 통계 대시보드.
+ *
+ * CEO-E1 paid gate (D-M4):
+ *   isPaid=false → 블러 + "프리미엄에서 확인하세요" lock card
+ *   isPaid=true  → 실제 통계 렌더
+ */
+export function ClickStats({
+  namespaceId,
+  isPaid = false,
+}: {
+  namespaceId: string;
+  isPaid?: boolean;
+}) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    if (!isPaid) {
+      setLoading(false);
+      return;
+    }
     fetch(`/api/stats?namespace_id=${namespaceId}`)
       .then((r) => {
         if (!r.ok) throw new Error("stats fetch failed");
@@ -27,7 +45,55 @@ export function ClickStats({ namespaceId }: { namespaceId: string }) {
         setError(true);
         setLoading(false);
       });
-  }, [namespaceId]);
+  }, [namespaceId, isPaid]);
+
+  // Paid gate — free 사용자는 blurred preview + upsell
+  if (!isPaid) {
+    return (
+      <div
+        className="relative p-5 rounded-2xl overflow-hidden"
+        style={{
+          background: "var(--surface-lowest)",
+          boxShadow: "var(--shadow-whisper)",
+        }}
+      >
+        <div
+          className="pointer-events-none select-none"
+          style={{ filter: "blur(4px)", opacity: 0.6 }}
+          aria-hidden="true"
+        >
+          <ClickChartPreview />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <p
+            className="text-xs font-bold uppercase tracking-widest mb-1"
+            style={{ color: "var(--primary)" }}
+          >
+            프리미엄 전용
+          </p>
+          <p
+            className="font-bold mb-3 break-keep"
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              color: "var(--on-background)",
+            }}
+          >
+            클릭 통계 대시보드
+          </p>
+          <a
+            href="/pricing"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--primary), var(--primary-container))",
+            }}
+          >
+            프리미엄 시작하기 →
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

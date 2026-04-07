@@ -45,11 +45,11 @@ export async function POST(request: NextRequest) {
 
   const serviceSupabase = getServiceSupabase();
 
-  // 결제 조회
+  // 결제 조회 — ENG-C2: subscription_id 필수 SELECT
   const { data: payment } = await serviceSupabase
     .from("payments")
     .select(
-      "id, namespace_id, portone_payment_id, amount, status, paid_at, owner_id",
+      "id, namespace_id, portone_payment_id, amount, status, paid_at, owner_id, subscription_id",
     )
     .eq("id", body.payment_id)
     .maybeSingle();
@@ -66,6 +66,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "권한이 없습니다." },
       { status: 403 },
+    );
+  }
+
+  // ENG-C2: 구독 charge 환불 loophole plug.
+  // 구독 갱신/첫 charge는 이 엔드포인트로 환불 불가 — 구독 해지 플로우를 써야 함.
+  if (payment.subscription_id) {
+    return NextResponse.json(
+      {
+        error:
+          "구독 결제는 이 방법으로 환불할 수 없습니다. 대시보드에서 구독 해지를 이용하세요.",
+      },
+      { status: 400 },
     );
   }
 
