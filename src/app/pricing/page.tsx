@@ -100,21 +100,21 @@ export default function PricingPage() {
         </div>
       </nav>
 
-      <main className="px-6 sm:px-8 pt-6 sm:pt-16 pb-20 max-w-5xl mx-auto">
-        {/* Hero — compact on mobile so purchase card lands high */}
-        <section className="mb-6 sm:mb-20 max-w-3xl">
+      <main className="px-6 sm:px-8 pt-6 sm:pt-12 lg:pt-6 pb-20 max-w-5xl mx-auto">
+        {/* Hero — compact on mobile so purchase card lands high; even more compact on lg so the whole purchase card fits above the fold */}
+        <section className="mb-6 sm:mb-16 lg:mb-6 max-w-3xl">
           <h1
-            className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6"
+            className="text-2xl sm:text-5xl md:text-6xl lg:text-4xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6 lg:mb-2"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
             월 <span style={{ color: "var(--primary)" }}>약 740원</span>부터.
           </h1>
           <p
-            className="text-sm sm:text-lg max-w-2xl"
+            className="text-sm sm:text-lg lg:text-sm max-w-2xl"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
             좌표.to/내이름 — 말로 전달할 수 있는 전용 주소.
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline lg:hidden">
               <br />
               강의실에서 프로젝터에 띄우면 모두가 바로 입력합니다.
             </span>
@@ -160,7 +160,7 @@ export default function PricingPage() {
                               : "var(--primary)",
                           color:
                             selectedPlan.periodMonths === plan.periodMonths
-                              ? "#76d6d5"
+                              ? "var(--primary-light)"
                               : "white",
                         }}
                       >
@@ -214,7 +214,7 @@ export default function PricingPage() {
 
           {/* Purchase Card */}
           <div
-            className="order-1 lg:order-none lg:col-span-5 p-6 sm:p-8 rounded-2xl lg:sticky lg:top-8"
+            className="order-1 lg:order-none lg:col-span-5 p-6 sm:p-8 lg:p-6 rounded-2xl lg:sticky lg:top-6"
             style={{
               background: "var(--surface-lowest)",
               boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
@@ -227,22 +227,14 @@ export default function PricingPage() {
               프리미엄 이용권
             </h3>
             <p
-              className="text-sm mb-6"
+              className="text-sm mb-5 lg:mb-4"
               style={{ color: "var(--on-surface-variant)" }}
             >
               좌표.to/내이름 {selectedPlan.label} 이용
             </p>
 
-            <div className="space-y-3 mb-6">
-              <Feature text="좌표.to/내이름 전용 주소" />
-              <Feature text="프로필 페이지 (소개 + 아바타)" />
-              <Feature text="하위 링크 무제한" />
-              <Feature text="클릭 통계 (7일 분석)" />
-              <Feature text="커스텀 디지털 명함" />
-            </div>
-
             <div
-              className="py-5 mb-6"
+              className="py-5 lg:py-4 mb-5 lg:mb-4"
               style={{
                 borderTop: "1px solid var(--surface-container)",
                 borderBottom: "1px solid var(--surface-container)",
@@ -305,7 +297,24 @@ export default function PricingPage() {
               className="text-center text-xs mt-4"
               style={{ color: "var(--on-surface-variant)" }}
             >
-              7일 이내 환불 보장 ·{" "}
+              7일 이내 환불 보장
+            </p>
+
+            <div
+              className="mt-5 lg:mt-4 pt-5 lg:pt-4 space-y-2.5 lg:space-y-2"
+              style={{ borderTop: "1px solid var(--surface-container)" }}
+            >
+              <Feature text="좌표.to/내이름 전용 주소" />
+              <Feature text="프로필 페이지 (소개 + 아바타)" />
+              <Feature text="하위 링크 무제한" />
+              <Feature text="클릭 통계 (7일 분석)" />
+              <Feature text="커스텀 디지털 명함" />
+            </div>
+
+            <p
+              className="text-center text-xs mt-5"
+              style={{ color: "var(--on-surface-variant)" }}
+            >
               <a href="/terms" style={{ color: "var(--primary)" }}>
                 이용약관
               </a>{" "}

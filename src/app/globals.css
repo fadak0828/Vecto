@@ -15,6 +15,7 @@
   --surface-highest: #e2e2e2;
   --secondary-container: #e2dfde;
   --error: #ba1a1a;
+  --primary-light: #76d6d5;
 }
 
 @theme inline {
@@ -28,6 +29,59 @@
   --shadow-whisper-strong:
     0 24px 64px rgba(0, 60, 60, 0.07),
     0 4px 10px rgba(0, 60, 60, 0.05);
+}
+
+/* Premium-previews 애니메이션 — premium-previews.tsx 컴포넌트들이 사용 */
+@keyframes ppv-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes ppv-fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ppv-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ppv-blink, .ppv-fade-up, .ppv-grow {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* 모바일 결과 화면 — 링크 생성 시 form 글래스 카드가 풀스크린 시트로 떠오름 */
+@keyframes result-rise {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@media (max-width: 1023px) {
+  .result-mobile-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 50;
+    border-radius: 0 !important;
+    max-width: none !important;
+    overflow-y: auto;
+    padding: 1.5rem !important;
+    padding-top: max(1.5rem, env(safe-area-inset-top)) !important;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom)) !important;
+    background: var(--surface) !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    animation: result-rise 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .result-mobile-fullscreen { animation: none !important; }
 }
 
 body {
