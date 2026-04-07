@@ -12,7 +12,10 @@ import { MONTHLY_PRICE } from "@/lib/pricing";
  *
  * 기존 period-pack 모드는 제거됨. 이제 단일 SKU ₩2,900/월 구독만 지원.
  *
- * Returns: { paymentId, amount, orderName, namespaceId, subscriptionId }
+ * Returns: { paymentId, amount, orderName, namespaceId, subscriptionId, customerName }
+ *
+ * customerName 은 PortOne SDK 의 customer.fullName 에 그대로 전달됩니다.
+ * KPN 등 일부 PG 는 빌링키 발급 시 구매자 이름을 필수로 요구하므로 누락하면 400.
  */
 export async function POST(_request: NextRequest) {
   const supabase = await createClient();
@@ -132,5 +135,6 @@ export async function POST(_request: NextRequest) {
     orderName,
     namespaceId: ns.id,
     subscriptionId: newSub.id,
+    customerName: ns.name,
   });
 }

@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   MONTHLY_PRICE,
   validateSubscriptionAmount,
@@ -34,5 +36,38 @@ describe("POST /api/payment/prepare — 단일 SKU 구독", () => {
     // 실제 생성은 crypto.randomBytes — 여기선 형식만 검증
     const mockPaymentId = `jwapyo_${"a1b2c3d4e5f67890a1b2c3d4e5f67890"}`;
     expect(mockPaymentId).toMatch(/^jwapyo_[0-9a-f]{32}$/);
+  });
+
+  // Regression for KPN 빌링키 발급 400 (ParsePgRawResponseFailed) — KPN 은
+  // customer.fullName 을 필수로 요구한다. prepare 응답에 customerName 이 들어
+  // 있어야 클라이언트가 PortOne SDK 에 fullName 을 넘길 수 있다.
+  it("prepare 응답에 customerName 필드가 포함되도록 route 에 정의돼 있다", () => {
+    const routePath = resolve(
+      __dirname,
+      "../src/app/api/payment/prepare/route.ts",
+    );
+    const route = readFileSync(routePath, "utf8");
+    expect(route).toMatch(/customerName:\s*ns\.name/);
+  });
+
+  it("pricing 페이지가 customerName 을 PortOne customer.fullName 으로 전달한다", () => {
+    const pagePath = resolve(__dirname, "../src/app/pricing/page.tsx");
+    const page = readFileSync(pagePath, "utf8");
+    expect(page).toMatch(/customer:\s*\{[^}]*fullName:\s*customerName/);
+  });
+
+  // Regression for v0.7.0 500 bug — subscriptions/payments FKs were pointing
+  // at empty public.users, so every prepare call failed with FK violation.
+  // 010_fix_user_fks.sql repoints them at auth.users. Don't let that revert.
+  it("010_fix_user_fks.sql 가 auth.users 로 FK 를 옮긴다", () => {
+    const sqlPath = resolve(__dirname, "../supabase/010_fix_user_fks.sql");
+    const sql = readFileSync(sqlPath, "utf8");
+    expect(sql).toMatch(
+      /subscriptions_user_id_fkey[\s\S]*REFERENCES\s+auth\.users\(id\)\s+ON\s+DELETE\s+CASCADE/i,
+    );
+    expect(sql).toMatch(
+      /payments_owner_id_fkey[\s\S]*REFERENCES\s+auth\.users\(id\)\s+ON\s+DELETE\s+SET\s+NULL/i,
+    );
+    expect(sql).toMatch(/DROP\s+TABLE\s+IF\s+EXISTS\s+public\.users/i);
   });
 });
