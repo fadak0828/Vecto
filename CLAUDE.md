@@ -7,11 +7,26 @@ Do not deviate without explicit user approval.
 In QA mode, flag any code that doesn't match DESIGN.md.
 
 ## Testing
-- Run: `npm test` (vitest, ~100ms)
+- Run: `bun x vitest run` (~200ms)
 - Test directory: `tests/`
 - See TESTING.md for conventions
 - 새 함수 → 테스트 작성, 버그 수정 → 회귀 테스트 작성
 - 기존 테스트를 깨뜨리는 코드 커밋 금지
+
+## Package manager
+- **bun-only.** `bun.lock` is the source of truth.
+- Install: `bun add <pkg>` (NEVER `npm install` — would create stale package-lock.json drift)
+- CI also uses bun (`.github/workflows/test.yml`)
+- `package-lock.json` is gitignored — do not regenerate it
+
+## Deploy Configuration
+- **Platform:** Vercel (auto-detected from `vercel.json`)
+- **Production URL:** https://좌표.to (punycode: `https://xn--h25b29s.to`)
+- **Vercel default URL:** https://vecto.vercel.app
+- **Auto-deploy:** Vercel deploys on merge to `main`. PR previews on every push.
+- **Cron:** `/api/cron/expire` daily at 03:00 UTC (configured in `vercel.json`)
+- **Health check:** `curl -sf https://xn--h25b29s.to` should return 200 + Next.js HTML
+- **Manual deploy:** none — Vercel handles everything via git integration
 
 ## Skill routing
 
