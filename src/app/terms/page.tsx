@@ -58,7 +58,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="제6조 (서비스 이용 제한)">
-            회사는 이용자가 제5조의 의무를 위반한 경우, 사전 통지 없이 해당 URL을 삭제하거나 서비스 이용을 제한할 수 있습니다. 이용 제한에 대해 이의가 있는 경우 support@좌표.to로 문의할 수 있습니다.
+            회사는 이용자가 제5조의 의무를 위반한 경우, 사전 통지 없이 해당 URL을 삭제하거나 서비스 이용을 제한할 수 있습니다. 이용 제한에 대해 이의가 있는 경우 {businessInfo.email}로 문의할 수 있습니다.
           </Section>
 
           <Section title="제7조 (면책)">
@@ -70,7 +70,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="제8조 (환불)">
-            프리미엄 서비스 결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다. 환불 요청은 support@좌표.to로 접수하시기 바랍니다.
+            프리미엄 서비스 결제 후 7일 이내에 서비스를 이용하지 않은 경우 전액 환불이 가능합니다. 환불 요청은 {businessInfo.email}로 접수하시기 바랍니다.
           </Section>
 
           <Section title="제9조 (분쟁 해결)">

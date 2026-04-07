@@ -96,7 +96,7 @@ export default function PrivacyPage() {
               <li>개인정보 처리 정지 요청</li>
               <li>회원 탈퇴 (대시보드 또는 이메일 요청)</li>
             </ol>
-            <p className="mt-2">요청은 support@좌표.to로 접수하시면 10일 이내에 처리합니다.</p>
+            <p className="mt-2">요청은 {businessInfo.email}로 접수하시면 10일 이내에 처리합니다.</p>
           </Section>
 
           <Section title="7. 개인정보의 안전성 확보 조치">

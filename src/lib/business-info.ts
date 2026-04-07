@@ -30,7 +30,7 @@ export const businessInfo = {
   address: readEnv("NEXT_PUBLIC_BUSINESS_ADDRESS"),
   phone: readEnv("NEXT_PUBLIC_BUSINESS_PHONE"),
   // email은 빈 문자열일 때 기본값으로 폴백 (legal 표기에 항상 연락처 필요).
-  email: readEnv("NEXT_PUBLIC_BUSINESS_EMAIL") || "support@xn--h25b29s.to",
+  email: readEnv("NEXT_PUBLIC_BUSINESS_EMAIL") || "support.vecto@gmail.com",
 } as const;
 
 /**
