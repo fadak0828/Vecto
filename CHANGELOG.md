@@ -4,6 +4,19 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.5.0] - 2026-04-07
+
+### Added
+- **프리미엄 혜택 시각화 컴포넌트 3종** (`premium-previews.tsx`) — 텍스트 설명 대신 인라인 SVG + CSS 애니메이션으로 혜택을 직접 보여줌. 브라우저 주소창 스타일 pill (`NamespacePillPreview`), 프로필 페이지 축소 목업 (`ProfileCardPreview`), 7일 클릭 차트 (`ClickChartPreview`). 외부 이미지/라이브러리 0개. `motion-safe:` prefix + globals.css reduced-motion으로 접근성 처리.
+- **홈 결과 카드 업그레이드 유도** — 무료 단축링크 생성 직후 "이 링크는 7일 후 만료됩니다" + 네임스페이스 pill 미리보기 + "영구적인 주소 만들기 →" 카드 표시. 휘발성을 체감한 순간에 영구 주소를 제안.
+- **대시보드 claim 화면 라이브 미리보기** — 이름을 타이핑하는 동안 `NamespacePillPreview`가 실시간으로 `좌표.to/[입력값]`을 보여줌. 하단에 `ProfileCardPreview` + `ClickChartPreview`로 구매 후 모습 미리 확인.
+- **PaymentStatus 무료 플랜 업셀 강화** — 한 줄 텍스트에서 3종 시각화 미리보기 + "월 약 ₩740부터 시작 →" CTA로 확장. 가격은 `PLANS` 배열에서 동적 산출.
+
+### Changed
+- **Pricing 구매 카드 순서 재배치** — 기존 순서(제목 → 5개 feature → 가격 → 결제 버튼)에서 가격+결제 버튼을 최상단으로 이동. 모바일 첫 화면 안에 결제 버튼이 항상 보임. 데스크톱 sticky 카드도 fold 안에 버튼 수납.
+- **홈 CTA 가격 강조** — 초록 그라디언트 배경의 "약 ₩740" 숫자를 `--primary-light` (#76d6d5) 틸로 표시해 시인성 강화.
+- **Premium Features 섹션 배경 분리** — 위 섹션과 같은 `--surface` 회색이었던 배경을 `--surface-lowest` 흰색으로 변경해 시각적 구분 명확화.
+
 ## [0.4.0] - 2026-04-07
 
 ### Added
