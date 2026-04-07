@@ -1,23 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { PLANS, roughMonthly, type Plan } from "@/lib/pricing";
+import { MONTHLY_PRICE } from "@/lib/pricing";
+import { businessInfo } from "@/lib/business-info";
 
+/**
+ * /pricing — Single SKU Freemium 가격 페이지 (D-H3 rewrite).
+ *
+ * Flow (card billing key + server-initiated first charge):
+ * 1. POST /api/payment/prepare → paymentId, subscriptionId, amount
+ * 2. PortOne.requestIssueBillingKey (card) → 빌링키 발급
+ * 3. BillingKey.Issued webhook → 서버가 PortOne API로 첫 ₩2,900 charge
+ * 4. Transaction.Paid webhook → start_subscription RPC → 대시보드 이동
+ */
 export default function PricingPage() {
-  const [selectedPlan, setSelectedPlan] = useState<Plan>(PLANS[1]); // 6개월 기본 선택
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<
+    "idle" | "preparing" | "billing_key" | "first_charge"
+  >("idle");
   const [error, setError] = useState("");
 
-  async function handlePurchase() {
-    setLoading(true);
+  async function handleSubscribe() {
     setError("");
+    setLoading("preparing");
 
     try {
-      // 1. 서버에서 paymentId 생성
       const res = await fetch("/api/payment/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period_months: selectedPlan.periodMonths }),
+        body: JSON.stringify({}),
       });
 
       if (!res.ok) {
@@ -31,46 +41,62 @@ export default function PricingPage() {
           return;
         }
         setError(data.error || "결제 준비 중 오류가 발생했습니다.");
-        setLoading(false);
+        setLoading("idle");
         return;
       }
 
-      const { paymentId, amount, orderName } = await res.json();
+      const { paymentId } = await res.json();
 
-      // 2. PortOne SDK 호출
+      setLoading("billing_key");
+
+      // PortOne V2 billing key 발급 (카드). 서버가 BillingKey.Issued webhook 수신 후
+      // PortOne API로 첫 ₩2,900 charge → Transaction.Paid webhook → start_subscription.
+      // issueId + customer.customerId에 paymentId 양쪽 매핑 → webhook이 PortOne API로
+      // billingKey 조회 시 둘 중 하나로 우리 pending payment 찾을 수 있음.
       const PortOne = await import("@portone/browser-sdk/v2");
-      const response = await PortOne.requestPayment({
+      const response = await PortOne.requestIssueBillingKey({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
-        paymentId,
-        orderName,
-        totalAmount: amount,
-        currency: "CURRENCY_KRW",
-        payMethod: "CARD",
+        billingKeyMethod: "CARD",
+        issueId: paymentId,
+        issueName: "좌표.to 프리미엄 구독",
+        displayAmount: MONTHLY_PRICE,
+        currency: "KRW",
+        customer: { customerId: paymentId },
       });
 
       if (response?.code) {
-        // 사용자 취소 또는 에러
         if (response.code === "FAILURE_TYPE_PG") {
-          setError("결제가 취소되었습니다.");
+          setError("카드 등록이 취소되었습니다.");
         } else {
-          setError(response.message || "결제 중 오류가 발생했습니다.");
+          setError(response.message || "카드 등록 중 오류가 발생했습니다.");
         }
-        setLoading(false);
+        setLoading("idle");
         return;
       }
 
-      // 3. 결제 완료 페이지로 이동
+      setLoading("first_charge");
+      // 결제 완료 페이지 — verify가 비동기로 첫 charge 완료 대기
       window.location.href = `/payment/complete?paymentId=${paymentId}`;
     } catch {
       setError("결제 처리 중 오류가 발생했습니다.");
-      setLoading(false);
+      setLoading("idle");
     }
   }
 
+  const monthly = MONTHLY_PRICE.toLocaleString();
+  const busy = loading !== "idle";
+  const stageLabel =
+    loading === "preparing"
+      ? "결제 준비 중…"
+      : loading === "billing_key"
+        ? "안전하게 카드 등록 중…"
+        : loading === "first_charge"
+          ? "첫 결제 처리 중…"
+          : "";
+
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
-      {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a
           href="/"
@@ -100,283 +126,135 @@ export default function PricingPage() {
         </div>
       </nav>
 
-      <main className="px-6 sm:px-8 pt-6 sm:pt-12 lg:pt-6 pb-20 max-w-5xl mx-auto">
-        {/* Hero — compact on mobile so purchase card lands high; tighter spacing on lg so the whole purchase card fits above the fold */}
-        <section className="mb-6 sm:mb-16 lg:mb-6 max-w-3xl">
-          <h1
-            className="text-2xl sm:text-5xl md:text-6xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6 lg:mb-3"
-            style={{ fontFamily: "Manrope, sans-serif" }}
-          >
-            월 <span style={{ color: "var(--primary)" }}>약 740원</span>부터.
-          </h1>
-          <p
-            className="text-sm sm:text-lg lg:text-base max-w-2xl"
-            style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
-          >
-            좌표.to/내이름 — 말로 전달할 수 있는 전용 주소.
-            <span className="hidden sm:inline lg:hidden">
-              <br />
-              강의실에서 프로젝터에 띄우면 모두가 바로 입력합니다.
-            </span>
-          </p>
-        </section>
-
-        {/* Plan Selector — mobile: purchase card first; desktop: plans left, purchase right */}
-        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 lg:items-start">
-          {/* Plans */}
-          <div className="order-2 lg:order-none lg:col-span-7 space-y-4">
-            {PLANS.map((plan) => (
-              <button
-                key={plan.periodMonths}
-                onClick={() => setSelectedPlan(plan)}
-                className="w-full flex items-center gap-4 p-5 sm:p-6 rounded-2xl text-left transition-all"
-                style={{
-                  background:
-                    selectedPlan.periodMonths === plan.periodMonths
-                      ? "var(--on-background)"
-                      : "var(--surface-lowest)",
-                  color:
-                    selectedPlan.periodMonths === plan.periodMonths
-                      ? "var(--surface-lowest)"
-                      : "var(--on-background)",
-                  boxShadow: "0 2px 32px rgba(0,0,0,0.03)",
-                }}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-lg font-bold"
-                      style={{ fontFamily: "Manrope, sans-serif" }}
-                    >
-                      {plan.label}
-                    </span>
-                    {plan.badge && (
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full font-bold uppercase"
-                        style={{
-                          background:
-                            selectedPlan.periodMonths === plan.periodMonths
-                              ? "rgba(0,101,101,0.3)"
-                              : "var(--primary)",
-                          color:
-                            selectedPlan.periodMonths === plan.periodMonths
-                              ? "var(--primary-light)"
-                              : "white",
-                        }}
-                      >
-                        {plan.badge}
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className="text-sm mt-1"
-                    style={{ opacity: 0.6 }}
-                  >
-                    총 ₩{plan.price.toLocaleString()} 결제
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="flex items-baseline gap-1 justify-end">
-                    <span
-                      className="text-sm font-medium"
-                      style={{ opacity: 0.6 }}
-                    >
-                      약
-                    </span>
-                    <span
-                      className="text-3xl sm:text-4xl font-extrabold leading-none"
-                      style={{ fontFamily: "Manrope, sans-serif" }}
-                    >
-                      ₩{roughMonthly(plan.monthlyPrice).toLocaleString()}
-                    </span>
-                    <span className="text-sm font-medium" style={{ opacity: 0.7 }}>
-                      / 월
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
-
-            {/* Free plan note */}
-            <div
-              className="p-5 rounded-2xl"
-              style={{ background: "var(--surface-low)" }}
-            >
-              <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
-                <strong>무료 플랜</strong>도 있어요. 좌표.to/go/단축URL 형태로
-                하루 10개, 7일 만료로 사용할 수 있습니다.{" "}
-                <a href="/" style={{ color: "var(--primary)" }}>
-                  무료로 시작하기 →
-                </a>
-              </p>
-            </div>
-          </div>
-
-          {/* Purchase Card */}
-          <div
-            className="order-1 lg:order-none lg:col-span-5 p-6 sm:p-8 lg:p-6 rounded-2xl lg:sticky lg:top-6"
-            style={{
-              background: "var(--surface-lowest)",
-              boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
-            }}
-          >
-            <h3
-              className="text-xl font-bold mb-1"
-              style={{ fontFamily: "Manrope, sans-serif" }}
-            >
-              프리미엄 이용권
-            </h3>
-            <p
-              className="text-sm mb-5 lg:mb-4"
-              style={{ color: "var(--on-surface-variant)" }}
-            >
-              좌표.to/내이름 {selectedPlan.label} 이용
-            </p>
-
-            <div
-              className="py-5 lg:py-4 mb-5 lg:mb-4"
-              style={{
-                borderTop: "1px solid var(--surface-container)",
-                borderBottom: "1px solid var(--surface-container)",
-              }}
-            >
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className="text-base font-medium"
-                  style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}
-                >
-                  약
-                </span>
-                <span
-                  className="text-4xl sm:text-5xl font-extrabold"
-                  style={{ fontFamily: "Manrope, sans-serif" }}
-                >
-                  ₩{roughMonthly(selectedPlan.monthlyPrice).toLocaleString()}
-                </span>
-                <span
-                  className="text-base font-medium"
-                  style={{ color: "var(--on-surface-variant)" }}
-                >
-                  / 월
-                </span>
-              </div>
-              <p
-                className="text-xs mt-2"
-                style={{ color: "var(--on-surface-variant)" }}
-              >
-                {selectedPlan.label} 총{" "}
-                <span className="font-bold">
-                  ₩{selectedPlan.price.toLocaleString()}
-                </span>{" "}
-                결제
-              </p>
-            </div>
-
-            <button
-              onClick={handlePurchase}
-              disabled={loading}
-              className="w-full py-4 rounded-xl font-bold text-lg text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--primary), var(--primary-container))",
-              }}
-            >
-              {loading ? "결제 준비 중..." : "결제하기"}
-            </button>
-
-            {error && (
-              <p
-                className="text-sm mt-3 text-center"
-                style={{ color: "var(--error)" }}
-              >
-                {error}
-              </p>
-            )}
-
-            <p
-              className="text-center text-xs mt-4 leading-relaxed"
-              style={{ color: "var(--on-surface-variant)" }}
-            >
-              결제 후 7일 이내 미사용 시 전액 환불.
-              <br />
-              환불 문의: support@xn--h25b29s.to
-            </p>
-
-            <div
-              className="mt-5 lg:mt-4 pt-5 lg:pt-4 space-y-2.5 lg:space-y-2"
-              style={{ borderTop: "1px solid var(--surface-container)" }}
-            >
-              <Feature text="좌표.to/내이름 전용 주소" />
-              <Feature text="프로필 페이지 (소개 + 아바타)" />
-              <Feature text="하위 링크 무제한" />
-              <Feature text="클릭 통계 (7일 분석)" />
-              <Feature text="커스텀 디지털 명함" />
-            </div>
-
-            <p
-              className="text-center text-xs mt-5"
-              style={{ color: "var(--on-surface-variant)" }}
-            >
-              <a href="/terms" style={{ color: "var(--primary)" }}>
-                이용약관
-              </a>{" "}
-              ·{" "}
-              <a href="/privacy" style={{ color: "var(--primary)" }}>
-                개인정보처리방침
-              </a>
-            </p>
-          </div>
-        </div>
-
-        {/* Premium benefits — value statements, not comparison */}
-        <section className="mt-20 sm:mt-32">
+      <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
+        {/* Hero */}
+        <section className="mb-8 text-center">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
             style={{ color: "var(--primary)" }}
           >
-            프리미엄으로 얻는 것
+            좌표.to 프리미엄
           </p>
-          <h3
-            className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4 sm:mb-6"
-            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
+          <h1
+            className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
+            style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            짧은 주소가 아니라,
-            <br />
-            기억되는 주소.
-          </h3>
+            월{" "}
+            <span
+              className="price-display"
+              style={{ color: "var(--primary)" }}
+            >
+              ₩{monthly}
+            </span>
+          </h1>
           <p
-            className="text-base sm:text-lg max-w-2xl mb-8 sm:mb-12"
-            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+            className="text-sm sm:text-base break-keep"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
-            좌표.to/내이름은 명함, 강의 슬라이드, 인스타 바이오 어디에나 어울립니다.
+            매월 자동결제, 언제든 한 번에 해지.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <BenefitCard
-              title="내 이름이 곧 주소"
-              desc="좌표.to/내이름. 사람들이 한 번 보면 잊지 않습니다. 명함 대신, 슬랙 프로필 대신, 한 줄로."
-            />
-            <BenefitCard
-              title="하위 링크 무제한"
-              desc="/노션, /유튜브, /깃허브... 원하는 만큼 추가하세요. 모든 링크를 한 곳에 모읍니다."
-            />
-            <BenefitCard
-              title="프로필 페이지 자동 생성"
-              desc="소개 + 아바타로 나만의 랜딩 페이지가 완성됩니다. 디지털 명함, 끝."
-            />
-            <BenefitCard
-              title="클릭 분석 대시보드"
-              desc="누가 언제 어디서 클릭했는지 한눈에. 강의 후기, 마케팅 효과를 데이터로."
-            />
-            <BenefitCard
-              title="만료 신경 쓰지 않기"
-              desc="구독하는 동안 주소는 영원히 당신의 것. 7일 만료 없이 계속 사용하세요."
-            />
-            <BenefitCard
-              title="발음할 수 있는 URL"
-              desc="bit.ly/3jAzD9F를 전화로 불러본 적 있나요? 좌표.to/홍길동은 한 번에 통합니다."
-            />
-          </div>
         </section>
+
+        {/* Subscribe card */}
+        <div
+          className="p-6 sm:p-8 rounded-2xl mb-8"
+          style={{
+            background: "var(--surface-lowest)",
+            boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div
+            className="pb-5 mb-5"
+            style={{ borderBottom: "1px solid var(--surface-container)" }}
+          >
+            <div className="flex items-baseline gap-1.5 justify-center">
+              <span className="price-display text-4xl sm:text-5xl font-extrabold">
+                ₩{monthly}
+              </span>
+              <span
+                className="text-base font-medium"
+                style={{ color: "var(--on-surface-variant)" }}
+              >
+                / 월
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSubscribe}
+            disabled={busy}
+            className="w-full py-4 rounded-xl font-bold text-lg text-white transition-opacity hover:opacity-90 disabled:opacity-70"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--primary), var(--primary-container))",
+              minHeight: 56,
+            }}
+            aria-live="polite"
+          >
+            {busy ? stageLabel : "구독 시작하기"}
+          </button>
+
+          {error && (
+            <p
+              className="text-sm mt-3 text-center break-keep"
+              style={{ color: "var(--error)" }}
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
+
+          <div
+            className="mt-5 pt-5 space-y-2.5"
+            style={{ borderTop: "1px solid var(--surface-container)" }}
+          >
+            <Feature text="프로필 페이지 상단 안내 1줄 숨김" />
+            <Feature text="클릭 통계 대시보드 (7일 분석)" />
+            <Feature text="매월 자동갱신 · 언제든 해지" />
+          </div>
+
+          <p
+            className="text-center text-xs mt-5 leading-relaxed break-keep"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            문의: {businessInfo.email} ·{" "}
+            <a href="/terms" style={{ color: "var(--primary)" }}>
+              이용약관
+            </a>{" "}
+            ·{" "}
+            <a href="/privacy" style={{ color: "var(--primary)" }}>
+              개인정보처리방침
+            </a>
+          </p>
+        </div>
+
+        {/* Free plan note */}
+        <div
+          className="p-5 rounded-2xl"
+          style={{ background: "var(--surface-low)" }}
+        >
+          <p
+            className="text-xs font-bold uppercase tracking-widest mb-2"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            무료 플랜
+          </p>
+          <p
+            className="text-sm break-keep"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
+          >
+            전 기능 무제한. 좌표.to/내이름 영구 보관. 프로필 페이지와 하위
+            링크를 무제한으로 만드세요. 페이지 상단에 작은 좌표.to 안내 1줄이
+            표시됩니다.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-block mt-3 text-sm font-semibold"
+            style={{ color: "var(--primary)" }}
+          >
+            무료로 시작하기 →
+          </a>
+        </div>
       </main>
     </div>
   );
@@ -386,35 +264,7 @@ function Feature({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-2">
       <span style={{ color: "var(--primary)" }}>✓</span>
-      <span className="text-sm">{text}</span>
-    </div>
-  );
-}
-
-function BenefitCard({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div
-      className="rounded-2xl p-6 sm:p-7 transition-all hover:translate-x-0.5"
-      style={{
-        background: "var(--surface-lowest)",
-        boxShadow: "var(--shadow-whisper)",
-      }}
-    >
-      <h4
-        className="text-lg sm:text-xl font-bold mb-2 break-keep"
-        style={{
-          fontFamily: "Manrope, sans-serif",
-          color: "var(--on-background)",
-        }}
-      >
-        {title}
-      </h4>
-      <p
-        className="text-sm sm:text-base break-keep"
-        style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
-      >
-        {desc}
-      </p>
+      <span className="text-sm break-keep">{text}</span>
     </div>
   );
 }

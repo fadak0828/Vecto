@@ -31,11 +31,11 @@ export default function NamespaceNotFound() {
           이 좌표는 아직 주인이 없습니다.
         </p>
         <a
-          href="/reserve"
+          href="/dashboard"
           className="inline-block px-5 py-2.5 rounded-full text-sm font-medium text-white"
           style={{ background: "var(--on-background)" }}
         >
-          이 이름 예약하기
+          이 이름 만들기
         </a>
         <div className="mt-4">
           <a

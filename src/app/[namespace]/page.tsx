@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
+import { ProfilePromoBanner } from "@/components/profile-promo-banner";
 
 type Props = { params: Promise<{ namespace: string }> };
 
@@ -39,18 +40,17 @@ export default async function NamespacePage({ params }: Props) {
     notFound();
   }
 
-  // 결제 안 한 namespace는 공개 프로필 차단 (claim만 하고 결제 안 한 사용자)
-  if (ns.payment_status === "free") {
-    notFound();
-  }
-
   const displayName = ns.display_name || ns.name;
+  const isPaid =
+    ns.payment_status === "active" &&
+    ns.paid_until !== null &&
+    new Date(ns.paid_until) > new Date();
 
   return (
     <main className="flex-1" style={{ background: "var(--surface)" }}>
-      <div className="max-w-lg mx-auto px-6 py-16">
+      <div className="max-w-lg mx-auto px-6 pt-16 pb-16">
         {/* Profile header — left-aligned, editorial */}
-        <div className="mb-10">
+        <div className="mb-8">
           <div className="flex items-center gap-5 mb-4">
             {ns.avatar_url ? (
               <img src={ns.avatar_url} alt={displayName} className="w-20 h-20 rounded-full object-cover shrink-0" style={{ border: "3px solid var(--primary)" }} />
@@ -66,6 +66,9 @@ export default async function NamespacePage({ params }: Props) {
           </div>
           {ns.bio && <p className="mt-2" style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}>{ns.bio}</p>}
         </div>
+
+        {/* Promo banner — free users only. Masthead spec (D-H2). Full-width bleed past max-w-lg. */}
+        {!isPaid && <ProfilePromoBanner />}
 
         {/* 만료 배너 */}
         {ns.payment_status === "expired" && (
