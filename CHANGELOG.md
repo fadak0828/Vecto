@@ -4,6 +4,26 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.6.0] - 2026-04-07
+
+라이브 결제 활성화 준비 1단계: 사업자 정보를 사이트 전반에 노출하기 위한 ENV 기반 footer + 법적 표기. 행정(통신판매업 신고, PortOne 사업자 인증, PG 계약)이 끝나면 ENV 값만 채우고 즉시 라이브.
+
+### Added
+- **글로벌 사이트 footer** (`src/components/site-footer.tsx`) — 모든 페이지에 동일하게 노출되는 사업자 정보 블록 (상호, 대표, 사업자등록번호, 통신판매업 신고번호, 사업장 주소, 고객지원 연락처). `layout.tsx`에서 한 번 마운트, 6개 페이지에 흩어져 있던 인라인 footer 통합.
+- **사업자 정보 헬퍼** (`src/lib/business-info.ts`) — `NEXT_PUBLIC_BUSINESS_*` 7개 ENV에서 trim된 값을 읽어 단일 객체로 노출. ENV 비어 있을 때 `email`은 기본값 폴백, 나머지는 빈 문자열 (호출부에서 placeholder 처리). `isBusinessInfoComplete()` 함수는 Phase C 라이브 활성화 직전 build-time guard용으로 정의만 해둠.
+- **`.env.example`** — 신규. Supabase + PortOne(4) + 사업자 정보(7) ENV 변수 모두 placeholder로 정의. 주석으로 각 변수의 출처와 의미 설명. `.gitignore`에 `!.env.example` 예외 추가.
+- **이용약관 제10조 (사업자 정보)** — `terms/page.tsx`에 사업자 7개 항목을 ENV에서 동적으로 표시.
+- **개인정보 처리방침 보호책임자 성명** — 9조에 대표자명을 ENV에서 가져와 명시.
+- **결제 직전 환불 정책 강화** (`pricing/page.tsx`) — 결제 버튼 아래 "결제 후 7일 이내 미사용 시 전액 환불 / 환불 문의 support@xn--h25b29s.to" 명시. 전자상거래법 구매 직전 고지 의무 충족.
+- **Environment Variables 섹션** (`CLAUDE.md`) — 세 갈래 (Supabase / PortOne / 사업자 정보) ENV 변수의 출처, 사용처, 누락 시 동작 문서화.
+- **business-info 단위 테스트** — `tests/business-info.test.ts` 8개 (전체 117개 그린).
+
+### Changed
+- **레이아웃 sticky footer 패턴 정착** — `layout.tsx`의 body를 `min-h-screen flex flex-col`로 변경, `<main flex-1>` 안에 children 래핑, footer를 sibling으로. 13개 페이지의 wrapper에서 `min-h-screen` → `flex-1`로 일괄 교체. 이전에는 페이지 wrapper의 `min-h-screen`이 viewport 전체를 차지하고 그 아래에 footer가 추가되어 짧은 페이지(/auth/login, /not-found, /error 등)에서도 항상 viewport보다 footer 높이만큼 스크롤이 생기는 문제가 있었음. 이제 짧은 페이지는 footer가 viewport 바닥에 flush로 붙고, 긴 페이지는 자연스럽게 스크롤됨.
+
+### Fixed
+- **6개 페이지의 인라인 footer 중복 제거** — `home`, `pricing`, `terms`, `privacy`, `dashboard`, `settings` 각각 다른 형태로 인라인된 footer JSX/함수를 모두 제거. 단일 `SiteFooter`로 일원화. 향후 footer 변경 시 한 곳만 고치면 전 사이트 반영.
+
 ## [0.5.1] - 2026-04-07
 
 ### Changed

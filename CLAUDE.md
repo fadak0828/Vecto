@@ -19,6 +19,15 @@ In QA mode, flag any code that doesn't match DESIGN.md.
 - CI also uses bun (`.github/workflows/test.yml`)
 - `package-lock.json` is gitignored — do not regenerate it
 
+## Environment Variables
+- **Source of truth:** `.env.example` — copy to `.env.local` for development.
+- **Production:** Vercel 대시보드 > Settings > Environment Variables.
+- **Three groups:**
+  - **Supabase** — DB/auth/storage. `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용.
+  - **PortOne 결제** — `NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`. 라이브 키는 PortOne 어드민에서 사업자 인증 + PG 계약 완료 후 발급.
+  - **사업자 정보** — `NEXT_PUBLIC_BUSINESS_*` 7개. 전자상거래법 footer/약관/결제 표시 의무. 빈 값일 때 placeholder("등록 진행 중")로 노출되어 사이트는 깨지지 않음. 실제 운영 전에 반드시 채울 것.
+- **헬퍼:** `src/lib/business-info.ts` — `businessInfo` 객체 + `isBusinessInfoComplete()` 검사 함수.
+
 ## Deploy Configuration
 - **Platform:** Vercel (auto-detected from `vercel.json`)
 - **Production URL:** https://좌표.to (punycode: `https://xn--h25b29s.to`)

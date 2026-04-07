@@ -2,6 +2,22 @@
 
 ## 다음 작업 (우선순위순)
 
+### 🚨 라이브 결제 활성화 (Phase A 행정 — 사용자 직접) — v0.6.0 후속
+- **A0. PortOne 어드민 가입** + 사업자 정보 입력 + "구매안전서비스 이용 확인증" PDF 다운로드 (https://admin.portone.io)
+- **A1. 통신판매업 신고** (정부24 → 사업자등록증 + 구매안전서비스 확인증 첨부, 처리 3~7영업일)
+- **A2. PortOne 어드민에 통신판매업 신고증 업로드** + 사업자 명의 정산계좌 등록
+- **A3. PG 계약** (PortOne 어드민 → 토스페이먼츠 권장, 심사 5~10영업일)
+
+### 🚨 라이브 결제 활성화 (Phase C 코드 + 검증) — A1~A3 끝난 후
+- **C0. Vercel + .env.local에 사업자 정보 7개 ENV 채우기** (`NEXT_PUBLIC_BUSINESS_*`). 비어 있으면 footer가 placeholder로 표시되지만 PG 심사 통과 안 됨.
+- **C1. PortOne 라이브 키 4개 ENV 주입** (`NEXT_PUBLIC_PORTONE_STORE_ID`, `NEXT_PUBLIC_PORTONE_CHANNEL_KEY`, `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`)
+- **C2. PortOne 어드민에서 webhook endpoint 등록** (`https://xn--h25b29s.to/api/payment/webhook`, 이벤트 `Transaction.Paid` + `Transaction.Cancelled`) → 발급된 시크릿을 `PORTONE_WEBHOOK_SECRET`에 주입
+- **C3. 소액 실결제 검증** — 본인 카드로 3개월 최저가 결제 → webhook 도달 + DB `payments.status="paid"` + `namespaces.payment_status="active"` + 대시보드 "프리미엄 활성" 표시 5단계 확인
+- **C4. 환불 검증** — `/api/payment/refund` 호출 → PortOne 어드민 환불 처리 확인 + DB `payments.status="refunded"` 확인
+- **C5. `isBusinessInfoComplete()` wire-up** — `src/lib/business-info.ts`에 정의만 되어 있음. 라이브 활성화 직전 build-time guard 또는 dev banner로 연결 (production에서 사업자 정보 누락 시 build fail)
+- **C6. 사업자 주소 확정 후 terms 제9조 (분쟁 해결) 관할법원 명시 검토** — 현재 "민사소송법에서 정한 관할 법원"으로 안전하게 표현 중. 사업자 주소지가 정해지면 명시 가능.
+
+
 ### ~~자동 테스트 구축~~ ✅ Fixed on main, 2026-04-06
 - ~~escapeHtml 유닛 테스트~~ → 8개 테스트
 - ~~validateSlug / validateUrl 유닛 테스트~~ → 16개 테스트
