@@ -799,7 +799,7 @@ export default function Home() {
           </h2>
           <p
             className="text-white/85 mb-8"
-            style={{ lineHeight: 1.5 }}
+            style={{ lineHeight: 1.7 }}
           >
             <span className="block text-xs font-medium tracking-wider uppercase mb-1 text-white/60">
               월
