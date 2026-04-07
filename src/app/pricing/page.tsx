@@ -69,7 +69,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a
@@ -294,10 +294,12 @@ export default function PricingPage() {
             )}
 
             <p
-              className="text-center text-xs mt-4"
+              className="text-center text-xs mt-4 leading-relaxed"
               style={{ color: "var(--on-surface-variant)" }}
             >
-              7일 이내 환불 보장
+              결제 후 7일 이내 미사용 시 전액 환불.
+              <br />
+              환불 문의: support@xn--h25b29s.to
             </p>
 
             <div
@@ -376,35 +378,6 @@ export default function PricingPage() {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer
-        className="px-6 sm:px-8 py-8 sm:py-12"
-        style={{ background: "var(--surface-low)" }}
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-5xl mx-auto">
-          <span
-            className="font-bold tracking-tight"
-            style={{ fontFamily: "Manrope, sans-serif" }}
-          >
-            좌표.to
-          </span>
-          <div
-            className="flex gap-6 text-sm"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            <a href="/terms" className="hover:opacity-70 transition-opacity">
-              이용약관
-            </a>
-            <a href="/privacy" className="hover:opacity-70 transition-opacity">
-              개인정보 처리방침
-            </a>
-          </div>
-          <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
-            © 2026 좌표.to
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

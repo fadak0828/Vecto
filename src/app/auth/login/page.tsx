@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   if (sent) {
     return (
-      <main className="min-h-screen flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
+      <main className="flex-1 flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
         <div className="max-w-xl mt-24">
           <p
             className="text-xs font-medium mb-4 tracking-wider uppercase"
@@ -50,7 +50,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
+    <main className="flex-1 flex flex-col p-8 sm:p-16" style={{ background: "var(--surface)" }}>
       <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { businessInfo } from "@/lib/business-info";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침 — 좌표.to",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-3xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
       </nav>
@@ -113,7 +114,10 @@ export default function PrivacyPage() {
 
           <Section title="9. 개인정보 보호 책임자">
             <p>개인정보 보호 관련 문의는 아래로 연락해 주시기 바랍니다.</p>
-            <p className="mt-2">이메일: support@좌표.to</p>
+            <ul className="mt-2 space-y-1">
+              <li>책임자: {businessInfo.representative || "등록 진행 중"} (대표)</li>
+              <li>이메일: {businessInfo.email}</li>
+            </ul>
           </Section>
 
           <Section title="10. 방침 변경">
@@ -121,8 +125,6 @@ export default function PrivacyPage() {
           </Section>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
@@ -133,20 +135,5 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "Manrope, sans-serif" }}>{title}</h2>
       <div className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{children}</div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="px-6 sm:px-8 py-8" style={{ background: "var(--surface-low)" }}>
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-3xl mx-auto">
-        <span className="font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</span>
-        <div className="flex gap-6 text-sm" style={{ color: "var(--on-surface-variant)" }}>
-          <a href="/terms" className="hover:opacity-70 transition-opacity">이용약관</a>
-          <span className="font-medium" style={{ color: "var(--on-surface)" }}>개인정보 처리방침</span>
-        </div>
-        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>© 2026 좌표.to</span>
-      </div>
-    </footer>
   );
 }

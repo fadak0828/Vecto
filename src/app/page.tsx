@@ -214,7 +214,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <span
@@ -836,11 +836,6 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="px-8 py-8 text-center">
-        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
-          좌표.to
-        </span>
-      </footer>
     </div>
   );
 }

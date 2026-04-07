@@ -10,7 +10,7 @@ export default function PaymentCompletePage() {
     <Suspense
       fallback={
         <div
-          className="min-h-screen flex items-center justify-center"
+          className="flex-1 flex items-center justify-center"
           style={{ background: "var(--surface)" }}
         >
           <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
@@ -71,7 +71,7 @@ function PaymentCompleteContent() {
   }, [status, pollCount, checkPaymentStatus]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--surface)" }}>
+    <div className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
       <div className="max-w-md w-full mx-auto px-6 text-center">
         {status === "checking" && (
           <>

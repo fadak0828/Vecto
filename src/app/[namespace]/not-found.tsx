@@ -5,7 +5,7 @@
 export default function NamespaceNotFound() {
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center p-8"
+      className="flex-1 flex flex-col items-center justify-center p-8"
       style={{ background: "var(--surface)" }}
     >
       <div className="max-w-md text-center">

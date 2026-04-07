@@ -47,7 +47,7 @@ export default async function NamespacePage({ params }: Props) {
   const displayName = ns.display_name || ns.name;
 
   return (
-    <main className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <main className="flex-1" style={{ background: "var(--surface)" }}>
       <div className="max-w-lg mx-auto px-6 py-16">
         {/* Profile header — left-aligned, editorial */}
         <div className="mb-10">

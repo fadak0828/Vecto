@@ -19,7 +19,7 @@ export default function ReservePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col p-6 sm:p-16" style={{ background: "var(--surface)" }}>
+    <main className="flex-1 flex flex-col p-6 sm:p-16" style={{ background: "var(--surface)" }}>
       <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl">

@@ -154,14 +154,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: "var(--surface)" }}>
+      <main className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
         <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
       </main>
     );
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--surface)" }}>
+    <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
@@ -337,8 +337,6 @@ export default function DashboardPage() {
           </section>
         )}
       </main>
-
-      <footer className="px-8 py-6 text-center text-xs" style={{ color: "var(--on-surface-variant)" }}>좌표.to</footer>
     </div>
   );
 }
