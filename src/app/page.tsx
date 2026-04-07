@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PLANS, roughMonthly } from "@/lib/pricing";
+import {
+  ClickChartPreview,
+  NamespacePillPreview,
+  ProfileCardPreview,
+} from "@/components/premium-previews";
 
 /** Strip http:// or https:// prefix for display (clipboard copy keeps full URL) */
 function stripScheme(url: string): string {
@@ -8,6 +14,13 @@ function stripScheme(url: string): string {
 }
 
 const ROTATING_SLUGS = ["오픈채팅", "청첩장", "이력서", "메뉴판"];
+const NAMESPACE_TEASER_WORDS = [
+  "내이름",
+  "우리가게",
+  "포트폴리오",
+  "내브랜드",
+  "디자이너",
+];
 const TYPING_SPEED_MS = 110;
 const DELETING_SPEED_MS = 55;
 const PAUSE_AFTER_TYPED_MS = 1400;
@@ -30,6 +43,42 @@ export default function Home() {
   const [rotatingText, setRotatingText] = useState("");
   const [rotatingIndex, setRotatingIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Teaser pill 크로스 페이드 루프 — 단어 자체를 fade out → 교체 → fade in.
+  const [teaserWordIndex, setTeaserWordIndex] = useState(0);
+  const [teaserVisible, setTeaserVisible] = useState(true);
+
+  useEffect(() => {
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    let cancelled = false;
+    let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const cycle = () => {
+      if (cancelled) return;
+      setTeaserVisible(false);
+      fadeTimeout = setTimeout(() => {
+        if (cancelled) return;
+        setTeaserWordIndex((i) => (i + 1) % NAMESPACE_TEASER_WORDS.length);
+        setTeaserVisible(true);
+      }, 380);
+    };
+    const interval = setInterval(cycle, 2400);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (fadeTimeout) clearTimeout(fadeTimeout);
+    };
+  }, []);
+
+  const teaserSlug = NAMESPACE_TEASER_WORDS[teaserWordIndex];
+  const teaserSlugStyle: React.CSSProperties = {
+    width: "5.5em",
+    opacity: teaserVisible ? 1 : 0,
+    transition: "opacity 0.38s ease-in-out",
+  };
 
   useEffect(() => {
     if (slug.length > 0) return;
@@ -230,15 +279,21 @@ export default function Home() {
         <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:items-start">
           {/* Left: form */}
           <div className="lg:col-span-6">
-            {/* URL 생성 폼 — Glass Card */}
+            {/* URL 생성 폼 — Glass Card. result.url 있을 때 모바일은 풀스크린 시트로 변신 */}
             <div
-              className="p-6 rounded-2xl max-w-lg lg:max-w-none"
+              className={
+                result?.url
+                  ? "p-6 rounded-2xl max-w-lg lg:max-w-none result-mobile-fullscreen"
+                  : "p-6 rounded-2xl max-w-lg lg:max-w-none"
+              }
               style={{
                 background: "rgba(255,255,255,0.8)",
                 backdropFilter: "blur(16px)",
                 boxShadow: "var(--shadow-whisper-strong)",
               }}
             >
+              {!result?.url && (
+              <>
               <p
                 className="text-xs font-medium mb-1 tracking-wider uppercase"
                 style={{ color: "var(--on-surface-variant)" }}
@@ -342,6 +397,8 @@ export default function Home() {
                 )}
               </div>
             )}
+              </>
+              )}
 
             {/* Success — mobile/tablet only (desktop shows in right panel) */}
             {result?.url && (
@@ -417,12 +474,78 @@ export default function Home() {
                   </div>
                 )}
 
+              </div>
+            )}
+
+            {/* Upgrade prompt — shown on all sizes when a free link was created */}
+            {result?.url && (
+              <div className="mt-5">
+                <h3
+                  className="text-lg sm:text-xl font-extrabold mb-1 break-keep"
+                  style={{
+                    fontFamily: "Manrope, sans-serif",
+                    color: "var(--on-background)",
+                  }}
+                >
+                  이 링크는 7일 후 만료됩니다
+                </h3>
                 <p
-                  className="text-xs mt-3"
+                  className="text-sm mb-4"
+                  style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
+                >
+                  영구적인 좌표를 만드시겠어요?
+                </p>
+
+                <a
+                  href="/pricing"
+                  className="group flex flex-col items-start gap-3 p-4 rounded-2xl transition-all hover:translate-y-[-1px]"
+                  style={{
+                    background: "var(--surface-lowest)",
+                    boxShadow: "var(--shadow-whisper)",
+                    border: "1px solid var(--surface-container)",
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                >
+                  <NamespacePillPreview
+                    slug={teaserSlug}
+                    slugStyle={teaserSlugStyle}
+                    hideCursor
+                  />
+                  <div className="w-full">
+                    <p
+                      className="text-sm font-bold break-keep"
+                      style={{
+                        fontFamily: "Manrope, sans-serif",
+                        color: "var(--on-background)",
+                      }}
+                    >
+                      영구적인 주소 만들기
+                    </p>
+                  </div>
+                  <span
+                    className="text-sm font-bold group-hover:translate-x-0.5 transition-transform"
+                    style={{ color: "var(--primary)" }}
+                    aria-hidden="true"
+                  >
+                    더 알아보기 →
+                  </span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResult(null);
+                    setSlug("");
+                    setTargetUrl("");
+                    setQrDataUrl(null);
+                    setCopied(false);
+                  }}
+                  className="block mt-4 text-sm hover:opacity-70 transition-opacity"
                   style={{ color: "var(--on-surface-variant)" }}
                 >
-                  7일간 유효
-                </p>
+                  ← 새로 만들기
+                </button>
               </div>
             )}
             </div>
@@ -591,158 +714,82 @@ export default function Home() {
         </a>
       </nav>
 
-      {/* Two-tier choice — asymmetric editorial split (5/12 free + 7/12 premium) */}
-      <section
-        className="px-6 sm:px-8 py-12 sm:py-20"
-        style={{ background: "var(--surface-low)" }}
-      >
+      {/* Premium Features — visual previews instead of text cards */}
+      <section className="px-6 sm:px-8 py-12 sm:py-20" style={{ background: "var(--surface-lowest)" }}>
         <div className="max-w-5xl mx-auto">
-          <h2
-            className="text-sm font-medium mb-8 tracking-wider uppercase"
-            style={{ color: "var(--on-surface-variant)" }}
+          <p
+            className="text-xs font-bold uppercase tracking-widest mb-3"
+            style={{ color: "var(--primary)" }}
           >
-            두 가지 시작.
+            결제하면 이렇게 됩니다
+          </p>
+          <h2
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 break-keep"
+            style={{ fontFamily: "Manrope, sans-serif", textWrap: "balance" }}
+          >
+            짧은 주소가 아니라,
+            <br />
+            기억되는 주소.
           </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-stretch">
-            {/* Free — secondary, lighter, 5/12 */}
-            <div
-              className="lg:col-span-5 p-7 sm:p-8 rounded-2xl flex flex-col"
-              style={{
-                background: "var(--surface-lowest)",
-                boxShadow: "var(--shadow-whisper)",
-              }}
+          <p
+            className="text-base sm:text-lg max-w-2xl mb-8 sm:mb-10"
+            style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}
+          >
+            텍스트 설명보다 한 번 보는 게 빠릅니다.
+          </p>
+
+          {/* 1. Namespace pill — full width */}
+          <div className="mb-8">
+            <NamespacePillPreview slug="홍길동" />
+            <p
+              className="text-sm mt-3"
+              style={{ color: "var(--on-surface-variant)" }}
             >
+              <strong style={{ color: "var(--on-background)" }}>
+                전용 주소
+              </strong>{" "}
+              · 명함, 강의 슬라이드, SNS 어디에나.
+            </p>
+          </div>
+
+          {/* 2. Profile + Chart — 2 col grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <ProfileCardPreview displayName="홍길동" />
               <p
-                className="text-xs font-medium mb-3 tracking-wider uppercase"
+                className="text-sm mt-3"
                 style={{ color: "var(--on-surface-variant)" }}
               >
-                체험
+                <strong style={{ color: "var(--on-background)" }}>
+                  프로필 페이지
+                </strong>{" "}
+                · 모든 링크를 한곳에 모읍니다.
               </p>
-              <h3
-                className="text-2xl font-bold mb-2"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                무료
-              </h3>
-              <p
-                className="text-sm mb-2"
-                style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
-              >
-                한글 URL 즉시 생성. 7일 후 자동 만료.
-              </p>
-              <p
-                className="text-sm mb-7"
-                style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}
-              >
-                ₩0
-              </p>
-              <ul className="space-y-2.5 mt-auto">
-                {["한글 주소 생성", "7일간 유효", "하루 10개까지"].map((f) => (
-                  <li key={f} className="text-sm flex items-center gap-2.5">
-                    <span style={{ color: "var(--primary)" }}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
             </div>
-
-            {/* Premium — dominant, dark, 7/12 */}
-            <div
-              className="lg:col-span-7 p-8 sm:p-10 rounded-2xl flex flex-col"
-              style={{
-                background: "var(--on-background)",
-                color: "var(--surface-lowest)",
-                boxShadow: "var(--shadow-whisper-strong)",
-              }}
-            >
+            <div>
+              <ClickChartPreview />
               <p
-                className="text-xs font-medium mb-3 tracking-wider uppercase"
-                style={{ opacity: 0.55 }}
+                className="text-sm mt-3"
+                style={{ color: "var(--on-surface-variant)" }}
               >
-                추천 · 유료
+                <strong style={{ color: "var(--on-background)" }}>
+                  클릭 분석
+                </strong>{" "}
+                · 누가 언제 들어왔는지 한눈에.
               </p>
-              <h3
-                className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 break-all"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                좌표.to/[내이름]
-              </h3>
-              <p
-                className="text-base font-bold mb-2"
-                style={{ lineHeight: 1.7 }}
-              >
-                사람들에게 기억되는 나만의 주소.
-              </p>
-              <p className="text-sm mb-7" style={{ opacity: 0.55 }}>
-                월 약 ₩740부터 · 12개월 ₩8,900
-              </p>
-              <ul className="space-y-2.5 mt-auto">
-                {[
-                  "나만의 전용 주소",
-                  "하위 링크 무제한",
-                  "개인 프로필 페이지",
-                  "클릭 분석 대시보드",
-                ].map((f) => (
-                  <li key={f} className="text-sm flex items-center gap-2.5">
-                    <span style={{ color: "#76d6d5" }}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Premium Features — asymmetric layout */}
-      <section className="px-6 sm:px-8 py-12 sm:py-16">
-        <div className="max-w-5xl mx-auto">
-          <h2
-            className="text-sm font-medium mb-8 tracking-wider uppercase"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            이름 하나면 됩니다.
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div
-              className="p-8 rounded-2xl sm:row-span-2"
-              style={{
-                background: "var(--on-background)",
-                color: "var(--surface-lowest)",
-                boxShadow: "var(--shadow-whisper-strong)",
-              }}
-            >
-              <h3
-                className="text-xl font-bold mb-3"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                개인 프로필
-              </h3>
-              <p className="text-sm opacity-70" style={{ lineHeight: 1.7 }}>
-                좌표.to/[내이름] 하나로 모든 링크를 모읍니다.
-                디지털 명함, 끝.
-              </p>
-            </div>
-            <FeatureCard
-              title="클릭 분석"
-              desc="누가 언제 클릭했는지, 날짜별 추이를 한눈에."
-            />
-            <FeatureCard
-              title="하위 주소"
-              desc="좌표.to/[내이름]/노션, /유튜브, /깃허브. 무제한 추가."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
+      {/* CTA — pricing card with explicit price hint */}
       <section
-        className="px-6 sm:px-8 py-12 sm:py-16"
+        className="px-6 sm:px-8 py-12 sm:py-20"
         style={{
           background: "linear-gradient(135deg, var(--primary), var(--primary-container))",
         }}
       >
-        <div className="max-w-5xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           <h2
             className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4"
             style={{ fontFamily: "Manrope, sans-serif" }}
@@ -751,16 +798,39 @@ export default function Home() {
             <br />
             지금 바로 시작하세요.
           </h2>
-          <div className="flex gap-3 justify-center mt-8">
+          <p
+            className="text-white/85 mb-8"
+            style={{ lineHeight: 1.5 }}
+          >
+            <span className="block text-xs font-medium tracking-wider uppercase mb-1 text-white/60">
+              월
+            </span>
+            <span
+              className="text-4xl sm:text-5xl font-extrabold"
+              style={{ fontFamily: "Manrope, sans-serif", color: "var(--primary-light)" }}
+            >
+              약 ₩{roughMonthly(PLANS.reduce((min, p) => p.monthlyPrice < min.monthlyPrice ? p : min, PLANS[0]).monthlyPrice).toLocaleString()}
+            </span>
+            <span className="text-base sm:text-lg text-white/70 ml-1">
+              부터
+            </span>
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <a
-              href="/reserve"
-              className="px-6 py-3 rounded-full font-semibold text-sm"
+              href="/pricing"
+              className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-base shadow-lg hover:scale-[1.02] transition-transform"
               style={{
                 background: "var(--surface-lowest)",
                 color: "var(--on-background)",
               }}
             >
-              무료로 시작하기
+              결제 페이지로 →
+            </a>
+            <a
+              href="/reserve"
+              className="w-full sm:w-auto px-6 py-3 rounded-full font-medium text-sm text-white/90 hover:text-white transition-colors"
+            >
+              먼저 이름만 예약하기
             </a>
           </div>
         </div>
@@ -776,24 +846,3 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div
-      className="p-6 rounded-2xl"
-      style={{
-        background: "var(--surface-lowest)",
-        boxShadow: "var(--shadow-whisper)",
-      }}
-    >
-      <h3
-        className="font-bold mb-2"
-        style={{ fontFamily: "Manrope, sans-serif" }}
-      >
-        {title}
-      </h3>
-      <p className="text-sm" style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}>
-        {desc}
-      </p>
-    </div>
-  );
-}

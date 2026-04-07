@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { ClickStats } from "@/components/click-stats";
 import { PaymentStatus } from "@/components/payment-status";
+import {
+  ClickChartPreview,
+  NamespacePillPreview,
+  ProfileCardPreview,
+} from "@/components/premium-previews";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 
 type Namespace = {
@@ -172,7 +177,13 @@ export default function DashboardPage() {
           /* Claim — 이름 예약 후 결제 페이지로 이동 */
           <section className="max-w-lg">
             <h1 className="text-4xl font-extrabold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>내 좌표 만들기</h1>
-            <p className="mb-8" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 전용 주소를 만드세요.</p>
+            <p className="mb-6" style={{ color: "var(--on-surface-variant)" }}>좌표.to/내이름 으로 나만의 전용 주소를 만드세요.</p>
+
+            {/* 라이브 미리보기 — 입력하면 실시간으로 슬러그 반영 */}
+            <div className="mb-6">
+              <NamespacePillPreview slug={claimName || "내이름"} />
+            </div>
+
             <form onSubmit={handleClaim} className="space-y-3">
               <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 32px rgba(0,0,0,0.03)" }}>
                 <span className="pl-4 pr-1 py-3 text-sm whitespace-nowrap" style={{ color: "var(--on-surface-variant)" }}>좌표.to/</span>
@@ -184,6 +195,20 @@ export default function DashboardPage() {
               {claimError && <p className="text-sm" style={{ color: "var(--error)" }}>{claimError}</p>}
               <p className="text-xs text-center" style={{ color: "var(--on-surface-variant)" }}>이름 등록 후 결제 페이지로 이동합니다.</p>
             </form>
+
+            {/* 미리보기 — 프리미엄으로 만들 수 있는 것 */}
+            <div className="mt-10">
+              <p
+                className="text-xs font-bold uppercase tracking-widest mb-3"
+                style={{ color: "var(--primary)" }}
+              >
+                결제하면 이렇게 됩니다
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ProfileCardPreview displayName={claimName || "내이름"} />
+                <ClickChartPreview />
+              </div>
+            </div>
           </section>
         ) : (
           <section className="space-y-6">
@@ -194,7 +219,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Payment status */}
-            <PaymentStatus paymentStatus={namespace.payment_status} paidUntil={namespace.paid_until} />
+            <PaymentStatus paymentStatus={namespace.payment_status} paidUntil={namespace.paid_until} namespaceSlug={namespace.name} displayName={namespace.display_name ?? undefined} />
 
             {/* Stats row */}
             <ClickStats namespaceId={namespace.id} />
