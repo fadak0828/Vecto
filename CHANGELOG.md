@@ -4,6 +4,18 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.1] - 2026-04-08 — Hotfix: 결제 흐름 복구
+
+v0.7.0 출시 이후 단 한 명도 결제를 끝까지 마치지 못하던 두 가지 막힘을 해결합니다. 이제 카드 등록부터 첫 ₩2,900 결제까지 정상 동작합니다.
+
+### Fixed
+- **`POST /api/payment/prepare` 500 → 200** — `subscriptions.user_id` / `payments.owner_id` FK 가 비어 있는 `public.users` 를 가리키고 있어, 모든 구독 준비 호출이 FK 위반(23503) 으로 500을 반환하던 버그. `010_fix_user_fks.sql` 마이그레이션으로 두 FK 모두 `auth.users(id)` 로 옮기고 사용처 없는 `public.users` 테이블을 제거.
+- **PortOne 빌링키 발급 400 (`ParsePgRawResponseFailed`)** — KPN PG 가 빌링키 발급 시 구매자 이름을 필수로 요구하는데 클라이언트가 `customer.fullName` 을 넘기지 않아 카드 등록 창이 뜨기 전에 실패하던 버그. prepare 응답에 `customerName` 을 추가하고 pricing 페이지가 이를 PortOne SDK 의 `customer.fullName` 으로 전달.
+- **`/api/cron/expire` 갱신 안내 메일** — 같은 FK 원인으로 `public.users.email` 을 읽어 항상 빈 값이 나오던 조용한 버그. `supabase.auth.admin.getUserById` 로 교체. (실제 유료 사용자가 없어 영향은 없었음.)
+
+### Added
+- **`tests/payment-prepare.test.ts`** 회귀 테스트 3건 — 마이그레이션 010 의 FK 타겟 검증, prepare 응답의 `customerName` 필드 보장, pricing 페이지가 `customer.fullName` 을 전달하는지 검증.
+
 ## [0.7.0] - 2026-04-08 — Single SKU Freemium (Linktree-style)
 
 PG 빌링키 확답 수신 후 전체 요금 모델 개편. 기존 3/6/12개월 기간권(period-pack)을 제거하고 월 ₩2,900 구독 단일 SKU + 무료 전 기능 무제한 + 무료 사용자 프로필에 작은 안내 1줄 표시. `/autoplan` 리뷰에서 찾은 ship-blocker 5개(RPC idempotency, RLS view bypass, refund loophole, resubscribe data loss, BillingKey 서명 검증) 모두 사전 수정.
