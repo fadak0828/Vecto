@@ -101,7 +101,7 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 lg:pt-6 pb-20 max-w-5xl mx-auto">
-        {/* Hero — compact on mobile so purchase card lands high; even more compact on lg so the whole purchase card fits above the fold */}
+        {/* Hero — compact on mobile so purchase card lands high; tighter spacing on lg so the whole purchase card fits above the fold */}
         <section className="mb-6 sm:mb-16 lg:mb-6 max-w-3xl">
           <h1
             className="text-2xl sm:text-5xl md:text-6xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6 lg:mb-3"
