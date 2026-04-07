@@ -101,16 +101,16 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 lg:pt-6 pb-20 max-w-5xl mx-auto">
-        {/* Hero — compact on mobile so purchase card lands high; even more compact on lg so the whole purchase card fits above the fold */}
+        {/* Hero — compact on mobile so purchase card lands high; tighter spacing on lg so the whole purchase card fits above the fold */}
         <section className="mb-6 sm:mb-16 lg:mb-6 max-w-3xl">
           <h1
-            className="text-2xl sm:text-5xl md:text-6xl lg:text-4xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6 lg:mb-2"
+            className="text-2xl sm:text-5xl md:text-6xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-2 sm:mb-6 lg:mb-3"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
             월 <span style={{ color: "var(--primary)" }}>약 740원</span>부터.
           </h1>
           <p
-            className="text-sm sm:text-lg lg:text-sm max-w-2xl"
+            className="text-sm sm:text-lg lg:text-base max-w-2xl"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
             좌표.to/내이름 — 말로 전달할 수 있는 전용 주소.

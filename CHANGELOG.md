@@ -4,6 +4,16 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.5.1] - 2026-04-07
+
+### Changed
+- **데스크톱 nav 터치 타겟 44px 통과** — `요금제` 링크가 36×44로 WCAG 최소 미달이었음. 모든 텍스트 데스크톱 nav 링크에 `sm:px-2 sm:py-3` 추가. 시각적 변화 없이 hit area만 +8px.
+- **Pricing 히어로 데스크톱에서 다시 큼직하게** — `lg:text-4xl`(36px) → `lg:text-5xl`(48px), 본문 `lg:text-sm`(14px) → `lg:text-base`(16px). 위계가 살아나서 매거진 표지 톤 회복. 결제 카드는 여전히 fold 안에 들어감.
+
+### Fixed
+- **Upgrade 카드 1px 보더 제거** — 무료 링크 생성 후 표시되는 영구 주소 유도 카드의 `border: 1px solid var(--surface-container)` 제거. DESIGN.md No-Line 규칙 준수. `shadow-whisper` → `shadow-whisper-strong`로 톤 레이어링만으로 카드가 떠 보이게.
+- **하단 CTA 한글 line-height** — `1.5` → `1.7`. DESIGN.md 한글 본문 1.6-1.8 범위 floor 위반 해소.
+
 ## [0.5.0] - 2026-04-07
 
 ### Added

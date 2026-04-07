@@ -226,21 +226,21 @@ export default function Home() {
         <div className="flex items-center gap-3 sm:gap-6">
           <a
             href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             대시보드
           </a>
           <a
             href="/reserve"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             이름 예약하기
           </a>
           <a
             href="/pricing"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             요금제
@@ -501,8 +501,7 @@ export default function Home() {
                   className="group flex flex-col items-start gap-3 p-4 rounded-2xl transition-all hover:translate-y-[-1px]"
                   style={{
                     background: "var(--surface-lowest)",
-                    boxShadow: "var(--shadow-whisper)",
-                    border: "1px solid var(--surface-container)",
+                    boxShadow: "var(--shadow-whisper-strong)",
                     textDecoration: "none",
                     color: "inherit",
                   }}
@@ -800,7 +799,7 @@ export default function Home() {
           </h2>
           <p
             className="text-white/85 mb-8"
-            style={{ lineHeight: 1.5 }}
+            style={{ lineHeight: 1.7 }}
           >
             <span className="block text-xs font-medium tracking-wider uppercase mb-1 text-white/60">
               월
