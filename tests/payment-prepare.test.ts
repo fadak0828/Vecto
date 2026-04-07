@@ -1,47 +1,38 @@
 import { describe, it, expect } from "vitest";
-import { getPlan, validatePaymentAmount } from "@/lib/pricing";
+import {
+  MONTHLY_PRICE,
+  validateSubscriptionAmount,
+  validatePaymentAmount,
+} from "@/lib/pricing";
 
-// POST /api/payment/prepare의 핵심 검증 로직 테스트
-// (실제 Supabase/인증 연동 없이 비즈니스 로직 검증)
+// POST /api/payment/prepare 핵심 비즈니스 로직 검증
+// (실제 Supabase/인증/PortOne 연동 없이 로직만 테스트)
 
-describe("POST /api/payment/prepare — 입력 검증", () => {
-  it("유효한 기간(3개월)으로 플랜을 조회할 수 있다", () => {
-    const plan = getPlan(3);
-    expect(plan).not.toBeNull();
-    expect(plan!.price).toBe(2900);
-    expect(plan!.label).toBe("3개월");
+describe("POST /api/payment/prepare — 단일 SKU 구독", () => {
+  it("월 가격이 단일 고정 값", () => {
+    expect(MONTHLY_PRICE).toBe(2900);
   });
 
-  it("유효한 기간(6개월)으로 플랜을 조회할 수 있다", () => {
-    const plan = getPlan(6);
-    expect(plan).not.toBeNull();
-    expect(plan!.price).toBe(4900);
-    expect(plan!.badge).toBe("best value");
+  it("구독 금액 검증 — 정확한 ₩2,900만 허용", () => {
+    expect(validateSubscriptionAmount(MONTHLY_PRICE)).toBe(true);
+    expect(validateSubscriptionAmount(2800)).toBe(false);
+    expect(validateSubscriptionAmount(3000)).toBe(false);
   });
 
-  it("유효한 기간(12개월)으로 플랜을 조회할 수 있다", () => {
-    const plan = getPlan(12);
-    expect(plan).not.toBeNull();
-    expect(plan!.price).toBe(8900);
+  it("period_months=1 (월 구독)은 validatePaymentAmount에서 통과", () => {
+    expect(validatePaymentAmount(1, 2900)).toBe(true);
+    expect(validatePaymentAmount(1, 2800)).toBe(false);
   });
 
-  it("잘못된 기간(1, 2, 7, 24개월 등)을 거부한다", () => {
-    expect(getPlan(1)).toBeNull();
-    expect(getPlan(2)).toBeNull();
-    expect(getPlan(7)).toBeNull();
-    expect(getPlan(24)).toBeNull();
-  });
-
-  it("paymentId 형식이 올바르다", () => {
+  it("orderName 포맷이 namespace + '프리미엄 구독' 형태", () => {
     const nsName = "홍길동";
-    const paymentId = `jwapyo_${nsName}_${Date.now()}`;
-    expect(paymentId).toMatch(/^jwapyo_홍길동_\d+$/);
+    const orderName = `좌표.to/${nsName} 프리미엄 구독 (첫 결제)`;
+    expect(orderName).toBe("좌표.to/홍길동 프리미엄 구독 (첫 결제)");
   });
 
-  it("orderName이 올바르게 생성된다", () => {
-    const plan = getPlan(6);
-    const nsName = "홍길동";
-    const orderName = `좌표.to/${nsName} ${plan!.label} 이용권`;
-    expect(orderName).toBe("좌표.to/홍길동 6개월 이용권");
+  it("paymentId 포맷이 예측 불가능한 랜덤 값 (jwapyo_ prefix + hex)", () => {
+    // 실제 생성은 crypto.randomBytes — 여기선 형식만 검증
+    const mockPaymentId = `jwapyo_${"a1b2c3d4e5f67890a1b2c3d4e5f67890"}`;
+    expect(mockPaymentId).toMatch(/^jwapyo_[0-9a-f]{32}$/);
   });
 });

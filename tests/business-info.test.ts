@@ -39,7 +39,7 @@ describe("businessInfo", () => {
     expect(businessInfo.address).toBe("");
     expect(businessInfo.phone).toBe("");
     // email은 빈 문자열일 때 기본값으로 폴백
-    expect(businessInfo.email).toBe("support@xn--h25b29s.to");
+    expect(businessInfo.email).toBe("support.vecto@gmail.com");
   });
 
   it("ENV가 채워지면 그대로 반환", async () => {

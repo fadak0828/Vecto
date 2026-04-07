@@ -1,51 +1,84 @@
 import { describe, it, expect } from "vitest";
-import { PLANS, getPlan, validatePaymentAmount } from "@/lib/pricing";
+import {
+  MONTHLY_PRICE,
+  MONTHLY_SUPPLY_PRICE,
+  MONTHLY_VAT,
+  MONTHLY_LABEL,
+  CURRENCY,
+  validateSubscriptionAmount,
+  validateLegacyPaymentAmount,
+  validatePaymentAmount,
+  splitPrice,
+} from "@/lib/pricing";
 
-describe("PLANS 상수", () => {
-  it("3개 플랜이 정의되어 있다 (3, 6, 12개월)", () => {
-    expect(PLANS).toHaveLength(3);
-    expect(PLANS.map((p) => p.periodMonths)).toEqual([3, 6, 12]);
+describe("Single SKU 상수", () => {
+  it("월 가격이 ₩2,900", () => {
+    expect(MONTHLY_PRICE).toBe(2900);
   });
 
-  it("가격이 올바르다 (VAT 포함)", () => {
-    expect(PLANS[0].price).toBe(2900);
-    expect(PLANS[1].price).toBe(4900);
-    expect(PLANS[2].price).toBe(8900);
+  it("공급가 + VAT = 총액", () => {
+    expect(MONTHLY_SUPPLY_PRICE + MONTHLY_VAT).toBe(MONTHLY_PRICE);
   });
 
-  it("6개월 플랜에 best value 배지가 있다", () => {
-    expect(PLANS[1].badge).toBe("best value");
-  });
-});
-
-describe("getPlan", () => {
-  it("유효한 기간을 반환한다", () => {
-    expect(getPlan(3)?.price).toBe(2900);
-    expect(getPlan(6)?.price).toBe(4900);
-    expect(getPlan(12)?.price).toBe(8900);
-  });
-
-  it("유효하지 않은 기간에 null을 반환한다", () => {
-    expect(getPlan(1)).toBeNull();
-    expect(getPlan(7)).toBeNull();
-    expect(getPlan(99)).toBeNull();
+  it("라벨과 통화 고정", () => {
+    expect(MONTHLY_LABEL).toBe("월 구독");
+    expect(CURRENCY).toBe("KRW");
   });
 });
 
-describe("validatePaymentAmount", () => {
-  it("올바른 금액을 통과시킨다", () => {
+describe("validateSubscriptionAmount", () => {
+  it("정확한 월 가격만 허용", () => {
+    expect(validateSubscriptionAmount(2900)).toBe(true);
+  });
+
+  it("다른 금액 거부", () => {
+    expect(validateSubscriptionAmount(2800)).toBe(false);
+    expect(validateSubscriptionAmount(3000)).toBe(false);
+    expect(validateSubscriptionAmount(0)).toBe(false);
+    expect(validateSubscriptionAmount(-2900)).toBe(false);
+  });
+});
+
+describe("validateLegacyPaymentAmount (in-flight 호환)", () => {
+  it("3/6/12개월 가격 체크", () => {
+    expect(validateLegacyPaymentAmount(3, 2900)).toBe(true);
+    expect(validateLegacyPaymentAmount(6, 4900)).toBe(true);
+    expect(validateLegacyPaymentAmount(12, 8900)).toBe(true);
+  });
+
+  it("잘못된 금액 거부", () => {
+    expect(validateLegacyPaymentAmount(3, 2800)).toBe(false);
+    expect(validateLegacyPaymentAmount(6, 5000)).toBe(false);
+  });
+
+  it("새로운 구독 period_months=1 은 레거시 체크에서 false", () => {
+    expect(validateLegacyPaymentAmount(1, 2900)).toBe(false);
+  });
+});
+
+describe("validatePaymentAmount (통합)", () => {
+  it("period_months=1 → 구독 검증", () => {
+    expect(validatePaymentAmount(1, 2900)).toBe(true);
+    expect(validatePaymentAmount(1, 2800)).toBe(false);
+  });
+
+  it("period_months=3/6/12 → 레거시 검증", () => {
     expect(validatePaymentAmount(3, 2900)).toBe(true);
     expect(validatePaymentAmount(6, 4900)).toBe(true);
     expect(validatePaymentAmount(12, 8900)).toBe(true);
   });
 
-  it("조작된 금액을 거부한다", () => {
-    expect(validatePaymentAmount(3, 100)).toBe(false);
-    expect(validatePaymentAmount(6, 0)).toBe(false);
-    expect(validatePaymentAmount(12, 1)).toBe(false);
+  it("존재하지 않는 기간 거부", () => {
+    expect(validatePaymentAmount(2, 2900)).toBe(false);
+    expect(validatePaymentAmount(24, 29000)).toBe(false);
   });
+});
 
-  it("존재하지 않는 기간을 거부한다", () => {
-    expect(validatePaymentAmount(1, 2900)).toBe(false);
+describe("splitPrice", () => {
+  it("VAT 10% 기준으로 공급가와 부가세 분리", () => {
+    const { supply, vat } = splitPrice(2900);
+    expect(supply + vat).toBe(2900);
+    expect(supply).toBe(2636);
+    expect(vat).toBe(264);
   });
 });
