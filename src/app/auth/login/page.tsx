@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -15,6 +19,25 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
     if (error) { setError(error.message); } else { setSent(true); }
     setLoading(false);
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifyLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: "email",
+    });
+    if (error) {
+      setError(error.message);
+      setVerifyLoading(false);
+    } else {
+      router.push("/dashboard");
+      router.refresh();
+    }
   }
 
   if (sent) {
@@ -35,8 +58,42 @@ export default function LoginPage() {
           </h1>
           <p style={{ color: "var(--on-surface-variant)", lineHeight: 1.8 }}>
             <strong style={{ color: "var(--on-background)" }}>{email}</strong>
-            로 로그인 링크를 보냈습니다. 메일함에서 링크를 눌러 로그인을 완료하세요.
+            로 로그인 링크를 보냈습니다. 메일함에서 링크를 누르거나, 메일에 적힌 6자리 인증 코드를 아래에 입력하세요.
           </p>
+
+          <form
+            onSubmit={handleVerifyCode}
+            className="mt-8 space-y-3 p-6 sm:p-8 rounded-2xl max-w-md"
+            style={{
+              background: "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(16px)",
+              boxShadow: "var(--shadow-whisper-strong)",
+            }}
+          >
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="6자리 인증 코드"
+              maxLength={6}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              className="w-full py-3 px-4 rounded-xl outline-none text-base tracking-[0.4em] text-center"
+              style={{ background: "var(--surface-lowest)", fontVariantNumeric: "tabular-nums" }}
+              required
+            />
+            <button
+              type="submit"
+              disabled={verifyLoading || code.length < 6}
+              className="w-full py-3 rounded-xl font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ background: "var(--on-background)", color: "var(--surface-lowest)" }}
+            >
+              {verifyLoading ? "확인 중..." : "코드로 로그인"}
+            </button>
+            {error && <p className="text-sm pt-1" style={{ color: "var(--error)" }}>{error}</p>}
+          </form>
+
           <a
             href="/"
             className="inline-block mt-8 text-sm"
