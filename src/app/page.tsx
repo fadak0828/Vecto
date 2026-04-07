@@ -501,8 +501,7 @@ export default function Home() {
                   className="group flex flex-col items-start gap-3 p-4 rounded-2xl transition-all hover:translate-y-[-1px]"
                   style={{
                     background: "var(--surface-lowest)",
-                    boxShadow: "var(--shadow-whisper)",
-                    border: "1px solid var(--surface-container)",
+                    boxShadow: "var(--shadow-whisper-strong)",
                     textDecoration: "none",
                     color: "inherit",
                   }}
