@@ -22,9 +22,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
   const now = new Date();
-  const results = { expired: 0, warnings_sent: 0, errors: [] as string[] };
+  const results = {
+    expired: 0,
+    subscription_canceled: 0,
+    warnings_sent: 0,
+    errors: [] as string[],
+  };
 
-  // 1. active → expired 전이
+  // 1. active → expired 전이 (레거시 period-pack + 구독 period_end 초과)
   const { data: expiredNamespaces, error: expiredError } = await supabase
     .from("namespaces")
     .update({ payment_status: "expired" })
@@ -36,6 +41,18 @@ export async function GET(request: NextRequest) {
     results.errors.push(`Expire update failed: ${expiredError.message}`);
   } else {
     results.expired = expiredNamespaces?.length ?? 0;
+  }
+
+  // 2. past_due > 14d → canceled (ENG-H2 bulk RPC)
+  const { data: canceledResult, error: pastDueError } = await supabase.rpc(
+    "expire_past_due_subscriptions",
+    { p_grace_days: 14 },
+  );
+
+  if (pastDueError) {
+    results.errors.push(`past_due expire failed: ${pastDueError.message}`);
+  } else if (Array.isArray(canceledResult) && canceledResult[0]) {
+    results.subscription_canceled = canceledResult[0].canceled_count ?? 0;
   }
 
   // 2. 7일 전 만료 예정 알림

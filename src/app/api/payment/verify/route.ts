@@ -9,11 +9,14 @@ import { validatePaymentAmount } from "@/lib/pricing";
  * 수동 결제 확인 (webhook 실패 안전망).
  * 클라이언트가 결제 완료 후 webhook이 안 오면 이 엔드포인트를 호출.
  * 서버가 PortOne API에 직접 확인하고 DB 업데이트.
+ *
+ * 구독 첫 charge의 경우 start_subscription RPC로 billing key 저장 + period 시작.
+ * 구독 갱신 charge는 webhook에서만 처리 (verify 경로로 호출할 이유 없음).
  */
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
 
-  // 인증 확인
+  // 인증
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -29,12 +32,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // service_role로 payment 조회 (RLS 바이패스)
   const serviceSupabase = getServiceSupabase();
 
   const { data: payment } = await serviceSupabase
     .from("payments")
-    .select("id, namespace_id, amount, period_months, status, owner_id")
+    .select(
+      "id, namespace_id, amount, period_months, status, owner_id, subscription_id",
+    )
     .eq("portone_payment_id", paymentId)
     .maybeSingle();
 
@@ -45,15 +49,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 본인 결제인지 확인
+  // IDOR 방어
   if (payment.owner_id !== user.id) {
-    return NextResponse.json(
-      { error: "권한이 없습니다." },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
 
-  // 이미 처리됨
   if (payment.status === "paid") {
     return NextResponse.json({
       message: "이미 확인된 결제입니다.",
@@ -61,7 +61,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // PortOne에서 결제 상태 확인
   let portonePayment;
   try {
     portonePayment = await getPortOnePayment(paymentId);
@@ -89,31 +88,55 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // DB 업데이트 — atomic UPDATE WHERE status='pending' (race condition 방지)
-  const now = new Date();
+  // Atomic pending → paid
+  const nowIso = new Date().toISOString();
   const { data: updatedPayment } = await serviceSupabase
     .from("payments")
-    .update({ status: "paid", paid_at: now.toISOString() })
+    .update({ status: "paid", paid_at: nowIso })
     .eq("id", payment.id)
     .eq("status", "pending")
     .select("id")
     .maybeSingle();
 
   if (!updatedPayment) {
-    // 다른 요청(webhook 등)이 먼저 처리함
     return NextResponse.json({
       message: "이미 확인된 결제입니다.",
       status: "paid",
     });
   }
 
-  // 기존 만료일 이후 연장 로직 (Postgres add_months로 정확한 달력 계산)
+  // 구독 첫 charge
+  if (payment.subscription_id) {
+    if (portonePayment.billingKey) {
+      await serviceSupabase
+        .from("subscriptions")
+        .update({
+          portone_billing_key_id: portonePayment.billingKey,
+          updated_at: nowIso,
+        })
+        .eq("id", payment.subscription_id);
+    }
+
+    const { data: newEnd } = await serviceSupabase.rpc("start_subscription", {
+      p_subscription_id: payment.subscription_id,
+      p_paid_at: portonePayment.paidAt ?? nowIso,
+    });
+
+    return NextResponse.json({
+      message: "구독이 시작되었습니다.",
+      status: "paid",
+      paid_until: newEnd,
+    });
+  }
+
+  // 레거시 period-pack 경로 (in-flight 하위 호환)
   const { data: ns } = await serviceSupabase
     .from("namespaces")
     .select("paid_until, payment_status")
     .eq("id", payment.namespace_id)
     .maybeSingle();
 
+  const now = new Date();
   const baseDate =
     ns?.payment_status === "active" &&
     ns.paid_until &&
