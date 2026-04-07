@@ -2,6 +2,21 @@
 
 ## 다음 작업 (우선순위순)
 
+### 🚨 Single SKU Freemium 런칭 전 필수 — v0.7.0 (2026-04-08 구현 완료, 마이그레이션 + 런칭 대기)
+
+- **DB-1. `/run-sql` 또는 Supabase Dashboard에서 `supabase/009_subscriptions.sql` 실행** — subscriptions 테이블 + 4개 RPC + payments.subscription_id FK + subscriptions_public view + 008 grace user Option B backfill 포함 (autoplan ENG-C1/C5/C4/H1/H2/M2 fixes)
+- **DB-1b. 008 grace 사용자에게 안내 이메일 발송** — 009 마이그레이션에서 payment_status='active' → 'free' 로 전환됨. 대상 목록은 수동 SQL로 추출 후 Resend broadcast.
+- **PG-1. PortOne 어드민에서 빌링키 결제 활성화 확인** — PG 확답에 포함되었으나 실제 채널 설정 확인 필요. 빌링키 발급 권한 + 월 정기결제 ₩2,900 설정.
+- **PG-2. Webhook endpoint 재등록** — 기존 `Transaction.Paid` + `Transaction.Cancelled` 외에 `BillingKey.Issued`, `BillingKey.Failed`, `Transaction.Failed` 추가 필수.
+- **ENV-1. Vercel + .env.local에 사업자 정보 7개 ENV 채우기** (`NEXT_PUBLIC_BUSINESS_*`)
+- **ENV-2. PortOne 라이브 키 4개 ENV 주입**
+- **QA-1. Sandbox e2e** — 가입 → 구독 시작 → 빌링키 발급 → 첫 charge → (14일 past_due 시뮬) → 해지 → expire
+- **QA-2. Refund subscription guard** — /api/payment/refund 호출 시 subscription_id 있으면 400 반환 확인
+- **QA-3. Cancel IDOR** — user A가 user B sub 취소 시도 → 404 (RPC 내부 WHERE user_id 가드)
+- **QA-4. Billing key leak CI guard** — `grep -r "portone_billing_key_id" src/app/api/**/route.ts` 응답 body에 노출되지 않는지 확인 (현재 confirmed clean)
+- **QA-5. Cron `expire` race vs subscription renewal (P2 follow-up)** — adversarial review C5: 03:00 UTC cron 실행 시점에 PortOne 갱신 webhook이 아직 안 와서 active 구독 namespace가 일시적으로 expired로 flap 가능. 작은 윈도우(분 단위)지만 cleanup: cron의 첫 UPDATE에 `AND id NOT IN (SELECT namespace_id FROM subscriptions WHERE status='active')` 추가 필요.
+- **QA-6. ENG-H5 observability** — 구조적 JSON 로그 포맷 통일 + daily digest 이메일 (active/past_due/canceled 카운트, past_due > 5% 알림). 첫 결제 webhook signature failure counter.
+
 ### 🚨 라이브 결제 활성화 (Phase A 행정 — 사용자 직접) — v0.6.0 후속
 - **A0. PortOne 어드민 가입** + 사업자 정보 입력 + "구매안전서비스 이용 확인증" PDF 다운로드 (https://admin.portone.io)
 - **A1. 통신판매업 신고** (정부24 → 사업자등록증 + 구매안전서비스 확인증 첨부, 처리 3~7영업일)

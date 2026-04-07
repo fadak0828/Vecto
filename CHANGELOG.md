@@ -4,6 +4,47 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.0] - 2026-04-08 — Single SKU Freemium (Linktree-style)
+
+PG 빌링키 확답 수신 후 전체 요금 모델 개편. 기존 3/6/12개월 기간권(period-pack)을 제거하고 월 ₩2,900 구독 단일 SKU + 무료 전 기능 무제한 + 무료 사용자 프로필에 작은 안내 1줄 표시. `/autoplan` 리뷰에서 찾은 ship-blocker 5개(RPC idempotency, RLS view bypass, refund loophole, resubscribe data loss, BillingKey 서명 검증) 모두 사전 수정.
+
+### Added
+- **009_subscriptions.sql 마이그레이션** (`supabase/009_subscriptions.sql`) — `subscriptions` 테이블(5-state: pending/active/past_due/canceled/failed), `payments.subscription_id` FK, 4개 RPC(`process_subscription_charge` idempotent, `start_subscription`, `cancel_subscription` atomic+IDOR, `expire_past_due_subscriptions` bulk), `subscriptions_public` view (`WITH (security_invoker=true)` RLS enforcement), 008 grace user backfill (Option B: 즉시 free + 이메일).
+- **Profile promo banner** (`src/components/profile-promo-banner.tsx`) — 무료 사용자 프로필 페이지 상단에 표시되는 masthead 스타일 안내 바. 14px, `surface-container` 배경, mint dot accent, full-width bleed, `word-break: keep-all`. CTA "프리미엄 시작하기 →".
+- **5-state `PaymentStatus` 컴포넌트 refactor** — 기존 free/active/expired 3-branch에서 5-state (무료/이용중/해지됨/결제확인필요/만료)로 확장. subscription 객체 props + optional cancel handler.
+- **`ConfirmDialog` 컴포넌트** (`src/components/confirm-dialog.tsx`) — focus trap, Escape 닫기, Enter 확인, `aria-modal`/`aria-labelledby`, body scroll lock, WCAG 44×44 터치 타겟. 구독 해지 confirmation modal에 사용.
+- **`POST /api/subscription/cancel`** — `cancel_subscription` RPC 경유 atomic IDOR-가드된 해지 엔드포인트 + PortOne 예약 취소.
+- **PortOne helpers** (`src/lib/portone.ts`) — `chargeBillingKey` (첫/수동 charge), `revokeBillingKeySchedules`, `deleteBillingKey`. `getPortOnePayment` 반환 타입에 `scheduleId?`, `billingKey?` 필드 노출 (구독 갱신 charge 식별용).
+- **Subscription 상태 머신 테스트** (`tests/subscription-state.test.ts`) — 21 vitest 케이스: 5-state 도출, refund subscription 가드 (ENG-C2), 웹훅 first-charge vs recurring 분기 (idempotent 경로 포함), promo banner 가시성 로직, past_due auto-cancel 타이머.
+
+### Changed
+- **`pricing.ts` 단순화** — `PLANS` 배열, `getPlan`, `roughMonthly` 제거. 대신 `MONTHLY_PRICE=2900` 상수 + `validateSubscriptionAmount` + `validateLegacyPaymentAmount` (in-flight period-pack 호환) + `splitPrice` (VAT 계산) export.
+- **`/pricing` 페이지 single-hero 재설계** — 기존 12-col 비대칭 grid + 3장 기간권 카드 → `max-w-md` centered single card + 무료 플랜 안내 블록. `requestIssueBillingKey` (카드 빌링키) + 3-stage progress ("결제 준비 중" → "카드 등록 중" → "첫 결제 처리 중").
+- **`/api/payment/prepare`** — period_months input 제거. 단일 구독 생성: pending subscription row + pending payment row를 원자적으로 insert. 이미 활성 구독이 있으면 409.
+- **`/api/payment/webhook` 5-branch event routing** — `BillingKey.Ready`/`BillingKey.Issued`(→ `chargeBillingKey` 호출로 첫 charge 트리거)/`BillingKey.Failed`(→ sub 'failed' 전환)/`Transaction.Paid`(첫 charge OR recurring via `process_subscription_charge` RPC)/`Transaction.Failed`(→ past_due 전환 + failed_charge_count++).
+- **`/api/payment/refund` — ENG-C2 loophole plug** — SELECT에 `subscription_id` 컬럼 추가, `if (payment.subscription_id) return 400`. 구독 charge 환불 우회 방지.
+- **`/api/payment/verify`** — 첫 charge 경로에서 subscription 있으면 `start_subscription` RPC (ENG-C4: 기존 `paid_until` 보존).
+- **`/api/cron/expire`** — past_due > 14일 → `expire_past_due_subscriptions` RPC bulk cancel 추가. N+1 방지.
+- **`/[namespace]/page.tsx`** — `if (payment_status === 'free') notFound()` 삭제 (D-C1: plan-breaking bug). 무료 프로필도 정상 렌더 + `<ProfilePromoBanner>` 조건부 마운트.
+- **`ClickStats` paid gate** (`src/components/click-stats.tsx`) — `isPaid` prop 추가. 무료 사용자에게는 blurred preview + "프리미엄에서 확인하세요" lock card. 유료 사용자만 실제 통계 fetch.
+- **`/dashboard`** — subscription 상태 `subscriptions_public` view에서 JOIN, `PaymentStatus`에 subscription 객체 전달, `ConfirmDialog` 기반 해지 플로우. 무료 가입 시 pricing 리다이렉트 제거 (즉시 dashboard).
+
+### Fixed (from /ship adversarial review — post-autoplan critical fixes)
+- **C3 (silent billing key update failure):** `/api/payment/webhook` BillingKey.Issued handler — `updateError` was logged but not propagated, allowing first charge to fire against an unsaved billing key. Now returns 500 on update error so PortOne retries the webhook.
+- **C4 (BillingKey.Issued/Failed correlation):** PortOne webhook payload contains only `{billingKey, storeId}` — no `issueId`. Replaced naive `data.issueId` lookup with `getBillingKey(billingKey)` API call to fetch full `IssuedBillingKeyInfo` and extract `issueId`/`customer.customerId` for correlation. New `getBillingKey` helper in `src/lib/portone.ts`. Pricing page now also passes `customer.customerId: paymentId` as belt-and-suspenders correlation.
+- **C4b (staleness lockout):** `/api/payment/prepare` — pending subscriptions older than 15 minutes are now auto-cleaned before creating new ones, preventing permanent user lockout when `BillingKey.Failed` webhook can't correlate.
+- **M2 (subscription stuck pending):** `/api/payment/webhook` Transaction.Paid first-charge handler — when `payment.status='paid'` AND `subscription_id` AND `subscription.status='pending'`, the recovery path now retries `start_subscription` RPC instead of returning early. Previously, if `start_subscription` failed once, retries silently no-op'd because the payment was already marked paid.
+
+### Fixed (from /autoplan review — all critical fixes pre-shipped)
+- **ENG-C1:** `process_subscription_charge` RPC idempotency — INSERT 이후 `IF NOT FOUND THEN RETURN;` 추가. PortOne webhook retry 시 `current_period_end` 중복 advance (double-billing) 방지.
+- **ENG-C2:** Refund 엔드포인트 SELECT에 `subscription_id` 컬럼 추가 + guard. 구독 결제 환불 우회 loophole 차단.
+- **ENG-C3:** PortOne V2 BillingKey 웹훅 서명 검증 — `@portone/server-sdk`의 `Webhook.verify`가 모든 이벤트 타입(Transaction.*, BillingKey.*)을 단일 discriminated union + 동일 서명 스키마로 처리함을 SDK 타입 정의로 확인. 별도 서명 방식 없음.
+- **ENG-C4:** `start_subscription` RPC에서 기존 `namespaces.paid_until`이 미래면 거기부터 연장. Resubscribe-in-period 시나리오에서 paid-through 날짜 손실 방지.
+- **ENG-C5:** `subscriptions_public` view에 `WITH (security_invoker=true)` 명시 + 명시적 `GRANT SELECT TO authenticated`. Anon 전체 구독 덤프 공격 차단.
+- **ENG-H1:** `cancel_subscription` RPC atomic화 — 권한 체크(WHERE user_id) + status 전환 + billing_key 반환을 단일 트랜잭션.
+- **ENG-H2:** Cron `expire_past_due_subscriptions` RPC bulk UPDATE + CTE JOIN. N+1 방지.
+- **ENG-H4:** Subscription status에 `'failed'` 추가 (`BillingKey.Failed` rollback 대상). `subs_one_active_per_user` UNIQUE 인덱스에서 제외하여 재시도 허용.
+
 ## [0.6.0] - 2026-04-07
 
 라이브 결제 활성화 준비 1단계: 사업자 정보를 사이트 전반에 노출하기 위한 ENV 기반 footer + 법적 표기. 행정(통신판매업 신고, PortOne 사업자 인증, PG 계약)이 끝나면 ENV 값만 채우고 즉시 라이브.
