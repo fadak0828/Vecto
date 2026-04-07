@@ -226,21 +226,21 @@ export default function Home() {
         <div className="flex items-center gap-3 sm:gap-6">
           <a
             href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             대시보드
           </a>
           <a
             href="/reserve"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             이름 예약하기
           </a>
           <a
             href="/pricing"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center"
+            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
             style={{ color: "var(--on-surface-variant)" }}
           >
             요금제
