@@ -47,15 +47,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: urlCheck.error }, { status: 422 });
   }
 
-  // IP 기반 일일/월간 제한 확인
+  // IP 기반 일일/월간 제한 + 네임스페이스/슬러그 충돌을 1 round-trip으로 병렬 확인
+  // (기존: 4 sequential SELECT → 4 round-trips. 개선: Promise.all → 1 round-trip)
   const today = new Date().toISOString().split("T")[0];
   const monthStart = today.slice(0, 7) + "-01";
 
-  const { count: dailyCount } = await supabase
-    .from("slugs")
-    .select("*", { count: "exact", head: true })
-    .eq("created_by_ip", ip)
-    .gte("created_at", today);
+  const [
+    { count: dailyCount },
+    { count: monthlyCount },
+    { data: nsConflict },
+    { data: existing },
+  ] = await Promise.all([
+    supabase
+      .from("slugs")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by_ip", ip)
+      .gte("created_at", today),
+    supabase
+      .from("slugs")
+      .select("*", { count: "exact", head: true })
+      .eq("created_by_ip", ip)
+      .gte("created_at", monthStart),
+    supabase.from("namespaces").select("id").eq("name", slug).maybeSingle(),
+    supabase
+      .from("slugs")
+      .select("id")
+      .eq("slug", slug)
+      .is("namespace_id", null)
+      .maybeSingle(),
+  ]);
 
   if ((dailyCount ?? 0) >= 10) {
     return NextResponse.json(
@@ -64,12 +84,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { count: monthlyCount } = await supabase
-    .from("slugs")
-    .select("*", { count: "exact", head: true })
-    .eq("created_by_ip", ip)
-    .gte("created_at", monthStart);
-
   if ((monthlyCount ?? 0) >= 30) {
     return NextResponse.json(
       { error: "월간 생성 한도(30개)를 초과했습니다." },
@@ -77,39 +91,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 네임스페이스 충돌 확인
-  const { data: nsConflict } = await supabase
-    .from("namespaces")
-    .select("id")
-    .eq("name", slug)
-    .maybeSingle();
-
   if (nsConflict) {
-    const suggested = slug + "2";
     return NextResponse.json(
       {
         error: "이 이름은 네임스페이스로 사용 중입니다.",
-        suggested,
+        suggested: slug + "2",
       },
       { status: 409 }
     );
   }
 
-  // 슬러그 충돌 확인
-  const { data: existing } = await supabase
-    .from("slugs")
-    .select("id")
-    .eq("slug", slug)
-    .is("namespace_id", null)
-    .maybeSingle();
-
   if (existing) {
-    // 대안 제안: 숫자 접미사
-    const suggested = slug + "2";
     return NextResponse.json(
       {
         error: "이미 사용 중인 주소입니다.",
-        suggested,
+        suggested: slug + "2",
       },
       { status: 409 }
     );
