@@ -162,25 +162,20 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
-        {/* Hero */}
+        {/* Hero — semantic h1 is the product, not the price.
+            Price lives in the subscribe card where the CTA is. */}
         <section className="mb-8 text-center">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
             style={{ color: "var(--primary)" }}
           >
-            좌표.to 프리미엄
+            Premium
           </p>
           <h1
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            월{" "}
-            <span
-              className="price-display"
-              style={{ color: "var(--primary)" }}
-            >
-              ₩{monthly}
-            </span>
+            좌표.to 프리미엄
           </h1>
           <p
             className="text-sm sm:text-base break-keep"
