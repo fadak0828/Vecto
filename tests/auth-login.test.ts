@@ -72,6 +72,53 @@ describe("GoogleSignInButton — 정적 contract 검사", () => {
   it("로딩 중 이중 클릭 방지 (disabled={loading})", () => {
     expect(source).toMatch(/disabled=\{loading\}/);
   });
+
+  it("인앱 브라우저 감지 연결 — detectInAppBrowser + InAppBrowserNotice import", () => {
+    expect(source).toContain("detectInAppBrowser");
+    expect(source).toContain("InAppBrowserNotice");
+  });
+
+  it("인앱 감지는 useEffect 에서 (SSR hydration mismatch 회피)", () => {
+    expect(source).toContain("useEffect");
+    expect(source).toMatch(/setInApp\(detectInAppBrowser\(navigator\.userAgent\)\)/);
+  });
+
+  it("인앱 && !override 일 때 Notice 를 렌더링 (조건부)", () => {
+    expect(source).toMatch(/inApp\?\.isInApp\s*&&\s*!override/);
+  });
+
+  it("'그래도 여기서 시도하기' override 토글 제공", () => {
+    expect(source).toContain("setOverride");
+  });
+});
+
+describe("InAppBrowserNotice — 외부 브라우저 안내 카드", () => {
+  const noticePath = resolve(
+    __dirname,
+    "../src/app/auth/login/_components/InAppBrowserNotice.tsx",
+  );
+  const source = readFileSync(noticePath, "utf8");
+
+  it("\"use client\" 지시어로 시작", () => {
+    expect(source.trimStart().startsWith('"use client"')).toBe(true);
+  });
+
+  it("buildExternalBrowserUrl 을 사용해 intent:// URL 생성", () => {
+    expect(source).toContain("buildExternalBrowserUrl");
+  });
+
+  it("iOS 에서는 링크 복사 (navigator.clipboard.writeText)", () => {
+    expect(source).toContain("navigator.clipboard.writeText");
+  });
+
+  it("KakaoTalk 인 경우 '다른 브라우저로 열기' 안내 문구", () => {
+    expect(source).toContain("다른 브라우저로 열기");
+  });
+
+  it("onProceedAnyway 콜백을 받아 override 허용", () => {
+    expect(source).toContain("onProceedAnyway");
+    expect(source).toContain("그래도 여기서 시도하기");
+  });
 });
 
 describe("/auth/login 페이지 — server component 패턴", () => {
