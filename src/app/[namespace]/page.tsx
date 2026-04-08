@@ -1,9 +1,29 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import { ProfilePromoBanner } from "@/components/profile-promo-banner";
 
 type Props = { params: Promise<{ namespace: string }> };
+
+/**
+ * Reserved route aliases. Users who type these in the address bar get
+ * redirected to the canonical path instead of falling through to the
+ * namespace catch-all (which would show "claim this name" false affordance).
+ */
+const ROUTE_ALIASES: Record<string, string> = {
+  login: "/auth/login",
+  signin: "/auth/login",
+  "sign-in": "/auth/login",
+  signup: "/auth/login",
+  "sign-up": "/auth/login",
+  logout: "/",
+  signout: "/",
+  about: "/",
+  help: "/",
+  contact: "/",
+  home: "/",
+  index: "/",
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { namespace } = await params;
@@ -21,7 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NamespacePage({ params }: Props) {
   const { namespace } = await params;
   const decoded = decodeURIComponent(namespace);
-  if (["go", "api", "auth", "dashboard", "reserve", "_next"].includes(decoded)) return null;
+  const lower = decoded.toLowerCase();
+  // Known framework/API routes — should never reach the namespace lookup.
+  if (["go", "api", "auth", "dashboard", "reserve", "_next"].includes(lower)) return null;
+  // Known public route aliases — redirect to canonical path.
+  if (ROUTE_ALIASES[lower]) redirect(ROUTE_ALIASES[lower]);
 
   let ns: { id: string; name: string; display_name: string | null; bio: string | null; avatar_url: string | null; payment_status: string; paid_until: string | null } | null = null;
   let links: { slug: string; target_url: string }[] = [];
