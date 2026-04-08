@@ -24,7 +24,7 @@ bun run dev                      # http://localhost:3000
 
 ```
 좌표.to (Next.js App Router)
-├── 사용자 세션 → Supabase Auth (이메일 OTP 6자리)
+├── 사용자 세션 → Supabase Auth (Google OAuth)
 ├── 데이터 → Supabase Postgres (RLS)
 │   ├── namespaces — 사용자별 1개, payment_status, paid_until
 │   ├── slugs — sublink, click_count
@@ -48,7 +48,7 @@ bun run dev                      # http://localhost:3000
 - `/[namespace]/[sub]` — sublink redirect (0초 즉시)
 - `/pricing` — 단일 SKU ₩2,900/월 결제
 - `/payment/complete` — 결제 후 verify polling
-- `/auth/login` — 이메일 OTP 로그인
+- `/auth/login` — Google OAuth 로그인
 - `/terms`, `/privacy` — 법적 문서 (사업자 정보 포함)
 
 ## Testing
