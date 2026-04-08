@@ -32,10 +32,26 @@ describe("POST /api/payment/prepare — 단일 SKU 구독", () => {
     expect(orderName).toBe("좌표.to/홍길동 프리미엄 구독 (첫 결제)");
   });
 
-  it("paymentId 포맷이 예측 불가능한 랜덤 값 (jwapyo_ prefix + hex)", () => {
-    // 실제 생성은 crypto.randomBytes — 여기선 형식만 검증
-    const mockPaymentId = `jwapyo_${"a1b2c3d4e5f67890a1b2c3d4e5f67890"}`;
-    expect(mockPaymentId).toMatch(/^jwapyo_[0-9a-f]{32}$/);
+  it("paymentId 포맷이 예측 불가능한 랜덤 값 (jw_ prefix + hex, ≤32 chars)", () => {
+    // PortOne paymentId 는 MAX_LENGTH 32. 'jw_' + 24 hex = 27 chars.
+    // 이전 'jwapyo_' + 32 hex = 39 chars 는 chargeBillingKey 에서 INVALID_REQUEST 400.
+    const mockPaymentId = `jw_${"a1b2c3d4e5f67890a1b2c3d4"}`;
+    expect(mockPaymentId).toMatch(/^jw_[0-9a-f]{24}$/);
+    expect(mockPaymentId.length).toBeLessThanOrEqual(32);
+  });
+
+  it("prepare route 가 PortOne 32자 한도 안에서 paymentId 를 만든다", () => {
+    const routePath = resolve(
+      __dirname,
+      "../src/app/api/payment/prepare/route.ts",
+    );
+    const route = readFileSync(routePath, "utf8");
+    // 'jw_' (3) + randomBytes(12).hex (24) = 27 chars ≤ 32
+    expect(route).toMatch(
+      /const paymentId = `jw_\$\{randomBytes\(12\)\.toString\("hex"\)\}`/,
+    );
+    // 옛 39-char 패턴이 다시 등장하면 fail
+    expect(route).not.toMatch(/randomBytes\(16\)\.toString\("hex"\)/);
   });
 
   // Regression for KPN 빌링키 발급 400 (ParsePgRawResponseFailed) — KPN 은
