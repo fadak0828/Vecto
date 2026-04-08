@@ -4,6 +4,13 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.2] - 2026-04-08 — 소셜 공유 OG 이미지
+
+카카오톡, 슬랙, 트위터 같은 곳에 좌표.to 링크를 붙여넣을 때 뜨는 프리뷰 카드가 이제 브랜드 이미지로 나옵니다. 지금까지는 빈 카드 + URL 텍스트였는데, 앞으로는 "짧고 의미있는 한글 URL" 헤드라인 + deep mint 그라디언트 CTA가 보입니다.
+
+### Added
+- **Open Graph 이미지** — `/opengraph-image` 라우트에서 1200×630 PNG를 빌드 시점에 생성. Next.js 파일 컨벤션(`src/app/opengraph-image.tsx`)으로 모든 페이지에 자동 적용. Noto Sans KR을 빌드 시 Google Fonts에서 가져와 임베드해 한글 글리프 완전 지원. DESIGN.md 팔레트(#1a1c1c charcoal, #006565 → #008080 deep mint 그라디언트, surface 그라디언트 배경) 준수.
+
 ## [0.8.1] - 2026-04-08 — 디자인 감사 후속 수정
 
 전체 앱 흐름(로그인, 결제 포함) 디자인 리뷰에서 나온 17개 이슈를 한 번에 정리. 사용자가 가장 먼저 보는 화면 — 홈, 로그인, 결제, 설정 — 의 계층 구조, 로딩 상태, 터치 타깃, 예약어 라우팅을 손봤습니다.
