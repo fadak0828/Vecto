@@ -24,7 +24,7 @@ bun run dev                      # http://localhost:3000
 
 ```
 좌표.to (Next.js App Router)
-├── 사용자 세션 → Supabase Auth (이메일 OTP 6자리)
+├── 사용자 세션 → Supabase Auth (Google OAuth)
 ├── 데이터 → Supabase Postgres (RLS)
 │   ├── namespaces — 사용자별 1개, payment_status, paid_until
 │   ├── slugs — sublink, click_count

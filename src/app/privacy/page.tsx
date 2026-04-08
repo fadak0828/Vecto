@@ -65,7 +65,32 @@ export default function PrivacyPage() {
             </table>
           </Section>
 
-          <Section title="4. 개인정보의 제3자 제공">
+          <Section title="4. 제3자로부터 수집하는 개인정보">
+            <p className="mb-3">
+              Google OAuth 로그인을 통해 회원가입 또는 로그인 시, 좌표.to는 Google로부터 다음 정보를 제공받습니다.
+            </p>
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--on-surface)" }}>제공자</th>
+                  <th className="text-left py-2 pr-4 font-medium" style={{ color: "var(--on-surface)" }}>제공 항목</th>
+                  <th className="text-left py-2 font-medium" style={{ color: "var(--on-surface)" }}>이용 목적</th>
+                </tr>
+              </thead>
+              <tbody style={{ color: "var(--on-surface-variant)" }}>
+                <tr>
+                  <td className="py-2 pr-4">Google LLC</td>
+                  <td className="py-2 pr-4">이메일 주소, 이름, 프로필 이미지 URL</td>
+                  <td className="py-2">회원 식별, 갱신 알림 발송, 프로필 표시</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-3 text-xs" style={{ color: "var(--on-surface-variant)" }}>
+              이용자는 Google 로그인 버튼을 클릭함으로써 위 정보의 수집·이용에 동의한 것으로 간주됩니다.
+            </p>
+          </Section>
+
+          <Section title="5. 개인정보의 제3자 제공">
             좌표.to는 이용자의 개인정보를 제3자에게 제공하지 않습니다. 단, 다음의 경우는 예외로 합니다.
             <ol className="list-decimal pl-5 space-y-2 mt-2">
               <li>이용자가 사전에 동의한 경우</li>
@@ -73,7 +98,7 @@ export default function PrivacyPage() {
             </ol>
           </Section>
 
-          <Section title="5. 개인정보의 위탁">
+          <Section title="6. 개인정보의 위탁">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
@@ -89,7 +114,7 @@ export default function PrivacyPage() {
             </table>
           </Section>
 
-          <Section title="6. 이용자의 권리">
+          <Section title="7. 이용자의 권리">
             <p>이용자는 언제든지 다음의 권리를 행사할 수 있습니다.</p>
             <ol className="list-decimal pl-5 space-y-2 mt-2">
               <li>개인정보 열람, 수정, 삭제 요청</li>
@@ -99,20 +124,20 @@ export default function PrivacyPage() {
             <p className="mt-2">요청은 {businessInfo.email}로 접수하시면 10일 이내에 처리합니다.</p>
           </Section>
 
-          <Section title="7. 개인정보의 안전성 확보 조치">
+          <Section title="8. 개인정보의 안전성 확보 조치">
             <ol className="list-decimal pl-5 space-y-2">
               <li>데이터 전송 시 TLS/SSL 암호화 적용</li>
               <li>데이터베이스 접근 제한 (Row Level Security)</li>
-              <li>비밀번호 미저장 (이메일 OTP 방식 인증)</li>
+              <li>비밀번호 미저장 (Google OAuth 방식 인증)</li>
               <li>정기적 보안 점검 실시</li>
             </ol>
           </Section>
 
-          <Section title="8. 쿠키의 사용">
+          <Section title="9. 쿠키의 사용">
             좌표.to는 인증 세션 유지를 위해 쿠키를 사용합니다. 이용자는 브라우저 설정에서 쿠키를 거부할 수 있으나, 이 경우 로그인이 필요한 서비스 이용이 제한됩니다.
           </Section>
 
-          <Section title="9. 개인정보 보호 책임자">
+          <Section title="10. 개인정보 보호 책임자">
             <p>개인정보 보호 관련 문의는 아래로 연락해 주시기 바랍니다.</p>
             <ul className="mt-2 space-y-1">
               <li>책임자: {businessInfo.representative || "등록 진행 중"} (대표)</li>
@@ -120,7 +145,7 @@ export default function PrivacyPage() {
             </ul>
           </Section>
 
-          <Section title="10. 방침 변경">
+          <Section title="11. 방침 변경">
             본 개인정보 처리방침이 변경될 경우, 변경 사항을 서비스 내 공지사항을 통해 안내하며, 변경된 방침은 게시한 날로부터 7일 후 시행됩니다.
           </Section>
         </div>
