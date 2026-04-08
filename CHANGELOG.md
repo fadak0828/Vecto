@@ -4,6 +4,16 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.4] - 2026-04-08 — 무료 사용자 서브링크 복구 + 프리뷰 드리프트 제거
+
+두 개의 서로 다른 문제를 한 번에 정리. (1) 무료 사용자의 서브링크(`좌표.to/내이름/노션`)가 402 "아직 활성화되지 않은 좌표" 페이지로 차단되던 문제를 풀었습니다. README에 선언된 BM("무료 = 전 기능 무제한 + 작은 안내 1줄")과 v0.7 리팩터에서 이미 프로필 페이지 차단은 해제했는데 서브링크 리다이렉트 route 만 함께 풀리지 않았던 leftover. 지인에게 공유된 서브링크가 돌지 않는 건 네트워크 효과 파괴. (2) `/settings`의 실시간 보기(폰 프레임)가 실제 공개 페이지(`/[namespace]`)와 완전히 다른 Linktree-clone 마크업이었던 드리프트 버그. 사용자가 설정에서 본 것과 실제 공유 링크의 모습이 달랐음.
+
+### Fixed
+- **무료 네임스페이스 서브링크 통과** — `src/app/[namespace]/[sub]/route.ts` 의 `payment_status === "free"` 차단 블록 제거. free 네임스페이스도 active 와 동일하게 302 리다이렉트. `expired` 30일+ grace 만료 차단은 유지. 회귀 테스트 `tests/namespace-expiry.test.ts` 의 "free 차단" 케이스를 "free 통과"로 뒤집고 BM 근거를 주석에 박음. dead `unpaidHtml` 함수 정리.
+
+### Changed
+- **`PublicProfileView` 단일 진실 공급원** — 공개 프로필 렌더링을 `src/components/public-profile-view.tsx` 로 추출. `/[namespace]/page.tsx` 와 `/settings/page.tsx` 양쪽이 같은 컴포넌트를 import. `variant="live" | "preview"` 로 외형 축소만 제어하고 구조(요소 순서, 정렬, 레이아웃)는 공유. "use client" 없이 server/client 양쪽에서 쓸 수 있는 순수 presentational. 설정 페이지의 기존 Linktree-clone 마크업(gradient Cover + centered avatar + `mt-10 px-5 text-center`) 전부 삭제. `tests/public-profile-parity.test.ts` 로 구조 drift 재발을 정적 문자열 매칭으로 차단.
+
 ## [0.8.3] - 2026-04-08 — 인앱 브라우저 Google 로그인 차단 우회
 
 카카오톡/인스타그램/페이스북/라인 등 **앱 내장 브라우저**에서 좌표.to 링크를 열어 Google로 로그인하려 하면 Google이 "요청 세부정보:" 에러를 띄우며 거부하던 문제 해결. Google의 2021년 `disallowed_useragent` 정책 때문에 우회가 아닌 외부 브라우저로 **탈출**시키는 것이 유일한 해법. 한국 사용자의 주된 진입 경로(카톡 공유 링크 → 카톡 인앱 브라우저)가 직격이어서 v0.8.0 Google OAuth 전환 이후 잠재적으로 많은 로그인 시도가 소리 없이 실패했을 가능성.

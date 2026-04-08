@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { AvatarUpload } from "@/components/avatar-upload";
+import { PublicProfileView } from "@/components/public-profile-view";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 
 type Namespace = {
@@ -11,6 +12,8 @@ type Namespace = {
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  payment_status: string;
+  paid_until: string | null;
 };
 
 type SubLink = {
@@ -65,7 +68,7 @@ export default function SettingsPage() {
     setUser({ id: user.id });
     const { data: ns } = await supabase
       .from("namespaces")
-      .select("id, name, display_name, bio, avatar_url")
+      .select("id, name, display_name, bio, avatar_url, payment_status, paid_until")
       .eq("owner_id", user.id)
       .maybeSingle();
     if (ns) {
@@ -465,7 +468,9 @@ export default function SettingsPage() {
           </section>
         </div>
 
-        {/* Right Column: Phone Preview */}
+        {/* Right Column: Live Preview — renders the SAME PublicProfileView
+            component as /[namespace]/page.tsx so the preview cannot drift
+            from the actual public page. */}
         <div className="lg:col-span-5 hidden lg:block">
           <div className="sticky top-8 flex flex-col items-center gap-4">
             <span
@@ -475,114 +480,33 @@ export default function SettingsPage() {
               실시간 보기
             </span>
 
-            {/* Phone Frame */}
+            {/* Preview frame — 300px wide container. No phone chrome,
+                no Linktree clichés. Just a scaled-down view of the real
+                public profile rendered by the shared component. */}
             <div
-              className="w-[300px] rounded-[2.5rem] p-3 relative"
+              className="w-[300px] rounded-2xl overflow-hidden"
               style={{
-                background: "var(--on-background)",
-                boxShadow: "0 32px 64px -12px rgba(0,0,0,0.3)",
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-whisper-strong)",
               }}
             >
-              {/* Notch */}
-              <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 rounded-b-2xl z-20"
-                style={{ background: "var(--on-background)" }}
+              <PublicProfileView
+                displayName={previewName}
+                namespaceName={namespace.name}
+                bio={bio || null}
+                avatarUrl={avatarUrl || null}
+                links={links.map((l) => ({
+                  slug: l.slug,
+                  target_url: l.target_url,
+                }))}
+                isPaid={
+                  namespace.payment_status === "active" &&
+                  namespace.paid_until !== null &&
+                  new Date(namespace.paid_until) > new Date()
+                }
+                isExpired={namespace.payment_status === "expired"}
+                variant="preview"
               />
-
-              <div
-                className="w-full rounded-[2rem] overflow-hidden flex flex-col"
-                style={{
-                  background: "var(--surface-lowest)",
-                  minHeight: "560px",
-                }}
-              >
-                {/* Cover */}
-                <div
-                  className="h-32 relative"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary), var(--primary-container))",
-                  }}
-                >
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        className="w-16 h-16 rounded-full object-cover"
-                        style={{ border: "3px solid white" }}
-                      />
-                    ) : (
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white"
-                        style={{
-                          background: "var(--primary)",
-                          border: "3px solid white",
-                        }}
-                      >
-                        {previewName[0]}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Profile Info */}
-                <div className="mt-10 px-5 text-center space-y-1">
-                  <h3
-                    className="text-lg font-extrabold"
-                    style={{ fontFamily: "Manrope, sans-serif" }}
-                  >
-                    {previewName}
-                  </h3>
-                  {bio && (
-                    <p
-                      className="text-[11px] px-3"
-                      style={{
-                        color: "var(--on-surface-variant)",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {bio}
-                    </p>
-                  )}
-                </div>
-
-                {/* Links Preview */}
-                <div className="mt-6 px-5 space-y-2 flex-1">
-                  {links.map((link) => (
-                    <div
-                      key={link.id}
-                      className="w-full p-3 rounded-xl flex items-center gap-2"
-                      style={{ background: "var(--surface-low)" }}
-                    >
-                      <span
-                        className="text-[11px] font-bold"
-                        style={{ color: "var(--on-background)" }}
-                      >
-                        {link.slug}
-                      </span>
-                    </div>
-                  ))}
-                  {links.length === 0 && (
-                    <p
-                      className="text-center text-[11px] py-6"
-                      style={{ color: "var(--on-surface-variant)" }}
-                    >
-                      링크를 추가하면 여기에 표시됩니다
-                    </p>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 text-center">
-                  <span
-                    className="text-[10px] font-bold tracking-tight"
-                    style={{ color: "var(--outline-variant)" }}
-                  >
-                    좌표.to/{namespace.name}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
