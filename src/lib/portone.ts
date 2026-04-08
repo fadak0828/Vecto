@@ -192,6 +192,69 @@ export async function chargeBillingKey(params: {
 }
 
 /**
+ * PortOne V2 결제 예약 생성.
+ * 무료 체험 시작 시 D+30에 자동 결제되도록 예약을 만든다.
+ *
+ * https://developers.portone.io/api/rest-v2/payment.paymentSchedule#create-payment-schedule
+ * POST /payment-schedules/{paymentId}
+ *
+ * 반환: 성공 시 true. 실패 시 false (webhook 쪽에서 rollback 처리).
+ * 타임아웃: 5초 (PortOne API가 느릴 때 webhook이 죽지 않도록).
+ */
+export async function schedulePayment(params: {
+  billingKey: string;
+  paymentId: string;
+  payAt: Date;
+  orderName: string;
+  amount: number;
+  currency?: string;
+}): Promise<boolean> {
+  const apiSecret = process.env.PORTONE_API_SECRET;
+  if (!apiSecret) {
+    throw new Error("PORTONE_API_SECRET이 필요합니다.");
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(
+      `https://api.portone.io/payment-schedules/${encodeURIComponent(params.paymentId)}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `PortOne ${apiSecret}`,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          payment: {
+            billingKey: params.billingKey,
+            orderName: params.orderName,
+            amount: { total: params.amount },
+            currency: params.currency ?? "KRW",
+          },
+          timeToPay: params.payAt.toISOString(),
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      console.error(
+        `schedulePayment failed: status=${res.status} body=${await res.text()}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("schedulePayment error:", err);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * PortOne billing key로 등록된 모든 결제 예약(schedule) 취소.
  * subscription 해지 시 호출.
  * https://developers.portone.io/api/rest-v2/payment.paymentSchedule#revoke-payment-schedules
