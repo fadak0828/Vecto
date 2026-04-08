@@ -4,6 +4,28 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.9.0] - 2026-04-08 — 첫 1개월 무료 체험 (런칭 이벤트)
+
+이제 구독하면 첫 1개월은 공짜. 카드/카카오페이 등록만 하면 30일 동안 프리미엄 전 기능을 쓸 수 있고, 그 뒤에 월 ₩2,900이 자동 결제됩니다. 체험 중 해지하면 과금은 없어요. 런칭 위크 2주 동안은 `/pricing` 상단에 이벤트 배너가 뜨고, 그 뒤에는 카피 없이 상시 체험이 유지됩니다. Stripe/Netflix 방식 — 코드 경로 하나, 이벤트 gating은 환경변수 하나(`NEXT_PUBLIC_EVENT_END_AT`)로 분리.
+
+구조 설계 근거: "영구 무료이용권 선착순 100명" 같은 수익화 직전 스타트업이 하면 안 되는 인센티브 대신, 빌링키 등록을 게이트로 둬서 deal hunter를 필터링하고 1개월 무료 → 월 결제로 conversion funnel을 자동 완성. 이벤트 종료 후에도 구독 경로 하나로 수렴.
+
+### Added
+- **Trialing 구독 상태** — `supabase/011_trial_launch.sql` 마이그레이션으로 `subscriptions.status` CHECK에 `'trialing'` 추가. `start_trial(sub_id, days)` RPC가 pending → trialing 전환과 `current_period_end = now + 30d`, `namespaces.paid_until = trial_end` 싱크를 원자적으로 처리. `subs_one_active_per_user` UNIQUE INDEX에도 trialing 포함해서 한 유저에 체험 + 유료 동시 금지.
+- **PortOne `schedulePayment` 래퍼** — `src/lib/portone.ts`에 `schedulePayment({billingKey, paymentId, payAt, amount, orderName})` 추가. V2 `POST /payment-schedules/{paymentId}` 엔드포인트 호출, 5초 타임아웃, AbortController로 웹훅 timeout 방지. 빌링키 발급 직후 D+30 자동 결제 예약.
+- **`start_trial` RPC + 런칭 funnel 뷰** — `start_trial` SQL 함수로 pending 구독을 trialing으로 atomic 전환. `launch_event_funnel_v1` 뷰가 `auth.users` + `subscriptions` + `payments` 조인해서 cohort 일자별 가입 → 빌링키 등록 → D+30 전환 → D+60 유지 4단 지표를 바로 쿼리 가능하게 제공. 외부 analytics SaaS 없이 Supabase 하나로 런칭 측정.
+- **대시보드 Trial 인디케이터** — `PaymentStatus` 컴포넌트에 새 state. D-30 ~ D-4 는 `secondary-container` 배경 + "무료 체험 중 · D-N" chip, D-3 이하는 `--error` 솔리드 배경 + 흰 글씨 + "D-N · 곧 자동 결제" urgent chip + aria-live 안내. `aria-label="자동 결제까지 N일 남음"` 으로 스크린리더 대응.
+- **런칭 위크 배너** — `/pricing` 상단에 `NEXT_PUBLIC_EVENT_END_AT` ISO 타임스탬프가 미래이면 자동 노출되는 full-width 배너. primary → primary-container 135° 그라디언트, "LAUNCH WEEK · 런칭 위크 한정, 첫 1개월 무료". 환경변수 미설정/과거면 조용히 사라짐 — 이벤트 종료 후 코드 배포 없이 배너만 철수.
+- **Trial regression 테스트 스위트** — `tests/trial-launch.test.ts` 로 A2(process_subscription_charge 가드), A4(cancel_subscription 가드), A6(schedulePayment 실패 롤백) 세 개 silent-failure 버그 회귀 방어. trial cancel 응답 카피, D-N urgency 전환, 30일 boundary까지 20+ 케이스 커버.
+
+### Changed
+- **Webhook BillingKey.Issued — trial flow 전환** — `src/app/api/payment/webhook/route.ts`가 이제 빌링키 발급 직후 `chargeBillingKey(₩2,900)` 대신 `schedulePayment(+30d)` + `start_trial` RPC 를 호출. 실패 시 `portone_billing_key_id` NULL 롤백 + `status='failed'` 로 사용자가 `/pricing`에서 재시도 가능. 이전에는 schedule 실패 시 사용자가 영구 trialing에 갇히는 silent 버그 였음 (eng review A6).
+- **`/pricing` 히어로 재작성** — "좌표.to 프리미엄"(브랜드명) 대신 "첫 1개월 무료"(오퍼)가 H1. 큰 ₩2,900 가격 디스플레이 제거(line 200-211 삭제), 서브헤드로 강등. CTA "카카오페이로 시작하기" → "1개월 무료로 시작하기". 신뢰 문구 "카카오톡 인증 한 번이면 끝 · **무료 체험 중 해지 시 과금 없음**" 으로 교체. DESIGN.md No-Line 원칙 위반 2건(1px border-bottom/top) 동시에 수정 — `surface-low` 톤 블록으로 features 섹션 구분.
+- **`process_subscription_charge` / `cancel_subscription` RPC 가드 확장** — 두 RPC 모두 `WHERE status IN (...)` 에 `'trialing'` 포함. 이전에는 `('active', 'past_due')` 만 허용해서 D+30 scheduled charge가 도착해도 period가 안 넘어가고(A2), 체험 중 해지가 "찾을 수 없다" 에러를 내던(A4) silent 버그. 회귀 테스트 셋으로 방어.
+- **체험 중 해지 응답 카피 분기** — `/api/subscription/cancel` 이 pre-check로 status를 확인하고, trialing 이었으면 "무료 체험이 해지되었어요. {trial_end}까지 프리미엄 기능을 계속 쓸 수 있고, 이후 자동으로 무료 플랜으로 돌아갑니다. **과금은 없습니다.**" 로 응답. 일반 해지 카피와 분리 — "과금은 없습니다" 신뢰 신호가 체험 해지에서 결정적.
+- **D-7 만료 예정 이메일 trial 분기** — `/api/cron/expire` 가 namespace와 연결된 subscription status를 조인해서 `trialing`이면 "{namespace} 무료 체험이 N일 후 끝납니다" 제목 + "체험이 끝나면 월 ₩2,900이 자동 결제됩니다. 원치 않으시면 설정에서 1클릭으로 해지하실 수 있고, 그 경우 과금은 없습니다." 본문 + `/settings` CTA. 유료 만료 이메일과 분리.
+- **`PaymentStatus` 컴포넌트 타입 확장** — `Subscription.status` 에 `'trialing'` 추가. 대시보드 페이지 타입도 동반 업데이트. State derivation 5-state → 6-state (trialing이 free와 active 사이).
+
 ## [0.8.4] - 2026-04-08 — 무료 사용자 서브링크 복구 + 프리뷰 드리프트 제거
 
 두 개의 서로 다른 문제를 한 번에 정리. (1) 무료 사용자의 서브링크(`좌표.to/내이름/노션`)가 402 "아직 활성화되지 않은 좌표" 페이지로 차단되던 문제를 풀었습니다. README에 선언된 BM("무료 = 전 기능 무제한 + 작은 안내 1줄")과 v0.7 리팩터에서 이미 프로필 페이지 차단은 해제했는데 서브링크 리다이렉트 route 만 함께 풀리지 않았던 leftover. 지인에게 공유된 서브링크가 돌지 않는 건 네트워크 효과 파괴. (2) `/settings`의 실시간 보기(폰 프레임)가 실제 공개 페이지(`/[namespace]`)와 완전히 다른 Linktree-clone 마크업이었던 드리프트 버그. 사용자가 설정에서 본 것과 실제 공유 링크의 모습이 달랐음.
