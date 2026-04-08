@@ -4,6 +4,40 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.0] - 2026-04-08 — Google 로그인 (이메일 OTP 제거)
+
+이메일로 6자리 인증 코드를 받아 입력하던 로그인이 "Google로 계속하기" 버튼 한 번으로 바뀝니다. 로그인 왕복 시간은 평균 5단계 → 3단계로 줄어들고, 한국 사용자 대부분이 이미 가진 구글 계정으로 비밀번호 없이 바로 들어올 수 있습니다. 카카오 로그인은 비즈 앱 심사 완료 후 다음 릴리스에 추가됩니다.
+
+### Added
+- **Google OAuth 로그인** — `/auth/login` 페이지 전체 재작성. Supabase 내장 Google 프로바이더 사용, PKCE 플로우. 서버 컴포넌트 + 내부 클라이언트 버튼 패턴으로 이미 로그인된 사용자는 깜빡임 없이 `/dashboard`로 즉시 이동.
+- **`GoogleSignInButton` 클라이언트 컴포넌트** — `src/app/auth/login/_components/GoogleSignInButton.tsx`. 컬러 Google G 로고 SVG, 로딩 상태 스피너(keyframe 충돌 방지용 네임스페이스 `vecto-login-spin`), 에러 메시지 `role="alert"` + `aria-live="assertive"` a11y.
+- **PIPA §15 별도 동의 UI** — 버튼 아래 수집·이용 문구 인라인 표시: "Google 로그인 시 이메일, 이름, 프로필 이미지를 수집·이용합니다." + [개인정보처리방침] 링크. 체크박스 없이 버튼 클릭이 명시적 동의로 간주되는 패턴.
+- **`/privacy` 페이지 제3자 수집 섹션** — "4. 제3자로부터 수집하는 개인정보" 섹션 신설 (정보통신망법 §22 고지 의무). Google LLC로부터 제공받는 정보 명시. 기존 섹션 5~11 번호 재정렬.
+- **Provider 에러 코드 전달** — 콜백 라우트가 `?error=access_denied` (사용자가 Google consent 취소) 같은 원본 에러 코드를 login 페이지로 그대로 전달. 로그인 페이지는 취소와 실패를 별도 한국어 메시지로 구분해 보여줌 ("로그인을 취소하셨습니다" vs "로그인에 실패했습니다").
+
+### Changed
+- **`/auth/login` 페이지 → 서버 컴포넌트** — 기존 `"use client"` → `async function` + `getUser()` 체크 + `redirect('/dashboard')`. `export const dynamic = "force-dynamic"` 명시로 정적 캐싱 방지. FOUC 0.
+- **`/auth/callback` next 파라미터 검증 강화** — `startsWith("/")` 방식에서 `new URL()` 파싱으로 교체. 백슬래시/인코딩/whitespace 우회를 모두 차단하고, `parsed.origin !== request.origin` 이면 `/dashboard`로 폴백.
+- **좌측 에디토리얼 카피** — "이메일 한 통으로 로그인합니다. 비밀번호 없이, 안전하게." → "Google 계정 하나로 이어집니다. 비밀번호 없이, 단 한 번의 클릭으로."
+
+### Removed
+- **이메일 OTP 로그인 경로 전체** — `signInWithOtp`, `verifyOtp`, 6자리 코드 입력 폼, `sent`/`code`/`verifyLoading` state, `로그인 링크 받기`/`로그인 링크 전송 완료`/`이메일을 확인하세요` 한국어 문구. `tests/dead-code-grep.test.ts`가 회귀를 잠금.
+- **`src/app/privacy/page.tsx`의 `비밀번호 미저장 (이메일 OTP 방식 인증)`** → `Google OAuth 방식 인증`.
+
+### Tests
+- **`tests/auth-callback.test.ts` 재작성** — pure function 검사에서 실제 GET 라우트 핸들러 import + `@supabase/ssr` mock 으로 전환. code 누락 / exchange 성공 / exchange 실패 / provider error (access_denied, server_error) / next 파라미터 5종 (상대, protocol-relative, backslash, javascript:, 누락) 총 14 케이스.
+- **`tests/auth-login.test.ts` 신설** — `mapLoginErrorParam` 5 케이스 + GoogleSignInButton 정적 contract 검사 (provider, redirectTo, PIPA 문구, disabled prop) + login page 서버 컴포넌트 패턴 검증.
+- **`tests/dead-code-grep.test.ts` 신설 (회귀 안전망)** — `execFileSync` argv 배열로 shell injection 방어. 이메일 OTP 관련 5종 문자열이 `src/` 트리에 0건임을 지속 검증.
+- **총 176 tests pass**, `bun x tsc --noEmit` clean.
+
+### Migration notes
+- Supabase 대시보드에서 Google 프로바이더 활성화 + Redirect URLs에 `https://xn--h25b29s.to/auth/callback` + `https://*.vercel.app/auth/callback` 등록 필요 (완료).
+- "Allow same-email identity linking" 설정이 켜져 있으면 기존 이메일로 가입한 사용자가 동일 이메일의 Google 계정으로 로그인 시 `auth.users.id`가 유지되어 namespace/payments/subscriptions 그대로 상속. 본인 테스트 계정 2개 (송민우/파닭)로 사전 검증 권장.
+
+### Deferred
+- **Phase 1b 카카오 로그인** — 카카오 비즈 앱 심사 통과 + 사업자등록증명원 제출 후 별도 PR. `TODOS.md` 기록.
+- **Phase 2 네이버 로그인** — Supabase 내장 미지원. Custom OIDC 경로. 시장 신호 본 다음 재평가.
+
 ## [0.7.3] - 2026-04-08 — 카카오페이 정기결제 (간편결제 빌링키)
 
 카드번호 16자리 + 유효기간 + CVC + 비밀번호 + 생년월일을 일일이 치는 30초 짜리 진입장벽을 카카오톡 인증 한 번으로 줄였습니다. 한국 사용자에게 가장 익숙한 정기결제 방식이 기본 CTA가 되고, 카드 직접입력은 보조 옵션으로 남깁니다.

@@ -91,6 +91,26 @@
 - **Postgres RPC for shorten** — `Promise.all` 옵션 A 측정 후 더 빠르면 옵션 B로 전환 (1 round-trip)
 - **roughMonthly 디스플레이 — pricing/payment-prepare/webhook 정합성** — 사용자에게 표시되는 약 X원과 실제 결제 정확 금액의 onboarding 메시지 일관성 점검
 
+### OAuth 마이그레이션 follow-up (v0.8.0 Phase 1a 이후)
+- **Phase 1b — 카카오 소셜 로그인 추가**
+  - What: 카카오 OAuth를 두 번째 프로바이더로 추가 (Supabase 내장).
+  - Why: 한국 일반 사용자 주 도달 채널. 구글 단독으로는 도달이 좁음.
+  - Cons: 카카오 비즈 앱 심사 필요(1~3 영업일). `account_email` 스코프는 비즈 앱 통과 후에만 받을 수 있음. 심사 신청에 사업자등록증명원 제출 필요.
+  - Depends on: 카카오 비즈 앱 심사 통과.
+  - Trigger: 의존성 해소 즉시.
+- **Phase 2 — 네이버 Custom OIDC**
+  - What: 네이버를 세 번째 프로바이더로 추가. Supabase 내장 지원 없으므로 custom OIDC 경로 구축 (`src/app/api/auth/naver/callback/route.ts` + `src/lib/naver-oauth.ts`).
+  - Cons: custom JWT 서명, 네이버 디벨로퍼 심사, 회귀 표면적 2배, 혁신 토큰 추가 소비.
+  - Depends on: Phase 1b 머지 완료 + "네이버로 로그인 가능한가요?" 문의 N건 이상 시장 신호.
+- **Cron 갱신 알림 의존성 코멘트 + 장기 대안**
+  - What: `src/app/api/cron/expire/route.ts:77` 부근에 "OAuth 이후 `auth.users.email`이 null일 수 있음. 카카오 비즈 미심사 상태에서는 email null 사용자는 알림 미수신" 코멘트 추가. 장기적으로 앱 내 알림, 카카오톡 비즈메시지 등 대체 채널 검토.
+  - Depends on: Phase 1b 시작 시점.
+- **OAuth signup rate-limiting**
+  - What: OTP는 Supabase 메일 발송 쿼터로 IP별 계정 생성에 자연스러운 ceiling이 있었음. OAuth는 무한 생성 가능. `src/proxy.ts`의 IP 제한은 `/api/* POST`만 대상이라 `/auth/callback GET`에는 적용 X.
+  - Depends on: 사용자 수 1k+ 도달 시 우선순위 상승.
+- **OAuth consent screen IDN 표시 개선** — Google consent 화면이 `xn--h25b29s.to` punycode로 노출되어 사용자 인식 떨어짐. Google authorized domain feature는 IDN 비지원. 우회책 검토.
+- **Google branding compliance audit** — 현재 plain 한국어 "Google로 계속하기" 버튼 사용 (다크 배경). Google brand 가이드라인 100% 미준수. 추후 OAuth client 심사 시 영향 가능. 공식 white Sign-in button으로 교체 옵션 재평가.
+
 ### 장기 개선
 - HTML route handler를 React 컴포넌트로 전환 (XSS 근본 원인 제거)
 - Dashboard/Settings 공통 컴포넌트 추출 (코드 중복 제거)
