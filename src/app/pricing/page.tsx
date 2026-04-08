@@ -162,25 +162,20 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
-        {/* Hero */}
+        {/* Hero — semantic h1 is the product, not the price.
+            Price lives in the subscribe card where the CTA is. */}
         <section className="mb-8 text-center">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
             style={{ color: "var(--primary)" }}
           >
-            좌표.to 프리미엄
+            Premium
           </p>
           <h1
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            월{" "}
-            <span
-              className="price-display"
-              style={{ color: "var(--primary)" }}
-            >
-              ₩{monthly}
-            </span>
+            좌표.to 프리미엄
           </h1>
           <p
             className="text-sm sm:text-base break-keep"
@@ -224,23 +219,16 @@ export default function PricingPage() {
                 // Kakao 브랜드 컴플라이언스: #FEE500 배경 + #191919 텍스트는
                 // 카카오 디벨로퍼스 가이드라인의 필수 색상. DESIGN.md "No Pure Black" 규칙
                 // (#1a1c1c)에서 의도적으로 벗어남 — 카카오페이 인지도 = 사용자 신뢰 = 전환율.
-                // TODO: 💬 이모지 → 카카오 공식 로고 SVG 교체 (Kakao Developers 자료실).
+                // Brand yellow + text do the recognition work; decorative emoji removed.
                 style={{
                   background: "#FEE500",
                   color: "#191919",
                   minHeight: 56,
                 }}
               >
-                {busy && activeMethod === "kakaopay" ? (
-                  stageLabel
-                ) : (
-                  <>
-                    <span aria-hidden="true" style={{ fontSize: 20 }}>
-                      💬
-                    </span>
-                    카카오페이로 시작하기
-                  </>
-                )}
+                {busy && activeMethod === "kakaopay"
+                  ? stageLabel
+                  : "카카오페이로 시작하기"}
               </button>
 
               <p
@@ -280,6 +268,12 @@ export default function PricingPage() {
             className="mt-5 pt-5 space-y-2.5"
             style={{ borderTop: "1px solid var(--surface-container)" }}
           >
+            <h2
+              className="text-xs font-bold uppercase tracking-widest mb-1"
+              style={{ color: "var(--on-surface-variant)" }}
+            >
+              프리미엄에 포함된 것
+            </h2>
             <Feature text="프로필 페이지 상단 안내 1줄 숨김" />
             <Feature text="클릭 통계 대시보드 (7일 분석)" />
             <Feature text="매월 자동갱신 · 언제든 해지" />
@@ -301,16 +295,16 @@ export default function PricingPage() {
         </div>
 
         {/* Free plan note */}
-        <div
+        <section
           className="p-5 rounded-2xl"
           style={{ background: "var(--surface-low)" }}
         >
-          <p
+          <h2
             className="text-xs font-bold uppercase tracking-widest mb-2"
             style={{ color: "var(--on-surface-variant)" }}
           >
             무료 플랜
-          </p>
+          </h2>
           <p
             className="text-sm break-keep"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
@@ -326,7 +320,7 @@ export default function PricingPage() {
           >
             무료로 시작하기 →
           </a>
-        </div>
+        </section>
       </main>
     </div>
   );

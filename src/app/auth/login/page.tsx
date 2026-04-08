@@ -46,7 +46,7 @@ export default async function LoginPage({
         좌표.to
       </a>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 mt-16 md:mt-24 max-w-5xl mx-auto w-full md:items-center">
         {/* Left editorial column */}
         <div className="md:col-span-7 md:pr-8">
           <p

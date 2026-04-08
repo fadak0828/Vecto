@@ -4,6 +4,32 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.1] - 2026-04-08 — 디자인 감사 후속 수정
+
+전체 앱 흐름(로그인, 결제 포함) 디자인 리뷰에서 나온 17개 이슈를 한 번에 정리. 사용자가 가장 먼저 보는 화면 — 홈, 로그인, 결제, 설정 — 의 계층 구조, 로딩 상태, 터치 타깃, 예약어 라우팅을 손봤습니다.
+
+### Added
+- **페이지 메타데이터** — `/dashboard`, `/settings`, `/payment/complete` 각각 전용 `<title>` + `robots: noindex`. 여러 탭 열어둔 사용자가 탭바에서 페이지를 구분할 수 있음. 인증 영역은 검색엔진 노출 차단.
+- **대시보드 skeleton 로딩** — 느린 네트워크에서 빈 화면에 "로딩 중..." 텍스트만 떠 있던 자리가 실제 레이아웃을 미러링하는 skeleton으로 교체. 새 `.skeleton-shimmer` CSS 유틸 + `prefers-reduced-motion` 대응 + `aria-busy`/`aria-live` a11y.
+- **예약 경로 alias** — `/login`, `/signup`, `/signin`, `/about`, `/help` 등을 타이핑한 사용자가 `[namespace]` 캐치올 대신 정식 경로(`/auth/login`, `/`)로 즉시 redirect. "이 좌표는 아직 주인이 없습니다" 거짓 약속 제거.
+- **Footer 프리미엄 링크** — 모든 페이지 푸터에서 `/pricing`으로 바로 진입.
+
+### Changed
+- **`/pricing` hero** — H1을 가격("월 ₩2,900")에서 제품명("좌표.to 프리미엄")으로 승격. 스크린 리더가 "Heading 1: 2900원" 대신 제품명을 먼저 읽음. 중복 가격 표시 제거, 가격은 구독 카드에만 남김.
+- **카카오페이 CTA** — 💬 말풍선 이모지 제거. 카카오 브랜드 옐로(#FEE500) + 텍스트만으로 브랜드 인지 유지.
+- **`/payment/complete` 5개 상태** — checking, pending, delayed, paid, error가 이제 하나의 `PaymentLoadingShell` 컴포넌트를 공유. pending은 `(N/6) · 최대 30초 소요` 진행도 표시로 "지금 뭐 하는 중인지" 정직하게 안내. delayed 상태의 "결제 확인하기" 버튼에 busy guard 추가 — 연타해도 중복 verify API 호출 안 됨.
+- **`/payment/complete` 지연 아이콘** — ⏳ 모래시계 이모지 제거, inline SVG 시계 아이콘으로 교체.
+- **로그인 페이지 레이아웃** — 12-col 그리드에 `mx-auto + items-center` 추가, 와이드 뷰포트에서 h1과 Google 로그인 카드의 수직 중심축 정렬.
+- **`/settings` H1** — 하드코딩된 `<br/>` 제거, `text-wrap: balance`로 뷰포트별 최적 줄바꿈.
+- **`/pricing` 계층** — `프리미엄에 포함된 것`, `무료 플랜` 두 개의 h2 섹션 추가. flat 1-heading 페이지 → 구조 있는 스캔 가능한 페이지.
+- **Footer 터치 타깃** — `이용약관`, `개인정보 처리방침`, `프리미엄` 링크 높이를 20px → 44px로 확대 (WCAG/Apple HIG 최소 기준 충족).
+- **홈 hero 폼 input** — `slug`, `target_url`에 `name` + `aria-label` + `autoComplete` 추가. 스크린 리더 익명 textbox 문제 해결, 브라우저 자동완성 작동.
+
+### Fixed
+- **장식용 북마크 아이콘** — `NamespacePillPreview`의 가짜 브라우저 URL 바 안 별 아이콘이 `<button>` + `aria-hidden` 조합이라 touch target audit에 잡히던 문제. `<span>`으로 변경.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
 ## [0.8.0] - 2026-04-08 — Google 로그인 (이메일 OTP 제거)
 
 이메일로 6자리 인증 코드를 받아 입력하던 로그인이 "Google로 계속하기" 버튼 한 번으로 바뀝니다. 로그인 왕복 시간은 평균 5단계 → 3단계로 줄어들고, 한국 사용자 대부분이 이미 가진 구글 계정으로 비밀번호 없이 바로 들어올 수 있습니다. 카카오 로그인은 비즈 앱 심사 완료 후 다음 릴리스에 추가됩니다.
