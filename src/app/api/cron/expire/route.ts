@@ -55,14 +55,17 @@ export async function GET(request: NextRequest) {
     results.subscription_canceled = canceledResult[0].canceled_count ?? 0;
   }
 
-  // 2. 7일 전 만료 예정 알림
+  // 2. 7일 전 만료/첫결제 예정 알림
   // Vercel serverless는 함수 종료 시 미완료 Promise를 죽임 → 반드시 await
+  // Trial branch: subscriptions.status='trialing' 인 경우 "첫 결제 안내"로 카피 변경.
   const warningDate = new Date(now);
   warningDate.setDate(warningDate.getDate() + 7);
 
   const { data: warningNamespaces } = await supabase
     .from("namespaces")
-    .select("id, name, owner_id, paid_until")
+    .select(
+      "id, name, owner_id, paid_until, subscriptions:subscriptions(status)",
+    )
     .eq("payment_status", "active")
     .gt("paid_until", now.toISOString())
     .lte("paid_until", warningDate.toISOString());
@@ -80,10 +83,22 @@ export async function GET(request: NextRequest) {
         const email = userResult?.user?.email;
 
         if (email) {
+          // Trial 여부 판단 — 연관 subscription 중 trialing이 하나라도 있으면 trial 경로.
+          // (nested select는 array로 옴; supabase-js 2.x 관례.)
+          const subs = Array.isArray(ns.subscriptions)
+            ? ns.subscriptions
+            : ns.subscriptions
+              ? [ns.subscriptions]
+              : [];
+          const isTrial = subs.some(
+            (s: { status?: string }) => s.status === "trialing",
+          );
+
           await sendRenewalEmail(
             email,
             ns.name,
             new Date(ns.paid_until),
+            isTrial,
           );
           return { success: true, ns: ns.name };
         }
@@ -111,6 +126,7 @@ async function sendRenewalEmail(
   email: string,
   namespaceName: string,
   expiresAt: Date,
+  isTrial: boolean = false,
 ): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
@@ -122,6 +138,31 @@ async function sendRenewalEmail(
     (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
   );
 
+  const subject = isTrial
+    ? `좌표.to/${namespaceName} 무료 체험이 ${daysLeft}일 후 끝납니다`
+    : `좌표.to/${namespaceName} 이용권이 ${daysLeft}일 후 만료됩니다`;
+
+  const body = isTrial
+    ? `
+        <div style="font-family: Pretendard, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+          <h2 style="color: #006565;">좌표.to/${namespaceName}</h2>
+          <p>안녕하세요! 좌표.to/${namespaceName} 무료 체험이 <strong>${daysLeft}일 후</strong> 끝납니다.</p>
+          <p>체험이 끝나면 등록하신 결제 수단으로 <strong>월 ₩2,900</strong>이 자동 결제됩니다.</p>
+          <p>계속 쓰실 계획이면 아무것도 하지 않으셔도 됩니다. 원치 않으시면 설정에서 1클릭으로 해지하실 수 있고, 그 경우 과금은 없습니다.</p>
+          <a href="https://좌표.to/settings" style="display: inline-block; padding: 12px 24px; background: #1a1c1c; color: white; text-decoration: none; border-radius: 8px; margin-top: 16px;">설정에서 관리하기</a>
+          <p style="color: #78716c; font-size: 12px; margin-top: 24px;">좌표.to</p>
+        </div>
+      `
+    : `
+        <div style="font-family: Pretendard, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+          <h2 style="color: #006565;">좌표.to/${namespaceName}</h2>
+          <p>안녕하세요! 좌표.to/${namespaceName} 이용권이 <strong>${daysLeft}일 후</strong> 만료됩니다.</p>
+          <p>만료 후 30일까지는 기존 링크가 유지되지만, 이후에는 리다이렉트가 중지됩니다.</p>
+          <a href="https://좌표.to/pricing" style="display: inline-block; padding: 12px 24px; background: #006565; color: white; text-decoration: none; border-radius: 8px; margin-top: 16px;">이용권 갱신하기</a>
+          <p style="color: #78716c; font-size: 12px; margin-top: 24px;">좌표.to</p>
+        </div>
+      `;
+
   await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -131,16 +172,8 @@ async function sendRenewalEmail(
     body: JSON.stringify({
       from: "좌표.to <noreply@좌표.to>",
       to: email,
-      subject: `좌표.to/${namespaceName} 이용권이 ${daysLeft}일 후 만료됩니다`,
-      html: `
-        <div style="font-family: Pretendard, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
-          <h2 style="color: #006565;">좌표.to/${namespaceName}</h2>
-          <p>안녕하세요! 좌표.to/${namespaceName} 이용권이 <strong>${daysLeft}일 후</strong> 만료됩니다.</p>
-          <p>만료 후 30일까지는 기존 링크가 유지되지만, 이후에는 리다이렉트가 중지됩니다.</p>
-          <a href="https://좌표.to/pricing" style="display: inline-block; padding: 12px 24px; background: #006565; color: white; text-decoration: none; border-radius: 8px; margin-top: 16px;">이용권 갱신하기</a>
-          <p style="color: #78716c; font-size: 12px; margin-top: 24px;">좌표.to</p>
-        </div>
-      `,
+      subject,
+      html: body,
     }),
   });
 }

@@ -44,6 +44,20 @@ export async function POST(request: NextRequest) {
 
   const serviceSupabase = getServiceSupabase();
 
+  // 해지 전에 현재 status를 확인 (trial 여부로 응답 카피 분기 + paid_until 조회).
+  // RPC 호출 순서는 상관없음 — RPC 내부에서 IDOR guard.
+  const { data: preCheck } = await serviceSupabase
+    .from("subscriptions")
+    .select("status, current_period_end")
+    .eq("id", body.subscription_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const wasTrial = preCheck?.status === "trialing";
+  const trialEndStr = preCheck?.current_period_end
+    ? new Date(preCheck.current_period_end).toLocaleDateString("ko-KR")
+    : null;
+
   // ENG-H1: Atomic cancel_subscription RPC.
   // IDOR guard는 RPC 내부 (WHERE user_id = p_user_id).
   // 반환값: billing_key (PortOne unschedule용) 또는 NULL (권한 없음/이미 취소).
@@ -94,10 +108,14 @@ export async function POST(request: NextRequest) {
     JSON.stringify({
       event: "subscription.canceled",
       sub_id: body.subscription_id,
+      was_trial: wasTrial,
     }),
   );
 
-  return NextResponse.json({
-    message: "구독이 해지되었습니다. 현재 결제 기간까지는 계속 이용 가능합니다.",
-  });
+  // Trial-aware 카피: 체험 중 해지는 "과금 없음" 신뢰 신호가 결정적.
+  const message = wasTrial
+    ? `무료 체험이 해지되었어요. ${trialEndStr ?? "체험 기간"}까지 프리미엄 기능을 계속 쓸 수 있고, 이후 자동으로 무료 플랜으로 돌아갑니다. 과금은 없습니다.`
+    : "구독이 해지되었습니다. 현재 결제 기간까지는 계속 이용 가능합니다.";
+
+  return NextResponse.json({ message });
 }

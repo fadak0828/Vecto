@@ -3,7 +3,7 @@ import * as PortOne from "@portone/server-sdk";
 import {
   getServiceSupabase,
   getPortOnePayment,
-  chargeBillingKey,
+  schedulePayment,
   getBillingKey,
 } from "@/lib/portone";
 import { validatePaymentAmount, MONTHLY_PRICE } from "@/lib/pricing";
@@ -166,45 +166,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Already processed" });
     }
 
-    // 첫 ₩2,900 charge — PortOne API 호출.
-    // 성공 시 Transaction.Paid webhook이 별도로 도착해서 start_subscription RPC 호출됨.
+    // 1개월 무료 체험 flow:
+    //   1. PortOne에 +30d 결제 예약 생성 (schedulePayment)
+    //   2. 성공 시 start_trial RPC → subscription status='trialing', period_end=trial_end
+    //   3. 실패 시 billing_key_id NULL 롤백, status='failed' (ENG A6 fix — 영구 trialing 방지)
+    // D+30에 PortOne scheduler가 charge → Transaction.Paid webhook → process_subscription_charge
     const { data: ns } = await supabase
       .from("namespaces")
       .select("name")
       .eq("id", payment.namespace_id)
       .maybeSingle();
 
-    const ok = await chargeBillingKey({
+    const trialDays = 30;
+    const payAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+
+    const scheduled = await schedulePayment({
       billingKey,
       paymentId: correlationId,
-      orderName: `좌표.to/${ns?.name ?? "premium"} 프리미엄 (첫 결제)`,
+      payAt,
+      orderName: `좌표.to/${ns?.name ?? "premium"} 프리미엄 (첫 결제, 무료 체험 후)`,
       amount: MONTHLY_PRICE,
     });
 
-    if (!ok) {
+    if (!scheduled) {
+      // ENG A6 FIX: schedulePayment 실패 시 billing_key_id 롤백 + status='failed'.
+      // 사용자는 /pricing 에러 화면에서 재시도 가능. 영구 trialing 방지.
       await supabase
         .from("subscriptions")
-        .update({ status: "failed", updated_at: new Date().toISOString() })
+        .update({
+          portone_billing_key_id: null,
+          status: "failed",
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", payment.subscription_id);
       console.error(
         JSON.stringify({
-          event: "subscription.first_charge.failed",
+          event: "subscription.schedule.failed",
           sub_id: payment.subscription_id,
+          billing_key: billingKey.substring(0, 8) + "...",
         }),
       );
       return NextResponse.json(
-        { error: "First charge failed" },
+        { error: "Schedule creation failed" },
+        { status: 500 },
+      );
+    }
+
+    // start_trial RPC — pending → trialing, period_end = now+30d
+    const { data: trialEnd, error: trialError } = await supabase.rpc(
+      "start_trial",
+      { p_subscription_id: payment.subscription_id, p_trial_days: trialDays },
+    );
+
+    if (trialError || !trialEnd) {
+      console.error("start_trial RPC failed:", trialError);
+      // 복구 어려움: schedule은 PortOne에 존재, sub는 pending. 수동 reconciliation 필요.
+      return NextResponse.json(
+        { error: "Trial start failed" },
         { status: 500 },
       );
     }
 
     console.log(
       JSON.stringify({
-        event: "billing_key.issued",
+        event: "subscription.trial.started",
         sub_id: payment.subscription_id,
+        trial_end: trialEnd,
       }),
     );
-    return NextResponse.json({ message: "OK" });
+    return NextResponse.json({ message: "OK", trial_end: trialEnd });
   }
 
   // === BillingKey.Failed ===
