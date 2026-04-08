@@ -325,7 +325,11 @@ export default function Home() {
                   좌표.to/go/
                 </span>
                 <input
+                  id="hero-slug"
+                  name="slug"
                   type="text"
+                  aria-label="좌표 이름"
+                  autoComplete="off"
                   value={slug}
                   onChange={(e) => {
                     setSlug(e.target.value.replace(/\s+/g, "-"));
@@ -338,7 +342,11 @@ export default function Home() {
               </div>
 
               <input
+                id="hero-target-url"
+                name="target_url"
                 type="url"
+                aria-label="연결할 URL"
+                autoComplete="url"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
                 placeholder="연결할 URL을 입력하세요"
