@@ -219,23 +219,16 @@ export default function PricingPage() {
                 // Kakao 브랜드 컴플라이언스: #FEE500 배경 + #191919 텍스트는
                 // 카카오 디벨로퍼스 가이드라인의 필수 색상. DESIGN.md "No Pure Black" 규칙
                 // (#1a1c1c)에서 의도적으로 벗어남 — 카카오페이 인지도 = 사용자 신뢰 = 전환율.
-                // TODO: 💬 이모지 → 카카오 공식 로고 SVG 교체 (Kakao Developers 자료실).
+                // Brand yellow + text do the recognition work; decorative emoji removed.
                 style={{
                   background: "#FEE500",
                   color: "#191919",
                   minHeight: 56,
                 }}
               >
-                {busy && activeMethod === "kakaopay" ? (
-                  stageLabel
-                ) : (
-                  <>
-                    <span aria-hidden="true" style={{ fontSize: 20 }}>
-                      💬
-                    </span>
-                    카카오페이로 시작하기
-                  </>
-                )}
+                {busy && activeMethod === "kakaopay"
+                  ? stageLabel
+                  : "카카오페이로 시작하기"}
               </button>
 
               <p
