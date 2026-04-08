@@ -30,18 +30,18 @@ export function SiteFooter() {
             좌표.to
           </a>
           <div
-            className="flex gap-6 text-sm"
+            className="flex gap-2 sm:gap-4 text-sm"
             style={{ color: "var(--on-surface-variant)" }}
           >
             <a
               href="/terms"
-              className="hover:opacity-70 transition-opacity"
+              className="inline-flex items-center px-3 py-3 -my-1 hover:opacity-70 transition-opacity"
             >
               이용약관
             </a>
             <a
               href="/privacy"
-              className="hover:opacity-70 transition-opacity"
+              className="inline-flex items-center px-3 py-3 -my-1 hover:opacity-70 transition-opacity"
             >
               개인정보 처리방침
             </a>
