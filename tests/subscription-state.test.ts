@@ -13,7 +13,13 @@ import { describe, it, expect } from "vitest";
  * UX-12 (idempotency decision).
  */
 
-type SubscriptionStatus = "pending" | "active" | "past_due" | "canceled" | "failed";
+type SubscriptionStatus =
+  | "pending"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "failed";
 
 type SubState = {
   status: SubscriptionStatus;
@@ -23,12 +29,18 @@ type SubState = {
 
 /**
  * Mirror of payment-status.tsx state determination logic.
- * Returns one of 5 user-visible states.
+ * Returns one of 6 user-visible states (trialing added for launch event).
  */
 function deriveUserVisibleState(
   sub: SubState | null,
   now: Date,
-): "free" | "active" | "canceled_in_period" | "past_due" | "expired" {
+):
+  | "free"
+  | "trialing"
+  | "active"
+  | "canceled_in_period"
+  | "past_due"
+  | "expired" {
   if (!sub) return "free";
   if (sub.status === "failed") return "expired";
   if (sub.status === "past_due") return "past_due";
@@ -38,6 +50,7 @@ function deriveUserVisibleState(
     }
     return "expired";
   }
+  if (sub.status === "trialing") return "trialing";
   return "active";
 }
 
@@ -110,6 +123,19 @@ describe("Subscription state derivation (UX-1, UX-3, UX-4, UX-6)", () => {
         NOW,
       ),
     ).toBe("active");
+  });
+
+  it("trialing + period_end in future → trialing (launch event 1개월 무료)", () => {
+    expect(
+      deriveUserVisibleState(
+        {
+          status: "trialing",
+          current_period_end: FUTURE,
+          past_due_since: null,
+        },
+        NOW,
+      ),
+    ).toBe("trialing");
   });
 });
 

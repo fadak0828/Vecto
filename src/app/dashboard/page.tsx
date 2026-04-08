@@ -25,7 +25,13 @@ type Namespace = {
 
 type Subscription = {
   id: string;
-  status: "pending" | "active" | "past_due" | "canceled" | "failed";
+  status:
+    | "pending"
+    | "trialing"
+    | "active"
+    | "past_due"
+    | "canceled"
+    | "failed";
   current_period_end: string | null;
   past_due_since: string | null;
   failed_charge_count: number;
