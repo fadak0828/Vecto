@@ -8,20 +8,26 @@ import {
 } from "./premium-previews";
 
 /**
- * 결제 상태 표시 컴포넌트 (5-state refactor — D-C3).
+ * 결제 상태 표시 컴포넌트 (6-state — trial launch 추가).
  *
  * user-visible states:
- *   1. 무료     — subscription IS NULL
- *   2. 이용 중 (auto)     — subscription.status='active'
- *   3. 이용 중 (해지됨)   — status='canceled' AND current_period_end > now
- *   4. 결제 확인 필요     — status='past_due'
- *   5. 만료                — status='canceled' AND current_period_end <= now
- *                           OR status='failed'
+ *   1. 무료               — subscription IS NULL
+ *   2a. 무료 체험 중      — status='trialing', D-N 카운트 (신규)
+ *   2.  이용 중 (auto)    — status='active'
+ *   3.  이용 중 (해지됨)  — status='canceled' AND current_period_end > now
+ *   4.  결제 확인 필요    — status='past_due'
+ *   5.  만료              — status='canceled' AND period_end <= now, OR status='failed'
  */
 
 type Subscription = {
   id: string;
-  status: "pending" | "active" | "past_due" | "canceled" | "failed";
+  status:
+    | "pending"
+    | "trialing"
+    | "active"
+    | "past_due"
+    | "canceled"
+    | "failed";
   current_period_end: string | null;
   past_due_since: string | null;
   failed_charge_count: number;
@@ -240,6 +246,62 @@ export function PaymentStatus({
         >
           구독 다시 시작
         </a>
+      </div>
+    );
+  }
+
+  // State 2a: trialing (무료 체험 중)
+  if (subscription.status === "trialing" && periodEnd) {
+    const isUrgent = daysLeft !== null && daysLeft <= 3;
+    const label = isUrgent
+      ? `D-${daysLeft} · 곧 자동 결제`
+      : `무료 체험 중 · D-${daysLeft ?? "?"}`;
+    const ariaLabel = isUrgent
+      ? `자동 결제까지 ${daysLeft}일 남음`
+      : `무료 체험 ${daysLeft ?? 0}일 남음`;
+
+    return (
+      <div
+        className="p-4 rounded-xl flex items-center justify-between gap-3"
+        style={{
+          background: isUrgent ? "var(--error)" : "var(--secondary-container)",
+          color: isUrgent ? "#ffffff" : "var(--on-secondary-container)",
+        }}
+        role="status"
+        aria-live="polite"
+      >
+        <div>
+          <span
+            className="text-sm font-bold whitespace-nowrap"
+            aria-label={ariaLabel}
+          >
+            {label}
+          </span>
+          <p
+            className="text-xs mt-0.5 break-keep"
+            style={{ opacity: 0.85 }}
+          >
+            {periodEndStr}에 ₩
+            {MONTHLY_PRICE.toLocaleString("ko-KR")} 자동 결제
+            {!isUrgent && " · 설정에서 해지 가능"}
+          </p>
+        </div>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg text-sm font-medium shrink-0 hover:opacity-80 transition-opacity"
+            style={{
+              background: isUrgent ? "rgba(255,255,255,0.2)" : "transparent",
+              color: isUrgent ? "#ffffff" : "var(--on-surface-variant)",
+              border: isUrgent
+                ? "none"
+                : "1px solid var(--outline-variant)",
+            }}
+          >
+            해지
+          </button>
+        )}
       </div>
     );
   }

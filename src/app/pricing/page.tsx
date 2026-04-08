@@ -22,7 +22,7 @@ import {
  */
 export default function PricingPage() {
   const [loading, setLoading] = useState<
-    "idle" | "preparing" | "billing_key" | "first_charge"
+    "idle" | "preparing" | "billing_key" | "scheduling"
   >("idle");
   const [activeMethod, setActiveMethod] = useState<PayMethod | null>(null);
   const [error, setError] = useState("");
@@ -105,8 +105,8 @@ export default function PricingPage() {
         return;
       }
 
-      setLoading("first_charge");
-      // 결제 완료 페이지 — verify가 비동기로 첫 charge 완료 대기
+      setLoading("scheduling");
+      // 결제 완료 페이지 — verify가 비동기로 schedule/trial start 완료 대기
       window.location.href = `/payment/complete?paymentId=${paymentId}`;
     } catch (err) {
       // 프로덕션 디버깅용 — kakaopay 실패 시 sentry/console에서 확인.
@@ -117,7 +117,12 @@ export default function PricingPage() {
     }
   }
 
-  const monthly = MONTHLY_PRICE.toLocaleString();
+  const monthly = MONTHLY_PRICE.toLocaleString("ko-KR");
+
+  // 런칭 위크 배너 — NEXT_PUBLIC_EVENT_END_AT (ISO8601) 미래이면 노출.
+  // 환경변수 미설정 시 배너 없음 (이벤트 종료 후 조용히 사라짐).
+  const eventEndAt = process.env.NEXT_PUBLIC_EVENT_END_AT;
+  const eventActive = !!eventEndAt && new Date(eventEndAt) > new Date();
   const busy = loading !== "idle";
   const stageLabel =
     loading === "preparing"
@@ -126,12 +131,26 @@ export default function PricingPage() {
         ? activeMethod === "kakaopay"
           ? "카카오페이로 이동 중…"
           : "안전하게 카드 등록 중…"
-        : loading === "first_charge"
-          ? "첫 결제 처리 중…"
+        : loading === "scheduling"
+          ? "무료 체험 시작 중…"
           : "";
 
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
+      {eventActive && (
+        <div
+          role="banner"
+          aria-label="런칭 이벤트 안내"
+          className="w-full py-2.5 text-center text-xs sm:text-sm font-bold tracking-wide break-keep"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--primary), var(--primary-container))",
+            color: "var(--surface-lowest)",
+          }}
+        >
+          LAUNCH WEEK · 런칭 위크 한정, 첫 1개월 무료
+        </div>
+      )}
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
         <a
           href="/"
@@ -162,8 +181,8 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
-        {/* Hero — semantic h1 is the product, not the price.
-            Price lives in the subscribe card where the CTA is. */}
+        {/* Hero — trial launch: 첫 1개월 무료가 primary message.
+            가격은 subhead로 relegated, 큰 가격 디스플레이 제거. */}
         <section className="mb-8 text-center">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
@@ -175,17 +194,19 @@ export default function PricingPage() {
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
             style={{ fontFamily: "Manrope, sans-serif" }}
           >
-            좌표.to 프리미엄
+            첫 1개월 무료
           </h1>
           <p
             className="text-sm sm:text-base break-keep"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
-            매월 자동결제, 언제든 한 번에 해지.
+            이후 월{" "}
+            <span className="price-display font-bold">₩{monthly}</span> 자동
+            결제 · 언제든 1클릭 해지
           </p>
         </section>
 
-        {/* Subscribe card */}
+        {/* Subscribe card — No-Line 원칙: 1px border 제거, 톤 블록만 사용. */}
         <div
           className="p-6 sm:p-8 rounded-2xl mb-8"
           style={{
@@ -193,23 +214,6 @@ export default function PricingPage() {
             boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
           }}
         >
-          <div
-            className="pb-5 mb-5"
-            style={{ borderBottom: "1px solid var(--surface-container)" }}
-          >
-            <div className="flex items-baseline gap-1.5 justify-center">
-              <span className="price-display text-4xl sm:text-5xl font-extrabold">
-                ₩{monthly}
-              </span>
-              <span
-                className="text-base font-medium"
-                style={{ color: "var(--on-surface-variant)" }}
-              >
-                / 월
-              </span>
-            </div>
-          </div>
-
           {kakaopayEnabled && (
             <>
               <button
@@ -228,14 +232,14 @@ export default function PricingPage() {
               >
                 {busy && activeMethod === "kakaopay"
                   ? stageLabel
-                  : "카카오페이로 시작하기"}
+                  : "1개월 무료로 시작하기"}
               </button>
 
               <p
                 className="text-center text-xs mt-2.5 break-keep"
                 style={{ color: "var(--on-surface-variant)" }}
               >
-                카카오톡 인증 한 번이면 끝 · 카드번호 입력 없음
+                카카오톡 인증 한 번이면 끝 · 무료 체험 중 해지 시 과금 없음
               </p>
             </>
           )}
@@ -264,9 +268,10 @@ export default function PricingPage() {
             </p>
           )}
 
+          {/* 톤 블록으로 구분 (No-Line 원칙) */}
           <div
-            className="mt-5 pt-5 space-y-2.5"
-            style={{ borderTop: "1px solid var(--surface-container)" }}
+            className="mt-6 -mx-6 sm:-mx-8 px-6 sm:px-8 py-5 space-y-2.5"
+            style={{ background: "var(--surface-low)" }}
           >
             <h2
               className="text-xs font-bold uppercase tracking-widest mb-1"
