@@ -4,6 +4,25 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.3] - 2026-04-08 — 카카오페이 정기결제 (간편결제 빌링키)
+
+카드번호 16자리 + 유효기간 + CVC + 비밀번호 + 생년월일을 일일이 치는 30초 짜리 진입장벽을 카카오톡 인증 한 번으로 줄였습니다. 한국 사용자에게 가장 익숙한 정기결제 방식이 기본 CTA가 되고, 카드 직접입력은 보조 옵션으로 남깁니다.
+
+### Added
+- **카카오페이 빌링키 발급** — `/pricing` 페이지에 "카카오페이로 시작하기" 메인 CTA 추가. PortOne `EASY_PAY` 채널 + `easyPayProvider: "KAKAOPAY"` 로 빌링키를 발급하고, 기존 webhook 핸들러가 그대로 첫 결제를 트리거합니다 (PG 무관 흐름이라 백엔드 변경 없음).
+- **`src/lib/portone-billing.ts`** — `buildBillingKeyArgs(method, channels)` 순수 함수 + `billingCancelMessage(method)`. PortOne SDK union type 의 EASY_PAY/CARD 분기를 한 곳에서 관리하고 단위 테스트로 회귀를 막습니다 (11개 테스트).
+- **카카오페이 채널키 환경변수** — `NEXT_PUBLIC_PORTONE_CHANNEL_KEY_KAKAOPAY` 추가. 빈 값이면 카카오페이 버튼이 자동으로 숨겨져 카드 결제만 노출 (실수로 배포해도 사이트가 깨지지 않음).
+- **카드 결제 fallback 링크** — 카카오페이 메인 CTA 아래 작은 "신용/체크카드로 결제하기" 텍스트 링크. 카카오 계정이 없는 사용자도 이탈하지 않습니다.
+
+### Changed
+- **모바일 결제창 정책** — `windowType: { mobile: "REDIRECTION", pc: "IFRAME" }` 명시. Mobile Safari가 `await` 이후 popup을 차단하는 문제를 사전에 방지 (카드 + 카카오 양쪽 모두 적용).
+- **결제 핸들러 re-entry guard** — `if (loading !== "idle") return` 으로 빠른 더블탭이나 메서드 전환 중 두 개의 pending payment row 가 생기는 것을 차단.
+- **결제 에러 로깅** — `} catch (err) { console.error(...) }` 로 프로덕션에서 카카오페이 실패 원인을 추적 가능. 이전에는 catch 가 에러 객체를 통째로 삼켰음.
+
+### Notes
+- 실 운영 전에 PortOne 어드민에서 카카오페이 정기결제 채널 계약 + 채널키 발급이 선행되어야 합니다 (기존 카드 채널과 별개).
+- 카카오 공식 로고 SVG 교체는 후속 작업으로 분리 (현재는 💬 이모지 placeholder).
+
 ## [0.7.2] - 2026-04-08 — Hotfix: paymentId 길이 + 운영 환경변수
 
 v0.7.1 배포 직후 첫 결제를 시도하면서 발견한 두 가지 잔여 문제를 정리합니다. 이제 prepare → 빌링키 발급 → 첫 charge → start_subscription 까지 자동으로 끝까지 흐릅니다.
