@@ -230,11 +230,13 @@ export default function SettingsPage() {
           <header>
             <h1
               className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3"
-              style={{ fontFamily: "Manrope, sans-serif" }}
+              style={{
+                fontFamily: "Manrope, sans-serif",
+                textWrap: "balance",
+                wordBreak: "keep-all",
+              }}
             >
-              나만의 디지털
-              <br />
-              <span style={{ color: "var(--primary)" }}>좌표</span>를 설정하세요
+              나만의 디지털 <span style={{ color: "var(--primary)" }}>좌표</span>를 설정하세요
             </h1>
             <p
               className="text-base sm:text-lg max-w-xl"
