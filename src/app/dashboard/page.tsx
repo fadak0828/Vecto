@@ -199,8 +199,24 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
-        <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
+      <main className="flex-1" style={{ background: "var(--surface)" }} aria-busy="true" aria-live="polite">
+        {/* Skeleton nav */}
+        <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
+          <div className="h-6 w-16 rounded" style={{ background: "var(--surface-container)" }} />
+          <div className="flex gap-4">
+            <div className="h-5 w-10 rounded" style={{ background: "var(--surface-container)" }} />
+            <div className="h-5 w-14 rounded" style={{ background: "var(--surface-container)" }} />
+          </div>
+        </nav>
+        {/* Skeleton content mirroring the real layout */}
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 pt-6 pb-16">
+          <div className="h-10 w-48 rounded-lg mb-3 skeleton-shimmer" />
+          <div className="h-5 w-72 rounded mb-8 skeleton-shimmer" />
+          <div className="h-24 rounded-2xl mb-6 skeleton-shimmer" />
+          <div className="h-40 rounded-2xl mb-6 skeleton-shimmer" />
+          <div className="h-56 rounded-2xl skeleton-shimmer" />
+        </div>
+        <span className="sr-only">대시보드 로딩 중</span>
       </main>
     );
   }

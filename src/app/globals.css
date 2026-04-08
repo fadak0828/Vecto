@@ -97,6 +97,26 @@ body {
   overflow-wrap: break-word;
 }
 
+/* Skeleton shimmer — used by /dashboard loading state to mirror the real
+   layout instead of showing a bare "로딩 중..." text. */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-container) 0%,
+    var(--surface-low) 50%,
+    var(--surface-container) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; background: var(--surface-container); }
+}
+
 /* Price display — Pretendard renders ₩ + Korean digits beautifully.
    Manrope's Won glyph + comma combo looks slanted/italic. tabular-nums
    ensures consistent digit width so prices don't shift on hover/loading. */
