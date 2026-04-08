@@ -7,18 +7,27 @@ type PaymentStatus = "checking" | "paid" | "pending" | "error";
 
 export default function PaymentCompletePage() {
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex-1 flex items-center justify-center"
-          style={{ background: "var(--surface)" }}
-        >
-          <p style={{ color: "var(--on-surface-variant)" }}>로딩 중...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<PaymentLoadingShell label="결제 확인 중" sub="잠시만 기다려주세요..." />}>
       <PaymentCompleteContent />
     </Suspense>
+  );
+}
+
+/**
+ * Visual shell used by the Suspense fallback AND the in-page "checking" /
+ * "pending" states. One spinner, one source of truth.
+ */
+function PaymentLoadingShell({ label, sub }: { label: string; sub: string }) {
+  return (
+    <div className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
+      <div className="max-w-md w-full mx-auto px-6 text-center">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: "var(--primary)", opacity: 0.1 }}>
+          <div className="w-8 h-8 rounded-full animate-spin" style={{ border: "3px solid var(--primary)", borderTopColor: "transparent" }} />
+        </div>
+        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>{label}</h1>
+        <p style={{ color: "var(--on-surface-variant)" }}>{sub}</p>
+      </div>
+    </div>
   );
 }
 
@@ -29,6 +38,7 @@ function PaymentCompleteContent() {
   const [error, setError] = useState("");
   const [pollCount, setPollCount] = useState(0);
 
+  const [checking, setChecking] = useState(false);
   const checkPaymentStatus = useCallback(async () => {
     if (!paymentId) {
       setStatus("error");
@@ -36,6 +46,7 @@ function PaymentCompleteContent() {
       return;
     }
 
+    setChecking(true);
     try {
       const res = await fetch(
         `/api/payment/verify?paymentId=${encodeURIComponent(paymentId)}`,
@@ -54,6 +65,8 @@ function PaymentCompleteContent() {
     } catch {
       setStatus("error");
       setError("결제 확인 중 오류가 발생했습니다.");
+    } finally {
+      setChecking(false);
     }
   }, [paymentId]);
 
@@ -70,33 +83,34 @@ function PaymentCompleteContent() {
     return () => clearTimeout(timer);
   }, [status, pollCount, checkPaymentStatus]);
 
+  if (status === "checking") {
+    return <PaymentLoadingShell label="결제 확인 중" sub="잠시만 기다려주세요..." />;
+  }
+
+  if (status === "pending" && pollCount < 6) {
+    // Show progress through the poll loop so the spinner isn't a lie.
+    const step = Math.min(pollCount, 5);
+    return (
+      <PaymentLoadingShell
+        label="결제 처리 중"
+        sub={`결제가 처리되고 있습니다 (${step}/6) · 최대 30초 소요`}
+      />
+    );
+  }
+
   return (
     <div className="flex-1 flex items-center justify-center" style={{ background: "var(--surface)" }}>
       <div className="max-w-md w-full mx-auto px-6 text-center">
-        {status === "checking" && (
-          <>
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: "var(--primary)", opacity: 0.1 }}>
-              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: "3px solid var(--primary)", borderTopColor: "transparent" }} />
-            </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>결제 확인 중</h1>
-            <p style={{ color: "var(--on-surface-variant)" }}>잠시만 기다려주세요...</p>
-          </>
-        )}
-
-        {status === "pending" && pollCount < 6 && (
-          <>
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: "var(--primary)", opacity: 0.1 }}>
-              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: "3px solid var(--primary)", borderTopColor: "transparent" }} />
-            </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>결제 처리 중</h1>
-            <p style={{ color: "var(--on-surface-variant)" }}>결제가 처리되고 있습니다. 잠시만 기다려주세요...</p>
-          </>
-        )}
-
         {status === "pending" && pollCount >= 6 && (
           <>
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center text-2xl" style={{ background: "var(--surface-lowest)" }}>
-              ⏳
+            <div
+              className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+              style={{ background: "var(--surface-lowest)", color: "var(--on-surface-variant)" }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
             </div>
             <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>결제 확인이 지연되고 있습니다</h1>
             <p className="mb-6" style={{ color: "var(--on-surface-variant)" }}>
@@ -104,14 +118,16 @@ function PaymentCompleteContent() {
             </p>
             <button
               onClick={() => {
+                if (checking) return;
                 setStatus("checking");
                 setPollCount(0);
                 checkPaymentStatus();
               }}
-              className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90"
+              disabled={checking}
+              className="w-full py-3 rounded-xl font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: "var(--primary)" }}
             >
-              결제 확인하기
+              {checking ? "확인 중…" : "결제 확인하기"}
             </button>
             <a
               href="/dashboard"
