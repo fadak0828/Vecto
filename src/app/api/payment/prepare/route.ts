@@ -86,8 +86,10 @@ export async function POST(_request: NextRequest) {
     }
   }
 
-  // 4. paymentId 생성 — 추측 불가능한 랜덤 값
-  const paymentId = `jwapyo_${randomBytes(16).toString("hex")}`;
+  // 4. paymentId 생성 — 추측 불가능한 랜덤 값.
+  // PortOne paymentId 는 MAX_LENGTH 32. 'jw_' (3) + randomBytes(12).hex (24) = 27자.
+  // 이전 'jwapyo_' (7) + randomBytes(16).hex (32) = 39자는 chargeBillingKey 에서 INVALID_REQUEST 400.
+  const paymentId = `jw_${randomBytes(12).toString("hex")}`;
   const orderName = `좌표.to/${ns.name} 프리미엄 구독 (첫 결제)`;
 
   // 5. pending subscription 생성 — current_period_*는 첫 charge 성공 후 start_subscription RPC가 채움

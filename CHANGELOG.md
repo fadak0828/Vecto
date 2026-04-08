@@ -4,6 +4,17 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.7.2] - 2026-04-08 — Hotfix: paymentId 길이 + 운영 환경변수
+
+v0.7.1 배포 직후 첫 결제를 시도하면서 발견한 두 가지 잔여 문제를 정리합니다. 이제 prepare → 빌링키 발급 → 첫 charge → start_subscription 까지 자동으로 끝까지 흐릅니다.
+
+### Fixed
+- **PortOne `chargeBillingKey` 400 INVALID_REQUEST (paymentId MAX_LENGTH 32)** — `prepare` 가 만들던 `jwapyo_` (7) + `randomBytes(16).hex` (32) = **39자** 가 PortOne 한도(32)를 넘겨, 빌링키 발급은 통과하지만 첫 charge 호출에서 거절. `jw_` (3) + `randomBytes(12).hex` (24) = **27자** 로 변경.
+- **운영 `PORTONE_WEBHOOK_SECRET` 빈 값** — Vercel 프로덕션에 키만 등록되고 값이 비어있어 모든 PortOne 웹훅이 `Server config error` 500 으로 거절되던 상태. PortOne 어드민에서 시크릿 발급 후 Vercel 에 채움. 코드 변경은 없으나 회귀 방지를 위해 운영 체크리스트에 명시.
+
+### Added
+- **paymentId 길이 회귀 테스트** (`tests/payment-prepare.test.ts`) — `jw_` 프리픽스 + 24 hex 패턴 검증, prepare route 가 `randomBytes(16)` 패턴으로 회귀하지 않도록 가드.
+
 ## [0.7.1] - 2026-04-08 — Hotfix: 결제 흐름 복구
 
 v0.7.0 출시 이후 단 한 명도 결제를 끝까지 마치지 못하던 두 가지 막힘을 해결합니다. 이제 카드 등록부터 첫 ₩2,900 결제까지 정상 동작합니다.
