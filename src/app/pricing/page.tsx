@@ -268,6 +268,12 @@ export default function PricingPage() {
             className="mt-5 pt-5 space-y-2.5"
             style={{ borderTop: "1px solid var(--surface-container)" }}
           >
+            <h2
+              className="text-xs font-bold uppercase tracking-widest mb-1"
+              style={{ color: "var(--on-surface-variant)" }}
+            >
+              프리미엄에 포함된 것
+            </h2>
             <Feature text="프로필 페이지 상단 안내 1줄 숨김" />
             <Feature text="클릭 통계 대시보드 (7일 분석)" />
             <Feature text="매월 자동갱신 · 언제든 해지" />
@@ -289,16 +295,16 @@ export default function PricingPage() {
         </div>
 
         {/* Free plan note */}
-        <div
+        <section
           className="p-5 rounded-2xl"
           style={{ background: "var(--surface-low)" }}
         >
-          <p
+          <h2
             className="text-xs font-bold uppercase tracking-widest mb-2"
             style={{ color: "var(--on-surface-variant)" }}
           >
             무료 플랜
-          </p>
+          </h2>
           <p
             className="text-sm break-keep"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
@@ -314,7 +320,7 @@ export default function PricingPage() {
           >
             무료로 시작하기 →
           </a>
-        </div>
+        </section>
       </main>
     </div>
   );
