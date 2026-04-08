@@ -110,6 +110,8 @@
   - Depends on: 사용자 수 1k+ 도달 시 우선순위 상승.
 - **OAuth consent screen IDN 표시 개선** — Google consent 화면이 `xn--h25b29s.to` punycode로 노출되어 사용자 인식 떨어짐. Google authorized domain feature는 IDN 비지원. 우회책 검토.
 - **Google branding compliance audit** — 현재 plain 한국어 "Google로 계속하기" 버튼 사용 (다크 배경). Google brand 가이드라인 100% 미준수. 추후 OAuth client 심사 시 영향 가능. 공식 white Sign-in button으로 교체 옵션 재평가.
+- **인앱 브라우저 UA 패턴 재점검 (v0.8.3 이후)** — `src/lib/in-app-browser.ts`의 감지 패턴(KAKAOTALK, FBAN/FBAV, Instagram, Line, Barcelona(Threads), NAVER(inapp, Daum, `; wv)`) 은 2024-2026 UA 기준. 각 앱이 UA 포맷을 바꾸면 감지가 깨질 수 있음. 실제 환경에서 "Google 요청 세부정보" 에러 재보고되면 즉시 UA 샘플 수집해서 `tests/in-app-browser.test.ts`에 추가. 분기별로 대표 앱 최신 UA 한 번씩 샘플링.
+- **인앱 우회 성공률 관측** — 현재 로깅 없음. Phase 1b 이후 analytics 도입 시, 인앱 감지 카드 노출 횟수 + "Chrome으로 열기" 클릭 전환율 + "그래도 여기서 시도하기" 폴백 사용률을 측정해서 실제 사용자 행동 파악. 데이터 기반으로 카피/버튼 위치 개선 가능.
 
 ### 장기 개선
 - HTML route handler를 React 컴포넌트로 전환 (XSS 근본 원인 제거)

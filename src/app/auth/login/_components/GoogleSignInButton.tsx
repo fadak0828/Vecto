@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
+import {
+  type InAppBrowserInfo,
+  detectInAppBrowser,
+} from "@/lib/in-app-browser";
+import { InAppBrowserNotice } from "./InAppBrowserNotice";
 
 export const LOGIN_FAILED_MESSAGE = "로그인에 실패했습니다. 다시 시도해주세요.";
 export const LOGIN_CANCELLED_MESSAGE = "로그인을 취소하셨습니다. 다시 시도해주세요.";
@@ -24,6 +29,24 @@ export function mapLoginErrorParam(errorParam?: string): string {
 export function GoogleSignInButton({ initialError }: { initialError?: string }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(mapLoginErrorParam(initialError));
+  // 인앱 브라우저(카톡/인스타/페북 등) 감지 — Google OAuth 가 차단되는 환경
+  const [inApp, setInApp] = useState<InAppBrowserInfo | null>(null);
+  const [override, setOverride] = useState(false);
+
+  useEffect(() => {
+    // Client-only 감지 (SSR hydration mismatch 회피)
+    setInApp(detectInAppBrowser(navigator.userAgent));
+  }, []);
+
+  if (inApp?.isInApp && !override) {
+    return (
+      <InAppBrowserNotice
+        info={inApp}
+        currentUrl={window.location.href}
+        onProceedAnyway={() => setOverride(true)}
+      />
+    );
+  }
 
   async function handleClick() {
     setLoading(true);

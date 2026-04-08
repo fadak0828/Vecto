@@ -4,6 +4,13 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.8.3] - 2026-04-08 — 인앱 브라우저 Google 로그인 차단 우회
+
+카카오톡/인스타그램/페이스북/라인 등 **앱 내장 브라우저**에서 좌표.to 링크를 열어 Google로 로그인하려 하면 Google이 "요청 세부정보:" 에러를 띄우며 거부하던 문제 해결. Google의 2021년 `disallowed_useragent` 정책 때문에 우회가 아닌 외부 브라우저로 **탈출**시키는 것이 유일한 해법. 한국 사용자의 주된 진입 경로(카톡 공유 링크 → 카톡 인앱 브라우저)가 직격이어서 v0.8.0 Google OAuth 전환 이후 잠재적으로 많은 로그인 시도가 소리 없이 실패했을 가능성.
+
+### Fixed
+- **인앱 브라우저 감지 + 탈출 안내** — `/auth/login` 페이지가 KakaoTalk, KakaoStory, NAVER 인앱, Daum 앱, Instagram, Facebook(FBAN/FBAV), Line, Threads, 일반 Android WebView(`; wv)`) UA를 감지해서 Google 버튼 대신 안내 카드를 노출. Android는 "Chrome으로 열기" 버튼이 `intent://` 스킴으로 Chrome을 직접 띄우고(Chrome 미설치 시 `S.browser_fallback_url`로 폴백), iOS는 "링크 복사" + "⋯ 메뉴 → '다른 브라우저로 열기'" 안내. "그래도 여기서 시도하기" 폴백 링크로 사용자 주체성 보장(UA spoofer 사용자, 오탐 케이스). 감지 로직은 `src/lib/in-app-browser.ts`에 순수 함수로 분리해 23개 UA 단위 테스트로 회귀 방어.
+
 ## [0.8.2] - 2026-04-08 — 소셜 공유 OG 이미지
 
 카카오톡, 슬랙, 트위터 같은 곳에 좌표.to 링크를 붙여넣을 때 뜨는 프리뷰 카드가 이제 브랜드 이미지로 나옵니다. 지금까지는 빈 카드 + URL 텍스트였는데, 앞으로는 "짧고 의미있는 한글 URL" 헤드라인 + deep mint 그라디언트 CTA가 보입니다.
