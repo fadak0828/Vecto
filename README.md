@@ -48,7 +48,7 @@ bun run dev                      # http://localhost:3000
 - `/[namespace]/[sub]` — sublink redirect (0초 즉시)
 - `/pricing` — 단일 SKU ₩2,900/월 결제
 - `/payment/complete` — 결제 후 verify polling
-- `/auth/login` — 이메일 OTP 로그인
+- `/auth/login` — Google OAuth 로그인
 - `/terms`, `/privacy` — 법적 문서 (사업자 정보 포함)
 
 ## Testing
