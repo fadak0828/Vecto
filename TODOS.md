@@ -2,6 +2,19 @@
 
 ## 다음 작업 (우선순위순)
 
+### 🛡️ v0.10.0 서브링크 OG/QR 후속 — 보안 follow-up (2026-04-09 adversarial review)
+
+- **OG-SEC-1. DNS rebinding 방어** — `src/lib/og-fetcher.ts`의 `assertPublicHost`는 한 번만 resolve하고 undici가 다시 resolve한다. 공격자가 제어하는 DNS 서버가 TTL=0으로 첫 번째 쿼리에 `8.8.8.8`, 두 번째에 `169.254.169.254`를 반환하면 SSRF 우회 가능. 해결: `undici.Agent({ connect: { lookup } })`로 resolve된 IP를 pin하거나, 직접 IP로 연결 + `Host:` 헤더 수동 설정. 우선순위 P1.
+- **OG-SEC-2. slugs 테이블 RLS 강화** — `supabase/001_init.sql`의 `with check (true)` 정책이 너무 느슨하다. 앱 레이어에서만 ownership 체크. API route bypass (직접 PostgREST 호출) 시 타 사용자 namespace에 slug 삽입 가능. 해결: `with check (auth.uid() = owner_id AND EXISTS (...))`. 우선순위 P1.
+- **OG-SEC-3. `/api/slugs` 및 `/api/slugs/:id/refresh-og` rate limiting** — 현재 없음. refresh-og는 임의 URL을 2초 timeout으로 fetch하므로 좌표.to IP를 반사기로 쓸 수 있는 DoS 증폭기. 해결: 기존 `rate_limits` 테이블 재사용, 유저당 `POST /api/slugs` 10/분, refresh-og 5/분. 우선순위 P2.
+- **OG-SEC-4. `[namespace]/[sub]` 공유 프리뷰 응답에 CSP + X-Frame-Options 헤더** — 봇 응답 HTML이 프레임 가능하고 CSP가 없다. 해결: `Content-Security-Policy: default-src 'none'; img-src *; style-src 'unsafe-inline'` + `X-Frame-Options: DENY`. 우선순위 P3.
+- **OG-SEC-5. SublinkDetailModal focus trap** — 현재 tab 키가 모달 밖으로 탈출. a11y 위반. 해결: `focus-trap-react` 추가하거나 직접 구현 (Tab 이벤트를 modal root에서 캐치해 loop). 우선순위 P2.
+- **OG-SEC-6. Naver/Daum UA 오탐** — `BOT_UA_REGEX`가 `"naver"`, `"daum"` 부분 문자열을 매칭. Whale 브라우저(`Naver` 포함) 사용자가 bot HTML 받아서 meta-refresh 느리게 보임. 해결: `Yeti` (Naver 크롤러), `Daumoa` (Daum 크롤러) 명확한 토큰으로 교체. 우선순위 P3.
+- **OG-SEC-7. `og_image` 2048자 CHECK 여유 부족** — CloudFront signed URL 등은 3KB 넘을 수 있음. legitimate 이미지가 silently 버려진다. 해결: CHECK를 8192로 올리거나 `/api/image-proxy` 추가. 우선순위 P3.
+- **OG-SEC-8. `next/image` remotePatterns** — 현재 og_image를 raw `<img>`로 렌더. LCP 손해. 해결: `next.config.ts`에 와일드카드 remotePatterns 추가 또는 이미지 프록시 라우트. 우선순위 P3.
+- **OG-SEC-9. 백그라운드 OG refresh cron** — 오래된 slug의 OG 데이터를 주기적으로 갱신. 현재는 수동 "다시 가져오기" 버튼만 있음. 해결: Vercel Cron + `/api/cron/refresh-stale-og`. 우선순위 P4.
+
+
 ### 🚨 Single SKU Freemium 런칭 전 필수 — v0.7.0 (2026-04-08 구현 완료, 마이그레이션 + 런칭 대기)
 
 - **DB-1. `/run-sql` 또는 Supabase Dashboard에서 `supabase/009_subscriptions.sql` 실행** — subscriptions 테이블 + 4개 RPC + payments.subscription_id FK + subscriptions_public view + 008 grace user Option B backfill 포함 (autoplan ENG-C1/C5/C4/H1/H2/M2 fixes)

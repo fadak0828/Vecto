@@ -7,7 +7,7 @@ Do not deviate without explicit user approval.
 In QA mode, flag any code that doesn't match DESIGN.md.
 
 ## Testing
-- Run: `bun x vitest run` (~200ms)
+- Run: `bun x vitest run` (~1.5s, 365 tests)
 - Test directory: `tests/`
 - See TESTING.md for conventions
 - 새 함수 → 테스트 작성, 버그 수정 → 회귀 테스트 작성

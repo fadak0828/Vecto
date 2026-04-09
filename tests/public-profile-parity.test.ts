@@ -28,6 +28,11 @@ const sharedComponent = readFileSync(
   "utf-8"
 );
 
+const sublinkCardComponent = readFileSync(
+  resolve(root, "src/components/sublink-card.tsx"),
+  "utf-8"
+);
+
 describe("public profile parity — drift prevention", () => {
   it("/[namespace]/page.tsx imports and uses PublicProfileView", () => {
     expect(namespacePage).toContain(
@@ -43,6 +48,38 @@ describe("public profile parity — drift prevention", () => {
     );
     expect(settingsPage).toContain("<PublicProfileView");
     expect(settingsPage).toContain('variant="preview"');
+  });
+
+  it("PublicProfileView delegates link rendering to SublinkCard (no bespoke row markup)", () => {
+    // Both live/preview variants must funnel through SublinkCard so the card
+    // layout can never drift between pages. If someone reintroduces inline <a>
+    // rendering in the links map, this test fails.
+    expect(sharedComponent).toContain(
+      'import { SublinkCard'
+    );
+    expect(sharedComponent).toContain("<SublinkCard");
+  });
+
+  it("SublinkCard has no 'use client' directive (usable in server components)", () => {
+    expect(sublinkCardComponent).not.toMatch(/^['"]use client['"]/m);
+  });
+
+  it("SublinkCard live variant wires SublinkQRButton (visitor-facing QR feature)", () => {
+    // If someone removes the QR button from the card, visitors lose the
+    // in-person share affordance. This guard catches accidental regression.
+    expect(sublinkCardComponent).toContain(
+      'import { SublinkQRButton }'
+    );
+    expect(sublinkCardComponent).toContain("<SublinkQRButton");
+  });
+
+  it("both pages SELECT the og_* columns so SublinkCard has the data it needs", () => {
+    // Regression guard: if someone shrinks the SELECT, SublinkCard silently
+    // falls back to the initial-box state for every link on that page.
+    expect(namespacePage).toMatch(/og_title/);
+    expect(namespacePage).toMatch(/og_image/);
+    expect(settingsPage).toMatch(/og_title/);
+    expect(settingsPage).toMatch(/og_image/);
   });
 
   it("/settings/page.tsx does NOT re-introduce the old Linktree-style preview markup", () => {

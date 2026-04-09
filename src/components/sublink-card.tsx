@@ -1,0 +1,199 @@
+/**
+ * SublinkCard — Editorial Card (방향 A, 80x80)
+ *
+ * 서버 컴포넌트. 순수 presentational. "use client" 금지 — PublicProfileView가
+ * 서버에서 렌더되므로 SublinkCard도 서버 호환이어야 한다.
+ *
+ * 설계 기준: fadak-main-sublink-detail-og-plan-20260409 + DESIGN.md.
+ *
+ * 계층 (사용자 피드백 20260409):
+ *   - Primary headline: slug (프로필 관리자가 설정한 이름, e.g. "유튜브")
+ *   - Secondary meta: 좌표.to/{namespace}/{slug} (작은 러닝헤드)
+ *   - Thumbnail: og_image 있으면 표시, 없으면 slug[0] 이니셜 박스
+ *   - og_title/og_description/og_site_name: 카드에 표시 안 함 (상세 모달 전용)
+ *
+ * 가드레일 (AI slop 금지):
+ *   - rounded-full 금지 (썸네일은 카드와 같은 rounded-2xl)
+ *   - 보더 금지 (No-Line Rule)
+ *   - 썸네일 hover scale/blur 금지
+ *   - 썸네일 위 그라디언트 오버레이 금지
+ *
+ * og_image 트러스트 계약: og-fetcher가 수집 시점에 reachable 여부를
+ * 검증했다고 가정하고 그대로 <img>로 렌더한다. Dead link는 브라우저의
+ * 기본 broken icon을 노출한다. 서버 컴포넌트라 onError JS 핸들러를
+ * 붙일 수 없다. TODO: next/image remotePatterns + 폴백 프록시로 교체.
+ *
+ * QR 버튼 (사용자 피드백 20260409): live variant에 한해 SublinkQRButton을
+ * 앵커 옆 sibling으로 렌더한다. 클릭 → 모달로 전체 URL + 큰 QR 노출.
+ * preview variant(설정 프리뷰)에는 렌더하지 않는다 — 300px 프레임에
+ * 버튼을 또 박으면 답답하고, preview는 순수 시각 목업이라 상호작용이
+ * 필요 없다.
+ */
+
+import { SublinkQRButton } from "@/components/sublink-qr-button";
+
+export type SublinkCardLink = {
+  slug: string;
+  target_url: string;
+  /** 카드에는 표시하지 않는다 — 타입 호환을 위해 옵셔널로만 받는다. 상세 모달 전용. */
+  og_title?: string | null;
+  og_image: string | null;
+  /** 카드에는 표시 안 함. QR 모달에서만 노출. */
+  og_description?: string | null;
+  og_site_name?: string | null;
+};
+
+export type SublinkCardProps = {
+  link: SublinkCardLink;
+  /** slug 메타 러닝헤드용 ("좌표.to/{namespaceName}/{slug}") */
+  namespaceName: string;
+  variant: "live" | "preview";
+};
+
+export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) {
+  const isPreview = variant === "preview";
+
+  // 사이즈 토큰 — 구조는 동일하고 사이즈만 축소 (드리프트 방지 원칙).
+  const sz = {
+    padding: isPreview ? "p-2.5" : "p-4",
+    gap: isPreview ? "gap-2.5" : "gap-4",
+    // 썸네일: live 80x80, preview 56x56. 모바일 72x72는 live 한정.
+    thumb: isPreview ? "w-14 h-14" : "w-[72px] h-[72px] sm:w-20 sm:h-20",
+    thumbInitialFont: isPreview
+      ? "text-base"
+      : "text-xl sm:text-2xl",
+    // Headline (slug) — big. Meta (coordinate path) — small.
+    slugFont: isPreview ? "text-sm" : "text-lg sm:text-xl",
+    metaFont: isPreview ? "text-[9px]" : "text-[10px]",
+    metaMt: "mt-1",
+  };
+
+  const slugMeta = `좌표.to/${namespaceName}/${link.slug}`;
+  // 이니셜 박스: 항상 slug의 첫 글자.
+  const initialChar = link.slug[0] ?? "•";
+
+  const Thumbnail = (
+    <>
+      {link.og_image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={link.og_image}
+          alt=""
+          // Strip Referer header — og_image comes from upstream site which
+          // could point it at a tracking pixel to harvest viewer paths.
+          referrerPolicy="no-referrer"
+          className={`${sz.thumb} rounded-2xl object-cover shrink-0`}
+          style={{ background: "var(--surface-container)" }}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className={`${sz.thumb} rounded-2xl shrink-0 flex items-center justify-center text-white font-bold ${sz.thumbInitialFont}`}
+          style={{
+            background:
+              "linear-gradient(135deg, var(--primary), var(--primary-container))",
+          }}
+        >
+          {initialChar}
+        </div>
+      )}
+    </>
+  );
+
+  const TextStack = (
+    <div className="flex-1 min-w-0 flex flex-col justify-center">
+      {/* Primary headline: slug (프로필 관리자가 설정한 이름) */}
+      <p
+        className={`${sz.slugFont} font-bold truncate`}
+        style={{
+          color: "var(--on-background)",
+          lineHeight: 1.3,
+          fontFamily: "Plus Jakarta Sans, sans-serif",
+        }}
+      >
+        {link.slug}
+      </p>
+      {/* Secondary meta: 좌표 경로 — 작게, 러닝헤드 스타일 */}
+      <p
+        className={`${sz.metaFont} ${sz.metaMt} uppercase tracking-wider font-medium truncate`}
+        style={{
+          color: "var(--on-surface-variant)",
+          fontFeatureSettings: '"tnum"',
+          fontFamily: "Manrope, sans-serif",
+        }}
+      >
+        {slugMeta}
+      </p>
+    </div>
+  );
+
+  const Arrow = (
+    <span
+      className="ml-auto shrink-0 text-xs"
+      style={{ color: "var(--on-surface-variant)" }}
+      aria-hidden="true"
+    >
+      →
+    </span>
+  );
+
+  const baseClass = `flex items-center ${sz.gap} ${sz.padding} rounded-2xl`;
+  const baseStyle = {
+    background: "var(--surface-lowest)",
+    boxShadow: "0 2px 32px rgba(0,0,0,0.03)",
+  } as const;
+
+  const ariaLabel = `${link.slug} 링크로 이동`;
+
+  if (isPreview) {
+    return (
+      <div className={baseClass} style={baseStyle} data-testid="sublink-card">
+        {Thumbnail}
+        {TextStack}
+        {Arrow}
+      </div>
+    );
+  }
+
+  // Live variant: 외부 div 카드 + 내부 anchor(thumb+text+arrow) + QR 버튼 sibling.
+  // 카드 배경/shadow는 div, link semantic + focus + hover lift는 anchor.
+  //
+  // **중요**: wrapper div에는 `transform`을 유발하는 어떤 클래스도 두지 않는다.
+  // QR 버튼이 이 카드의 자식이고, QR 버튼은 내부에서 position:fixed 모달을
+  // 렌더한다. CSS에서 `position: fixed`는 조상에 transform/filter/backdrop-filter
+  // 가 있으면 viewport가 아니라 그 조상 기준으로 바뀌어서 모달이 카드 박스에
+  // 갇혀 떨리는 버그가 생긴다 (2026-04-09 제보). hover lift는 반드시 anchor에만.
+  // Portal 렌더도 이 문제를 해결하지만 방어는 이중으로 해둔다.
+  return (
+    <div
+      data-testid="sublink-card"
+      className={`flex items-center gap-2 sm:gap-3 ${sz.padding} rounded-2xl`}
+      style={baseStyle}
+    >
+      <a
+        href={link.target_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel}
+        data-testid="sublink-card-anchor"
+        className={`flex items-center ${sz.gap} flex-1 min-w-0 rounded-xl transition-transform hover:translate-y-[-2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
+        style={{
+          // focus-visible 색상은 테마 변수 연동 유지를 위해 inline.
+          outlineColor: "var(--primary)",
+        }}
+      >
+        {Thumbnail}
+        {TextStack}
+        {Arrow}
+      </a>
+      <SublinkQRButton
+        slug={link.slug}
+        targetUrl={link.target_url}
+        namespaceName={namespaceName}
+        ogTitle={link.og_title ?? null}
+        ogDescription={link.og_description ?? null}
+        ogImage={link.og_image ?? null}
+      />
+    </div>
+  );
+}

@@ -12,6 +12,7 @@ import {
   ProfileCardPreview,
 } from "@/components/premium-previews";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
+import { SublinkDetailModal } from "@/components/sublink-detail-modal";
 
 type Namespace = {
   id: string;
@@ -42,6 +43,10 @@ type SubLink = {
   slug: string;
   target_url: string;
   click_count: number;
+  og_title: string | null;
+  og_description: string | null;
+  og_image: string | null;
+  og_fetch_error: string | null;
 };
 
 export default function DashboardPage() {
@@ -67,6 +72,7 @@ export default function DashboardPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [detailLink, setDetailLink] = useState<SubLink | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -87,7 +93,11 @@ export default function DashboardPage() {
       setDisplayName(ns.display_name ?? "");
       setBio(ns.bio ?? "");
       setAvatarUrl(ns.avatar_url ?? "");
-      const { data: slugs } = await supabase.from("slugs").select("id, slug, target_url, click_count").eq("namespace_id", ns.id).order("created_at", { ascending: true });
+      const { data: slugs } = await supabase
+        .from("slugs")
+        .select("id, slug, target_url, click_count, og_title, og_description, og_image, og_fetch_error")
+        .eq("namespace_id", ns.id)
+        .order("created_at", { ascending: true });
       setLinks(slugs ?? []);
 
       // Subscription (D-H4 — JOIN via subscriptions_public view, RLS enforced).
@@ -163,20 +173,29 @@ export default function DashboardPage() {
 
   async function handleAddLink(e: React.FormEvent) {
     e.preventDefault(); setAdding(true); setAddError("");
-    // 슬러그 검증
+    // 슬러그 검증 (서버에서도 재검증하지만 UX 위해 즉시 피드백)
     const slugCheck = validateSlug(newSlug);
     if (!slugCheck.valid) { setAddError(slugCheck.error!); setAdding(false); return; }
     const urlCheck = validateUrl(newUrl);
     if (!urlCheck.valid) { setAddError(urlCheck.error!); setAdding(false); return; }
-    const { error } = await supabase.from("slugs").insert({ slug: newSlug, target_url: newUrl, namespace_id: namespace!.id, owner_id: user!.id });
-    if (error) {
-      if (error.code === "23505") {
-        setAddError("이미 사용 중인 링크 이름입니다.");
+    try {
+      const res = await fetch("/api/slugs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: newSlug,
+          target_url: newUrl,
+          namespace_id: namespace!.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "추가 실패" }));
+        setAddError(data.error ?? "추가 실패");
       } else {
-        setAddError("추가 실패: " + error.message);
+        setNewSlug(""); setNewUrl(""); await loadData();
       }
-    } else {
-      setNewSlug(""); setNewUrl(""); await loadData();
+    } catch {
+      setAddError("추가 실패: 네트워크 오류");
     }
     setAdding(false);
   }
@@ -192,12 +211,31 @@ export default function DashboardPage() {
     const prevLinks = [...links];
     setLinks(links.filter((l) => l.id !== id));
     setDeletingId(null);
-    const { error } = await supabase.from("slugs").delete().eq("id", id);
-    if (error) {
-      // 롤백
+    try {
+      const res = await fetch(`/api/slugs/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setLinks(prevLinks);
+        setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
+        setTimeout(() => setAddError(""), 3000);
+      }
+    } catch {
       setLinks(prevLinks);
       setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
       setTimeout(() => setAddError(""), 3000);
+    }
+  }
+
+  async function handleRefreshOG(id: string) {
+    try {
+      const res = await fetch(`/api/slugs/${id}/refresh-og`, { method: "POST" });
+      if (res.ok) {
+        const updated = await res.json();
+        // 모달 내용 + 리스트 state 둘 다 최신화
+        setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...updated } : l)));
+        setDetailLink((prev) => (prev && prev.id === id ? { ...prev, ...updated } : prev));
+      }
+    } catch {
+      // silent — 모달이 에러 상태를 그대로 둠
     }
   }
 
@@ -377,6 +415,14 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-xs tabular-nums shrink-0" style={{ color: "var(--on-surface-variant)" }}>{link.click_count.toLocaleString()}회</span>
                       <button
+                        onClick={() => setDetailLink(link)}
+                        className="text-xs px-2 py-1 rounded-lg hover:opacity-70 shrink-0 transition-colors"
+                        style={{ color: "var(--on-surface-variant)" }}
+                        aria-label={`${link.slug} 자세히 보기`}
+                      >
+                        자세히
+                      </button>
+                      <button
                         onClick={() => handleDeleteLink(link.id)}
                         className="text-xs px-2 py-1 rounded-lg hover:opacity-70 shrink-0 transition-colors"
                         style={{ color: deletingId === link.id ? "var(--surface-lowest)" : "var(--error)", background: deletingId === link.id ? "var(--error)" : "transparent" }}
@@ -408,6 +454,17 @@ export default function DashboardPage() {
           </section>
         )}
       </main>
+
+      {/* Sublink detail modal — QR, full URL, copy, OG preview, refresh */}
+      {detailLink && namespace && (
+        <SublinkDetailModal
+          open={detailLink !== null}
+          onClose={() => setDetailLink(null)}
+          link={detailLink}
+          namespaceName={namespace.name}
+          onRefreshOG={handleRefreshOG}
+        />
+      )}
 
       {/* Cancel confirmation dialog */}
       {subscription && (

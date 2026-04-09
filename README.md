@@ -27,7 +27,7 @@ bun run dev                      # http://localhost:3000
 ├── 사용자 세션 → Supabase Auth (Google OAuth)
 ├── 데이터 → Supabase Postgres (RLS)
 │   ├── namespaces — 사용자별 1개, payment_status, paid_until
-│   ├── slugs — sublink, click_count
+│   ├── slugs — sublink, click_count, og_title/description/image/site_name (OG 메타)
 │   ├── payments — pending/paid/refunding/refunded
 │   └── subscriptions — pending/active/past_due/canceled/failed (009)
 ├── 결제 → PortOne V2 (빌링키 정기결제 ₩2,900/월)
@@ -45,7 +45,7 @@ bun run dev                      # http://localhost:3000
 - `/` — 홈, 무료 단축 + namespace teaser
 - `/dashboard` — 인증 후 대시보드 (namespace claim, sublink 관리, 구독 상태)
 - `/[namespace]` — 공개 프로필 (free 사용자도 보임 + 안내 1줄)
-- `/[namespace]/[sub]` — sublink redirect (0초 즉시)
+- `/[namespace]/[sub]` — sublink redirect (일반 브라우저는 0초 302 → 목적지; 카카오톡/페북 등 크롤러는 목적지의 OG 메타가 담긴 HTML로 응답해서 공유 프리뷰에 실제 사이트 썸네일이 뜨게 함)
 - `/pricing` — 단일 SKU ₩2,900/월 결제
 - `/payment/complete` — 결제 후 verify polling
 - `/auth/login` — Google OAuth 로그인
@@ -54,7 +54,7 @@ bun run dev                      # http://localhost:3000
 ## Testing
 
 ```bash
-bun x vitest run                 # ~250ms, 136 tests
+bun x vitest run                 # ~1.5s, 365 tests
 ```
 
 상세 컨벤션은 `TESTING.md` 참고.

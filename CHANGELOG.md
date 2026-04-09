@@ -4,6 +4,31 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.10.0] - 2026-04-09 — 서브링크 상세보기, QR 공유, OG 카드
+
+프로필 페이지의 서브링크가 살아났습니다. 각 서브링크 옆의 QR 아이콘을 누르면 전체 URL과 큰 QR 코드가 뜨고, "이미지로 저장"으로 현장에서 바로 인쇄 가능한 PNG가 떨어집니다. 수업, 부스, 전단지에 쓰세요. 서브링크를 카카오톡이나 페이스북에 공유하면 좌표.to 브랜드 이미지가 아니라 **실제 목적지 사이트의 썸네일**이 나옵니다 (이전엔 엉뚱하게 좌표.to 로고가 떴음). 공개 프로필 카드에는 목적지의 이미지가 작은 썸네일로 붙어서 방문자가 클릭 전에 어떤 링크인지 한눈에 알 수 있습니다.
+
+### Added
+- **서브링크 상세 모달 + 큰 QR** — 공개 프로필 페이지에서 서브링크 카드 옆의 QR 아이콘을 누르면 전체 `좌표.to/{네임스페이스}/{slug}` URL과 320x320 스캔 가능한 QR이 모달로 뜹니다. "URL 복사"와 "이미지로 저장" 두 액션 제공. 포털 렌더링(`createPortal` → `document.body`)으로 조상 `transform` 스태킹 컨텍스트에서 탈출해서 어떤 페이지 구조에서도 떨림 없이 viewport 중앙 고정. ESC / 배경 클릭 / X 버튼으로 닫기.
+- **이미지로 저장** — 모달의 ghost 버튼. 960x1200 portrait canvas에 타이틀 + 800x800 고해상도 QR + 좌표.to 캡션을 합성해 `좌표_{네임스페이스}_{slug}.png`로 다운로드. 흰 배경이라 프린트/SNS에 바로 쓸 수 있음. 한글 타이틀은 글자 단위 그리디 래핑 + 2줄 말줄임.
+- **서브링크 OG 메타데이터 수집** — 대시보드/설정에서 서브링크를 생성하거나 목적지 URL을 바꾸면 백엔드가 2초 안에 목적지 페이지를 한 번 긁어서 `og:title`, `og:description`, `og:image`, `og:site_name`을 DB에 저장. 실패하면 "다시 가져오기" 버튼으로 수동 재시도 가능. 새 서버 라이브러리 `src/lib/og-fetcher.ts`가 native fetch + 정규식 파서로 의존성 없이 동작.
+- **공유 프리뷰 HTML (봇 UA 감지)** — `GET /{네임스페이스}/{slug}`에 카카오톡/페북/트위터/슬랙 등 크롤러 UA로 요청이 오면 302 대신 `og:*` 메타가 채워진 HTML을 응답. `og:url`이 **목적지 URL**을 가리키므로 링크 프리뷰에 실제 타겟 사이트의 썸네일이 뜸 (이전엔 좌표.to 루트의 `opengraph-image.tsx`가 auto-fallback되어 브랜드 이미지가 대신 나오던 문제). 일반 브라우저는 그대로 302로 즉시 리다이렉트 — 사용자 지연 0.
+- **Editorial sublink card** — 공개 프로필 페이지의 서브링크 리스트가 80x80 썸네일 카드로 업그레이드. slug가 primary headline (Plus Jakarta Sans bold), 좌표 경로는 uppercase tracking-wider 러닝헤드 메타. 썸네일이 없으면 이니셜 박스로 폴백 (primary → primary-container 135° 그라디언트, 아바타와 같은 패턴). DESIGN.md "High-End Editorial, No-Line, Tonal Layering" 준수. AI slop 체크리스트(rounded-full, colored-border, scale hover 등) 전부 회피.
+- **`supabase/012_sublink_og_metadata.sql`** — `slugs` 테이블에 `og_title`(≤500), `og_description`(≤2000), `og_image`(≤2048), `og_site_name`(≤200), `og_fetched_at`, `og_fetch_error` 컬럼 추가. `char_length` CHECK 제약으로 DB 레벨 방어.
+- **`POST /api/slugs` / `DELETE /api/slugs/:id` / `POST /api/slugs/:id/refresh-og`** — 서브링크 CRUD API. 기존 `/api/shorten`(무료/익명) 플로우는 건드리지 않고, 네임스페이스 오너 인증이 필요한 경로는 별도 엔드포인트로 분리. 모든 write에 2-step ownership 검증 (slug → namespace → `auth.uid() === owner_id`).
+
+### Changed
+- **대시보드 + 설정 페이지가 `/api/slugs` 경유** — 기존엔 Supabase 클라이언트에서 직접 insert/delete하던 것을 서버 라우트로 전환. OG 동기 fetch가 서버에서 돌아야 하기 때문. 에러 플로우와 UX는 기존과 동일.
+- **`PublicProfileView` → `SublinkCard` 위임** — 카드 내부 렌더링을 공유 컴포넌트로 추출해서 `/[namespace]/page.tsx`(live)와 `/settings`(preview) 양쪽이 같은 마크업을 쓰도록 통일. `tests/public-profile-parity.test.ts`에 드리프트 방지 계약 추가.
+
+### Fixed
+- **SSRF 방어 강화** — `og-fetcher.ts`의 private IP 블록리스트가 IPv4 canonical form(`net.isIPv4`)만 허용. 이전엔 `http://0177.0.0.1/`(octal), `http://2130706433/`(dword), `http://0x7f.0.0.1/`(hex)이 regex 프리필터를 통과해서 undici가 `127.0.0.1`로 연결하는 취약점이 있었음. IPv6 블록리스트에 NAT64 (`64:ff9b::/96`), 6to4 (`2002::/16`), v4-mapped hex (`::ffff:7f00:1`), unspecified 추가. 레드팀 리뷰 후속.
+- **DB CHECK 위반 DoS + 스키마 누출** — 악의적인 목적지 사이트가 900KB `og:description`을 내려주면 `POST /api/slugs`가 Postgres CHECK 위반으로 500을 내뱉고, 그 에러 응답에 DB 에러 메시지가 그대로 노출되던 문제. OG fetcher에서 사전 truncate + API에서 raw `error.message` echo 제거.
+- **URL userinfo credential leak** — `http://user:pass@target/`를 서브링크로 등록하면 서버 fetch에 `Authorization: Basic` 헤더가 실려 upstream으로 크레덴셜이 새던 문제. redirect hop마다 `username`/`password` 리셋.
+- **og_image Referer 누출** — 모달/카드의 `<img src={og_image}>`에 `referrerPolicy="no-referrer"` 추가. 악의적 목적지 사이트가 `og:image`를 트래킹 픽셀로 설정해 viewer의 좌표.to 세션 경로를 수집할 수 있던 경로 차단.
+- **모달 떨림 버그** — `SublinkCard` wrapper에 `hover:translate-y` 클래스가 있었고 QR 버튼이 그 자식이라, 커서가 카드 hover 경계를 넘나들 때 `transform` 스태킹 컨텍스트가 토글되며 `position:fixed` 모달이 viewport가 아니라 카드 박스에 재앵커링되면서 backdrop blur가 깜빡이던 문제. 이중 방어로 해결: ① 모달을 `document.body`에 `createPortal`로 붙이고 ② hover/transition을 wrapper 밖 anchor로 이전해서 카드 wrapper가 아예 transform context를 만들지 않도록 함.
+- **서브링크 공유 시 좌표.to 브랜드 이미지 override** — 카카오톡/페북이 302를 따라가지 않고 최초 URL의 메타만 긁는데, Next.js의 `opengraph-image.tsx` file convention이 auto-apply되어 모든 서브링크 공유에 좌표.to 루트 이미지가 나오던 문제. 봇 UA 감지 + 전용 HTML 응답으로 해결.
+
 ## [0.9.0] - 2026-04-08 — 첫 1개월 무료 체험 (런칭 이벤트)
 
 이제 구독하면 첫 1개월은 공짜. 카드/카카오페이 등록만 하면 30일 동안 프리미엄 전 기능을 쓸 수 있고, 그 뒤에 월 ₩2,900이 자동 결제됩니다. 체험 중 해지하면 과금은 없어요. 런칭 위크 2주 동안은 `/pricing` 상단에 이벤트 배너가 뜨고, 그 뒤에는 카피 없이 상시 체험이 유지됩니다. Stripe/Netflix 방식 — 코드 경로 하나, 이벤트 gating은 환경변수 하나(`NEXT_PUBLIC_EVENT_END_AT`)로 분리.
