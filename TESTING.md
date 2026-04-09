@@ -7,27 +7,38 @@
 
 ## Framework
 
-- **Vitest** v4 — 빠른 테스트 러너 (92ms에 52개 테스트)
-- **@testing-library/react** — 컴포넌트 테스트 (jsdom 환경)
-- **Node environment** — 순수 로직 테스트 (기본값)
+- **Vitest** v4 — 빠른 테스트 러너 (~1.5초에 365개 테스트)
+- **@testing-library/react** — 컴포넌트 테스트 (jsdom 환경 — `// @vitest-environment jsdom` 주석 + `tests/**.test.tsx` 파일)
+- **Node environment** — 순수 로직/API 테스트 (기본값)
 
 ## 테스트 실행
 
+**bun-only 프로젝트.** `npm test`는 쓰지 않습니다.
+
 ```bash
-npm test              # 전체 테스트 실행
-npm run test:watch    # 파일 변경 시 자동 재실행
-npm run test:coverage # 커버리지 리포트
+bun x vitest run           # 전체 테스트 실행
+bun x vitest               # 파일 변경 시 자동 재실행 (watch)
+bun x vitest run --coverage # 커버리지 리포트
 ```
 
-## 테스트 구조
+## 테스트 구조 (주요 파일)
 
 ```
 tests/
-├── html-escape.test.ts       # XSS 방어 유틸
-├── slug-validation.test.ts   # 슬러그/URL 검증
-├── auth-callback.test.ts     # Open redirect 방어
-├── api-shorten.test.ts       # URL 단축 API 로직
-└── proxy-rate-limit.test.ts  # Rate limiting + CSP + auth 경로
+├── html-escape.test.ts              # XSS 방어 유틸
+├── slug-validation.test.ts          # 슬러그/URL 검증
+├── auth-callback.test.ts            # Open redirect 방어
+├── api-shorten.test.ts              # 무료 URL 단축 API
+├── api-slugs.test.ts                # POST /api/slugs (auth + OG 수집)
+├── api-slugs-refresh-og.test.ts     # POST /api/slugs/:id/refresh-og
+├── og-fetcher.test.ts               # OG 수집 + SSRF 가드 (octal/dword/NAT64/6to4 포함)
+├── namespace-sub-redirect.test.ts   # 봇 UA 감지 + 공유 프리뷰 HTML
+├── sublink-card.test.tsx            # Editorial 카드 계층 + AI slop 가드
+├── sublink-detail-modal.test.tsx    # QR 모달 + 복사 + 이미지로 저장
+├── sublink-qr-button.test.tsx       # 공개 프로필 QR 트리거 (포털)
+├── public-profile-parity.test.ts    # live/preview 드리프트 방지 계약
+├── payment-* / subscription-* / trial-*  # 결제/구독/트라이얼
+└── proxy-rate-limit.test.ts         # Rate limiting + CSP + auth 경로
 ```
 
 ## 컨벤션
