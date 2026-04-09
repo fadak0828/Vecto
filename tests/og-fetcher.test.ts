@@ -58,6 +58,40 @@ describe("isPrivateIP", () => {
     expect(isPrivateIP("93.184.216.34")).toBe(false);
     expect(isPrivateIP("2001:4860:4860::8888")).toBe(false);
   });
+
+  it("IPv4 non-canonical forms rejected (octal/hex/dword SSRF bypass)", () => {
+    // 0177.0.0.1 = 127.0.0.1 in octal, 0x7f.0.0.1 = 127.0.0.1 in hex,
+    // 2130706433 = 127.0.0.1 as 32-bit dword. Attackers use these to
+    // sneak metadata/loopback IPs past naive regex blocklists.
+    expect(isPrivateIP("0177.0.0.1")).toBe(true);
+    expect(isPrivateIP("0x7f.0.0.1")).toBe(true);
+    expect(isPrivateIP("2130706433")).toBe(true);
+    expect(isPrivateIP("0.0.0.1")).toBe(true); // 0.0.0.0/8
+    // Anything that isn't a canonical dotted-quad is refused.
+    expect(isPrivateIP("not-an-ip")).toBe(true);
+    expect(isPrivateIP("")).toBe(true);
+  });
+
+  it("IPv6 NAT64 64:ff9b::/96 차단", () => {
+    // NAT64 embeds any IPv4 — including 169.254.169.254.
+    expect(isPrivateIP("64:ff9b::1.2.3.4")).toBe(true);
+    expect(isPrivateIP("64:ff9b::a9fe:a9fe")).toBe(true);
+  });
+
+  it("IPv6 6to4 2002::/16 차단", () => {
+    expect(isPrivateIP("2002::1")).toBe(true);
+    expect(isPrivateIP("2002:c0a8:1::1")).toBe(true); // wraps 192.168.0.1
+  });
+
+  it("IPv6 v4-mapped hex form 차단 (::ffff:7f00:1)", () => {
+    // Hex form of ::ffff:127.0.0.1 — must be caught by the hex-form branch.
+    expect(isPrivateIP("::ffff:7f00:1")).toBe(true);
+    expect(isPrivateIP("::ffff:0a00:1")).toBe(true); // 10.0.0.1
+  });
+
+  it("IPv6 unspecified 0:0:0:0:0:0:0:0 차단", () => {
+    expect(isPrivateIP("0:0:0:0:0:0:0:0")).toBe(true);
+  });
 });
 
 describe("parseOGTags", () => {
@@ -195,6 +229,48 @@ describe("fetchOG — SSRF 방어", () => {
     });
     expect(result).toEqual({ ok: false, error: "ssrf_blocked" });
   });
+
+  it("octal IPv4 0177.0.0.1 (= 127.0.0.1) 차단", async () => {
+    // Regression: adversarial review found this would pass the old
+    // /^[\d.]+$/ pre-filter and parseInt(..,10) would return 177, letting
+    // the fetch proceed to metadata/loopback.
+    const fetchMock = vi.fn();
+    const result = await fetchOG("http://0177.0.0.1/", {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      dnsLookupImpl: publicDns,
+    });
+    expect(result).toEqual({ ok: false, error: "ssrf_blocked" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("dword IPv4 2130706433 (= 127.0.0.1) 차단", async () => {
+    const fetchMock = vi.fn();
+    const result = await fetchOG("http://2130706433/", {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      dnsLookupImpl: publicDns,
+    });
+    expect(result).toEqual({ ok: false, error: "ssrf_blocked" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("userinfo stripped before fetch (credential leak guard)", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL) => {
+      return new Response(
+        '<html><head><meta property="og:title" content="X"/></head></html>',
+        { status: 200, headers: { "content-type": "text/html" } },
+      );
+    });
+    await fetchOG("http://user:pass@example.com/", {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      dnsLookupImpl: publicDns,
+    });
+    // The URL passed to fetch should not contain user:pass.
+    expect(fetchMock).toHaveBeenCalled();
+    const firstCall = fetchMock.mock.calls[0];
+    const calledUrl = String(firstCall ? firstCall[0] : "");
+    expect(calledUrl).not.toContain("user:pass");
+    expect(calledUrl).not.toContain("@");
+  });
 });
 
 describe("fetchOG — HTTP 상태/에러 매핑", () => {
@@ -265,6 +341,41 @@ describe("fetchOG — HTTP 상태/에러 매핑", () => {
 });
 
 describe("fetchOG — happy paths", () => {
+  it("og_title/description/image/site_name truncated to DB CHECK limits", async () => {
+    // Regression: without this, a malicious target site could serve a
+    // 900KB og:description within the 1MB fetch limit, which would then
+    // trigger a Postgres CHECK violation on insert and 500 the slug
+    // creation endpoint. Truncation happens in fetchOG before the API
+    // hands the row to Supabase.
+    const longTitle = "a".repeat(600);
+    const longDesc = "b".repeat(2100);
+    const longImage = "https://cdn.example.com/" + "c".repeat(2100) + ".png";
+    const longSite = "d".repeat(300);
+    const fetchMock = vi.fn(async () =>
+      htmlResponse(`
+        <html><head>
+        <meta property="og:title" content="${longTitle}">
+        <meta property="og:description" content="${longDesc}">
+        <meta property="og:image" content="${longImage}">
+        <meta property="og:site_name" content="${longSite}">
+        </head></html>
+      `),
+    );
+    const result = await fetchOG("https://example.com/", {
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      dnsLookupImpl: publicDns,
+    });
+    if (!result.ok) throw new Error("expected ok result");
+    // char_length bounds: title 500, description 2000, image 2048, site 200.
+    expect(Array.from(result.title ?? "").length).toBeLessThanOrEqual(500);
+    expect(Array.from(result.description ?? "").length).toBeLessThanOrEqual(2000);
+    expect(Array.from(result.image ?? "").length).toBeLessThanOrEqual(2048);
+    expect(Array.from(result.site_name ?? "").length).toBeLessThanOrEqual(200);
+    // All four should be truncated from the oversize input.
+    expect(Array.from(result.title ?? "").length).toBe(500);
+    expect(Array.from(result.site_name ?? "").length).toBe(200);
+  });
+
   it("og:* 정상 파싱 → ok:true", async () => {
     const fetchMock = vi.fn(async () =>
       htmlResponse(`

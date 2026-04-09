@@ -62,9 +62,10 @@ export async function DELETE(
     .eq("id", id);
 
   if (deleteError) {
+    // Do not leak DB error message — logs only.
     console.error("Slug delete failed:", deleteError);
     return NextResponse.json(
-      { error: "서브링크 삭제에 실패했습니다: " + deleteError.message },
+      { error: "서브링크 삭제에 실패했습니다. 잠시 후 다시 시도해주세요." },
       { status: 500 },
     );
   }

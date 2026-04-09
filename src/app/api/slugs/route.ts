@@ -133,9 +133,12 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+    // Log the full DB error server-side, but never echo it to the client —
+    // would leak schema details and CHECK violation messages that let a
+    // malicious target site fingerprint our constraints.
     console.error("Slug insert failed:", insertError);
     return NextResponse.json(
-      { error: "서브링크 생성에 실패했습니다: " + insertError.message },
+      { error: "서브링크 생성에 실패했습니다. 잠시 후 다시 시도해주세요." },
       { status: 500 },
     );
   }

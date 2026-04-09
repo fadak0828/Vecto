@@ -83,9 +83,10 @@ export async function POST(
     .single();
 
   if (updateError) {
+    // Do not leak DB error message — logs only.
     console.error("Refresh OG failed:", updateError);
     return NextResponse.json(
-      { error: "OG 재수집에 실패했습니다: " + updateError.message },
+      { error: "OG 재수집에 실패했습니다. 잠시 후 다시 시도해주세요." },
       { status: 500 },
     );
   }

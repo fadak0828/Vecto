@@ -40,6 +40,8 @@ describe("SublinkCard", () => {
     expect(img).not.toBeNull();
     expect(img?.getAttribute("src")).toBe("https://example.com/og.png");
     expect(img?.getAttribute("alt")).toBe("");
+    // Referrer must be stripped — og_image comes from an untrusted upstream.
+    expect(img?.getAttribute("referrerpolicy")).toBe("no-referrer");
   });
 
   it("renders initial box when og_image is null", () => {

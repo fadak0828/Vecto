@@ -18,6 +18,7 @@
  */
 
 import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP, isIPv4, isIPv6 } from "node:net";
 
 export type OGErrorKind =
   | "timeout"
@@ -66,11 +67,25 @@ export function isPrivateIP(address: string): boolean {
   // IPv6
   if (address.includes(":")) {
     const lower = address.toLowerCase();
-    if (lower === "::1" || lower === "::") return true;
+    // Reject if net.isIPv6 rejects it — catches malformed inputs.
+    if (!isIPv6(address)) return true;
+    if (lower === "::1" || lower === "::" || lower === "0:0:0:0:0:0:0:0")
+      return true;
 
-    // v4-mapped ::ffff:10.0.0.1 → 재귀 검사
-    const v4MappedMatch = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (v4MappedMatch) return isPrivateIP(v4MappedMatch[1]);
+    // v4-mapped ::ffff:a.b.c.d → 재귀
+    const v4MappedDecimal = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (v4MappedDecimal) return isPrivateIP(v4MappedDecimal[1]);
+
+    // v4-mapped hex form ::ffff:7f00:1 — convert last two groups back to v4
+    const v4MappedHex = lower.match(
+      /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/,
+    );
+    if (v4MappedHex) {
+      const high = parseInt(v4MappedHex[1], 16);
+      const low = parseInt(v4MappedHex[2], 16);
+      const v4 = `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+      return isPrivateIP(v4);
+    }
 
     // ULA fc00::/7 — 첫 바이트가 fc 또는 fd
     if (/^f[cd][0-9a-f]{0,2}:/.test(lower)) return true;
@@ -78,16 +93,25 @@ export function isPrivateIP(address: string): boolean {
     // Link-local fe80::/10
     if (/^fe[89ab][0-9a-f]?:/.test(lower)) return true;
 
+    // NAT64 64:ff9b::/96 — embeds any v4 including metadata
+    if (lower.startsWith("64:ff9b:")) return true;
+
+    // 6to4 2002::/16 — embeds v4
+    if (/^2002:/.test(lower)) return true;
+
     // 그 외 IPv6는 공개로 간주
     return false;
   }
 
-  // IPv4
-  const parts = address.split(".").map((p) => parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)) {
-    // 파싱 불가 → 안전하게 차단
+  // IPv4 — Node's net.isIPv4 only accepts canonical dotted-quad with decimal
+  // octets in 0-255. It rejects octal (0177.0.0.1), hex (0x7f.0.0.1), and
+  // 32-bit dword (2130706433) notations. We reject anything that doesn't pass
+  // this strict check so attackers can't smuggle loopback/metadata IPs past
+  // the blocklist (would otherwise be parsed as 127.0.0.1 by undici).
+  if (!isIPv4(address)) {
     return true;
   }
+  const parts = address.split(".").map((p) => parseInt(p, 10));
   const [a, b] = parts;
 
   // 0.0.0.0/8
@@ -116,16 +140,33 @@ async function assertPublicHost(
   hostname: string,
   dnsImpl: (host: string) => Promise<{ address: string; family: number }>,
 ): Promise<{ ok: true } | { ok: false; error: "ssrf_blocked" | "dns_fail" }> {
-  // 이미 IP 리터럴이면 DNS 없이 바로 검사
-  const isIPLiteral = /^[\d.]+$/.test(hostname) || hostname.includes(":");
-  if (isIPLiteral) {
-    const cleaned = hostname.replace(/^\[|\]$/g, "");
+  // Strip IPv6 brackets for both validation and blocklist check.
+  const cleaned = hostname.replace(/^\[|\]$/g, "");
+
+  // IP literal path — identify strictly via net.isIP (rejects non-canonical
+  // forms like octal/hex/dword IPv4). Any hostname that "looks like" an IP
+  // (contains digits/dots only, or contains `:`) but fails isIP is refused —
+  // the URL parser may still normalize it to a private IP downstream.
+  const looksLikeIP =
+    /^[0-9a-fA-F.:]+$/.test(cleaned) && (cleaned.includes(".") || cleaned.includes(":"));
+  if (looksLikeIP) {
+    if (isIP(cleaned) === 0) {
+      // Looked like an IP but isn't a canonical one (e.g. "0177.0.0.1"). Block.
+      return { ok: false, error: "ssrf_blocked" };
+    }
     if (isPrivateIP(cleaned)) return { ok: false, error: "ssrf_blocked" };
     return { ok: true };
   }
 
+  // Hostname path — resolve via DNS. Note: this is one-shot resolution, the
+  // actual fetch may resolve again (DNS rebinding risk). Mitigation is
+  // tracked as a TODO — needs undici Agent with pinned lookup to fix fully.
   try {
-    const result = await dnsImpl(hostname);
+    const result = await dnsImpl(cleaned);
+    // DNS returned a non-canonical IP? Paranoia — net.isIP catches this too.
+    if (isIP(result.address) === 0) {
+      return { ok: false, error: "ssrf_blocked" };
+    }
     if (isPrivateIP(result.address)) {
       return { ok: false, error: "ssrf_blocked" };
     }
@@ -287,6 +328,12 @@ export async function fetchOG(
     return { ok: false, error: "ssrf_blocked" };
   }
 
+  // Strip userinfo — `http://user:pass@target/` would send
+  // `Authorization: Basic ...` upstream, leaking any creds embedded in the
+  // slug's target_url. We don't need auth for OG scraping.
+  currentUrl.username = "";
+  currentUrl.password = "";
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -334,6 +381,12 @@ export async function fetchOG(
         } catch {
           return { ok: false, error: "parse_error" };
         }
+        // Protocol and userinfo re-validation after redirect.
+        if (currentUrl.protocol !== "http:" && currentUrl.protocol !== "https:") {
+          return { ok: false, error: "ssrf_blocked" };
+        }
+        currentUrl.username = "";
+        currentUrl.password = "";
         // 응답 body 소비하지 않고 다음 홉으로
         try {
           await res.body?.cancel();
@@ -374,15 +427,28 @@ export async function fetchOG(
         tags.title || tags.description || tags.image || tags.site_name;
       if (!hasAny) return { ok: false, error: "no_og_data" };
 
+      // Truncate to DB CHECK constraint limits (supabase/012) with safety
+      // margin. Without this, a malicious target site can serve a 900KB
+      // og:description, which would trigger Postgres CHECK violation on
+      // insert and 500 the slug creation endpoint. CHECK limits: title 500,
+      // description 2000, image 2048, site_name 200.
       return {
         ok: true,
-        title: tags.title,
-        description: tags.description,
-        image: tags.image,
-        site_name: tags.site_name,
+        title: truncate(tags.title, 500),
+        description: truncate(tags.description, 2000),
+        image: truncate(tags.image, 2048),
+        site_name: truncate(tags.site_name, 200),
       };
     }
   } finally {
     clearTimeout(timer);
   }
+}
+
+function truncate(value: string | undefined, maxLen: number): string | undefined {
+  if (!value) return value;
+  // char_length in Postgres counts Unicode code points — match that.
+  const chars = Array.from(value);
+  if (chars.length <= maxLen) return value;
+  return chars.slice(0, maxLen).join("");
 }

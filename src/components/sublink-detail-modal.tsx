@@ -380,6 +380,10 @@ export function SublinkDetailModal({
               <img
                 src={link.og_image}
                 alt=""
+                // Strip Referer header — og_image URL comes from the upstream
+                // target site, which could set it to a tracking pixel to
+                // harvest 좌표.to session paths from viewers.
+                referrerPolicy="no-referrer"
                 className="w-40 aspect-video rounded-xl object-cover"
                 style={{ background: "var(--surface-container)" }}
               />

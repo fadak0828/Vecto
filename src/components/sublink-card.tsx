@@ -79,6 +79,9 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
         <img
           src={link.og_image}
           alt=""
+          // Strip Referer header — og_image comes from upstream site which
+          // could point it at a tracking pixel to harvest viewer paths.
+          referrerPolicy="no-referrer"
           className={`${sz.thumb} rounded-2xl object-cover shrink-0`}
           style={{ background: "var(--surface-container)" }}
         />
