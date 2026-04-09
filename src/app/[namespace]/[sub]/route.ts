@@ -7,12 +7,32 @@ import { escapeHtml } from "@/lib/html-escape";
  *
  * 네임스페이스 서브링크 리다이렉트.
  * 좌표.to/[내이름]/노션 → target_url로 302
+ *
+ * 카카오톡/페북/트위터 등 소셜 크롤러는 302를 따라가지 않고 최초 URL의
+ * 메타 태그만 읽는다. 기본 302로 응답하면 좌표.to 루트의 opengraph-image가
+ * 대신 노출되어 "브랜드 이미지가 뜨고 실제 타겟 썸네일은 안 보이는" 문제가
+ * 생긴다.
+ *
+ * 해결: 크롤러 user-agent가 감지되면 302 대신 HTML 응답을 돌려준다. HTML에는
+ * 저장된 og_* 필드(og-fetcher가 생성 시점에 타겟 URL에서 직접 긁어온 값)로
+ * 메타 태그를 채운다. 일반 브라우저는 계속 302로 빠르게 리다이렉트된다.
  */
+
+/**
+ * 소셜 크롤러/링크 프리뷰 봇 감지. 리스트는 보수적으로 — 일반 브라우저는
+ * 302 유지. 테스트에서 재사용하기 위해 export.
+ */
+export const BOT_UA_REGEX =
+  /kakaotalk-scrap|kakaotalk|facebookexternalhit|facebot|twitterbot|slackbot|discordbot|telegrambot|linkedinbot|whatsapp|line-?bot|naver|daum|googlebot|bingbot|yandexbot|baiduspider|duckduckbot|embedly|nuzzel|bitlybot|pinterest|redditbot|skype|applebot/i;
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ namespace: string; sub: string }> }
 ) {
   const { namespace, sub } = await params;
+  const userAgent = request.headers.get("user-agent") ?? "";
+  const isBot = BOT_UA_REGEX.test(userAgent);
+
   let nsName: string;
   let subSlug: string;
   try {
@@ -58,10 +78,12 @@ export async function GET(
       }
     }
 
-    // 서브링크 조회
+    // 서브링크 조회 — 봇 응답을 위해 og_* 필드 포함
     const { data: link } = await supabase
       .from("slugs")
-      .select("id, target_url, expires_at")
+      .select(
+        "id, target_url, expires_at, og_title, og_description, og_image, og_site_name",
+      )
       .eq("namespace_id", ns.id)
       .eq("slug", subSlug)
       .maybeSingle();
@@ -84,6 +106,27 @@ export async function GET(
     // click_count 비동기 증가
     void supabase.rpc("increment_click", { slug_id: link.id });
 
+    // 봇이면 타겟의 OG 메타를 담은 HTML을 반환 — 카카오톡/페북 등이 302를
+    // 안 따라가도 타겟 사이트의 썸네일/제목이 정상 노출된다. 사람은 meta
+    // refresh로 즉시 target_url로 이동.
+    if (isBot) {
+      return new NextResponse(
+        sharePreviewHtml({
+          targetUrl: link.target_url,
+          nsName,
+          subSlug,
+          ogTitle: link.og_title ?? null,
+          ogDescription: link.og_description ?? null,
+          ogImage: link.og_image ?? null,
+          ogSiteName: link.og_site_name ?? null,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        },
+      );
+    }
+
     return NextResponse.redirect(link.target_url, 302);
   } catch {
     return new NextResponse(errorHtml(), {
@@ -91,6 +134,55 @@ export async function GET(
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   }
+}
+
+/**
+ * 소셜 크롤러용 HTML. 카카오톡/페북/트위터 등이 302를 따라가지 않아도
+ * 타겟 사이트(유튜브, 노션, 개인 블로그 등)의 썸네일/제목이 링크 프리뷰에
+ * 나온다. meta refresh로 일반 브라우저도 즉시 리다이렉트.
+ *
+ * 저장된 og_* 필드가 있으면 그대로 사용. 없으면 최소 메타 태그만 (크롤러는
+ * 대개 빈 썸네일로 fallback). 핵심은 좌표.to의 루트 OG 이미지가 대신
+ * 삽입되는 걸 막는 것.
+ */
+export function sharePreviewHtml(opts: {
+  targetUrl: string;
+  nsName: string;
+  subSlug: string;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  ogImage: string | null;
+  ogSiteName: string | null;
+}) {
+  const { targetUrl, nsName, subSlug, ogTitle, ogDescription, ogImage, ogSiteName } = opts;
+  const title = ogTitle ?? `${nsName}/${subSlug}`;
+  const safeTargetUrl = escapeHtml(targetUrl);
+  const safeTitle = escapeHtml(title);
+  const descMeta = ogDescription
+    ? `<meta name="description" content="${escapeHtml(ogDescription)}">
+<meta property="og:description" content="${escapeHtml(ogDescription)}">
+<meta name="twitter:description" content="${escapeHtml(ogDescription)}">`
+    : "";
+  const imageMeta = ogImage
+    ? `<meta property="og:image" content="${escapeHtml(ogImage)}">
+<meta name="twitter:image" content="${escapeHtml(ogImage)}">
+<meta name="twitter:card" content="summary_large_image">`
+    : '<meta name="twitter:card" content="summary">';
+  const siteNameMeta = ogSiteName
+    ? `<meta property="og:site_name" content="${escapeHtml(ogSiteName)}">`
+    : "";
+  return `<!DOCTYPE html><html lang="ko"><head>
+<meta charset="utf-8">
+<title>${safeTitle}</title>
+<meta property="og:title" content="${safeTitle}">
+<meta name="twitter:title" content="${safeTitle}">
+<meta property="og:url" content="${safeTargetUrl}">
+<meta property="og:type" content="website">
+${siteNameMeta}
+${descMeta}
+${imageMeta}
+<meta http-equiv="refresh" content="0;url=${safeTargetUrl}">
+</head><body><a href="${safeTargetUrl}">${safeTitle}</a></body></html>`;
 }
 
 function notFoundHtml(ns: string, sub: string) {

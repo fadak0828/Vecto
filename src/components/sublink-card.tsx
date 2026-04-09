@@ -6,12 +6,17 @@
  *
  * 설계 기준: fadak-main-sublink-detail-og-plan-20260409 + DESIGN.md.
  *
+ * 계층 (사용자 피드백 20260409):
+ *   - Primary headline: slug (프로필 관리자가 설정한 이름, e.g. "유튜브")
+ *   - Secondary meta: 좌표.to/{namespace}/{slug} (작은 러닝헤드)
+ *   - Thumbnail: og_image 있으면 표시, 없으면 slug[0] 이니셜 박스
+ *   - og_title/og_description/og_site_name: 카드에 표시 안 함 (상세 모달 전용)
+ *
  * 가드레일 (AI slop 금지):
  *   - rounded-full 금지 (썸네일은 카드와 같은 rounded-2xl)
  *   - 보더 금지 (No-Line Rule)
  *   - 썸네일 hover scale/blur 금지
  *   - 썸네일 위 그라디언트 오버레이 금지
- *   - og_description 카드에 절대 표시 금지 (상세 모달 전용)
  *
  * og_image 트러스트 계약: og-fetcher가 수집 시점에 reachable 여부를
  * 검증했다고 가정하고 그대로 <img>로 렌더한다. Dead link는 브라우저의
@@ -22,9 +27,9 @@
 export type SublinkCardLink = {
   slug: string;
   target_url: string;
-  og_title: string | null;
+  /** 카드에는 표시하지 않는다 — 타입 호환을 위해 옵셔널로만 받는다. 상세 모달 전용. */
+  og_title?: string | null;
   og_image: string | null;
-  /** 카드에는 절대 표시하지 않는다 — prop으로 받기만 하고 drop. 상세 모달 전용. */
   og_description?: string | null;
   og_site_name?: string | null;
 };
@@ -48,18 +53,15 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
     thumbInitialFont: isPreview
       ? "text-base"
       : "text-xl sm:text-2xl",
-    titleFont: isPreview ? "text-xs" : "text-sm sm:text-base",
-    slugMetaFont: isPreview ? "text-[9px]" : "text-[10px]",
-    slugMetaMt: "mt-1.5",
+    // Headline (slug) — big. Meta (coordinate path) — small.
+    slugFont: isPreview ? "text-sm" : "text-lg sm:text-xl",
+    metaFont: isPreview ? "text-[9px]" : "text-[10px]",
+    metaMt: "mt-1",
   };
 
-  const title = link.og_title ?? null;
   const slugMeta = `좌표.to/${namespaceName}/${link.slug}`;
-
-  // 이니셜 박스에 표시할 글자 — title이 있으면 title[0], 없으면 slug[0].
-  const initialChar = (title && title.trim().length > 0
-    ? title.trim()[0]
-    : link.slug[0]) ?? "•";
+  // 이니셜 박스: 항상 slug의 첫 글자.
+  const initialChar = link.slug[0] ?? "•";
 
   const Thumbnail = (
     <>
@@ -88,20 +90,20 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
 
   const TextStack = (
     <div className="flex-1 min-w-0 flex flex-col justify-center">
-      {title && (
-        <p
-          className={`${sz.titleFont} font-medium line-clamp-2`}
-          style={{
-            color: "var(--on-background)",
-            lineHeight: 1.5,
-            fontFamily: "Plus Jakarta Sans, sans-serif",
-          }}
-        >
-          {title}
-        </p>
-      )}
+      {/* Primary headline: slug (프로필 관리자가 설정한 이름) */}
       <p
-        className={`${sz.slugMetaFont} ${title ? sz.slugMetaMt : ""} uppercase tracking-wider font-medium truncate`}
+        className={`${sz.slugFont} font-bold truncate`}
+        style={{
+          color: "var(--on-background)",
+          lineHeight: 1.3,
+          fontFamily: "Plus Jakarta Sans, sans-serif",
+        }}
+      >
+        {link.slug}
+      </p>
+      {/* Secondary meta: 좌표 경로 — 작게, 러닝헤드 스타일 */}
+      <p
+        className={`${sz.metaFont} ${sz.metaMt} uppercase tracking-wider font-medium truncate`}
         style={{
           color: "var(--on-surface-variant)",
           fontFeatureSettings: '"tnum"',
@@ -129,7 +131,7 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
     boxShadow: "0 2px 32px rgba(0,0,0,0.03)",
   } as const;
 
-  const ariaLabel = `${title ?? link.slug} 링크로 이동`;
+  const ariaLabel = `${link.slug} 링크로 이동`;
 
   if (isPreview) {
     return (

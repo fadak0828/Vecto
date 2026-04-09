@@ -47,26 +47,29 @@ describe("SublinkCard", () => {
     expect(initial).not.toBeNull();
   });
 
-  it("initial box uses first char of og_title when present", () => {
-    const { getByText } = render(
+  it("initial box always uses first char of slug (not og_title)", () => {
+    // User feedback 20260409: slug is the manager-set name and is the primary
+    // identity. og_title is never the headline and never the initial box char.
+    const { getByText, queryByText } = render(
       <SublinkCard
-        link={base({ og_title: "강의자료 노션", og_image: null })}
-        namespaceName="fadak"
-        variant="live"
-      />
-    );
-    expect(getByText("강")).toBeTruthy();
-  });
-
-  it("initial box uses first char of slug when og_title missing", () => {
-    const { getByText } = render(
-      <SublinkCard
-        link={base({ og_title: null, og_image: null, slug: "노션" })}
+        link={base({ og_title: "강의자료 노션", og_image: null, slug: "노션" })}
         namespaceName="fadak"
         variant="live"
       />
     );
     expect(getByText("노")).toBeTruthy();
+    expect(queryByText("강")).toBeNull();
+  });
+
+  it("initial box uses slug first char when og_title missing too", () => {
+    const { getByText } = render(
+      <SublinkCard
+        link={base({ og_title: null, og_image: null, slug: "유튜브" })}
+        namespaceName="fadak"
+        variant="live"
+      />
+    );
+    expect(getByText("유")).toBeTruthy();
   });
 
   it("NEVER renders og_description in the card (regression guard)", () => {
@@ -82,6 +85,38 @@ describe("SublinkCard", () => {
       />
     );
     expect(container.textContent ?? "").not.toContain(description);
+  });
+
+  it("NEVER renders og_title in the card (card shows slug as primary)", () => {
+    // User feedback 20260409: slug is the headline, not og_title.
+    // og_title remains visible in the detail modal only.
+    const { container } = render(
+      <SublinkCard
+        link={base({
+          slug: "유튜브",
+          og_title: "Rick Astley - Never Gonna Give You Up (Official Music Video)",
+        })}
+        namespaceName="fadak"
+        variant="live"
+      />
+    );
+    expect(container.textContent ?? "").not.toContain("Rick Astley");
+    expect(container.textContent ?? "").toContain("유튜브");
+  });
+
+  it("slug is rendered as the primary headline (bold, larger than meta)", () => {
+    const { container } = render(
+      <SublinkCard
+        link={base({ slug: "유튜브" })}
+        namespaceName="fadak"
+        variant="live"
+      />
+    );
+    // Headline — bold, Plus Jakarta Sans, sized text-lg/sm:text-xl in live.
+    const textNodes = Array.from(container.querySelectorAll("p"));
+    const headline = textNodes.find((p) => p.textContent?.trim() === "유튜브");
+    expect(headline).not.toBeUndefined();
+    expect(headline?.className ?? "").toContain("font-bold");
   });
 
   it("live variant wraps in <a target=_blank rel=noopener noreferrer>", () => {
@@ -111,56 +146,28 @@ describe("SublinkCard", () => {
     expect(container.querySelector('[data-testid="sublink-card"]')).not.toBeNull();
   });
 
-  it("aria-label on live anchor includes og_title", () => {
+  it("aria-label on live anchor uses slug (primary identity)", () => {
     const { container } = render(
       <SublinkCard
-        link={base({ og_title: "강의자료 노션" })}
+        link={base({ slug: "유튜브", og_title: "Something else entirely" })}
         namespaceName="fadak"
         variant="live"
       />
     );
     const anchor = container.querySelector("a");
-    expect(anchor?.getAttribute("aria-label")).toContain("강의자료 노션");
-  });
-
-  it("aria-label falls back to slug when og_title missing", () => {
-    const { container } = render(
-      <SublinkCard
-        link={base({ og_title: null, slug: "노션" })}
-        namespaceName="fadak"
-        variant="live"
-      />
-    );
-    const anchor = container.querySelector("a");
-    expect(anchor?.getAttribute("aria-label")).toContain("노션");
-  });
-
-  it("og_title has line-clamp-2 applied", () => {
-    const { container } = render(
-      <SublinkCard
-        link={base({ og_title: "아주 긴 제목입니다" })}
-        namespaceName="fadak"
-        variant="live"
-      />
-    );
-    const title = container.querySelector(".line-clamp-2");
-    expect(title).not.toBeNull();
-    expect(title?.textContent).toContain("아주 긴 제목");
+    expect(anchor?.getAttribute("aria-label")).toContain("유튜브");
+    expect(anchor?.getAttribute("aria-label")).not.toContain("Something else");
   });
 
   it("slug meta has tnum font-feature-settings", () => {
     const { container } = render(
-      <SublinkCard
-        link={base({ og_title: "제목" })}
-        namespaceName="fadak"
-        variant="live"
-      />
+      <SublinkCard link={base({})} namespaceName="fadak" variant="live" />
     );
     const all = container.querySelectorAll("*");
     let found = false;
     all.forEach((el) => {
       const style = (el as HTMLElement).getAttribute("style") ?? "";
-      if (style.includes('tnum')) found = true;
+      if (style.includes("tnum")) found = true;
     });
     expect(found).toBe(true);
   });
@@ -168,7 +175,7 @@ describe("SublinkCard", () => {
   it("slug meta displays full 좌표.to/{ns}/{slug} path", () => {
     const { container } = render(
       <SublinkCard
-        link={base({ slug: "노션", og_title: "제목" })}
+        link={base({ slug: "노션" })}
         namespaceName="fadak"
         variant="live"
       />
