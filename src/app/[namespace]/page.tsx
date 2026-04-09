@@ -48,14 +48,24 @@ export default async function NamespacePage({ params }: Props) {
   if (ROUTE_ALIASES[lower]) redirect(ROUTE_ALIASES[lower]);
 
   let ns: { id: string; name: string; display_name: string | null; bio: string | null; avatar_url: string | null; payment_status: string; paid_until: string | null } | null = null;
-  let links: { slug: string; target_url: string }[] = [];
+  let links: {
+    slug: string;
+    target_url: string;
+    og_title: string | null;
+    og_image: string | null;
+    og_site_name: string | null;
+  }[] = [];
 
   try {
     const supabase = getSupabase();
     const { data: nsData } = await supabase.from("namespaces").select("id, name, display_name, bio, avatar_url, payment_status, paid_until").eq("name", decoded).maybeSingle();
     if (nsData) {
       ns = nsData;
-      const { data: slugs } = await supabase.from("slugs").select("slug, target_url").eq("namespace_id", nsData.id).order("created_at", { ascending: true });
+      const { data: slugs } = await supabase
+        .from("slugs")
+        .select("slug, target_url, og_title, og_image, og_site_name")
+        .eq("namespace_id", nsData.id)
+        .order("created_at", { ascending: true });
       links = slugs ?? [];
     }
   } catch { /* fallback */ }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProfilePromoBanner } from "@/components/profile-promo-banner";
+import { SublinkCard, type SublinkCardLink } from "@/components/sublink-card";
 
 /**
  * PublicProfileView — 공개 프로필 페이지 렌더링의 단일 진실 공급원.
@@ -11,18 +12,20 @@ import { ProfilePromoBanner } from "@/components/profile-promo-banner";
  * 디자인 기준: DESIGN.md — High-End Editorial, left-aligned,
  * no cover gradient, Whisper Shadow, 한국어 line-height 1.6-1.8.
  *
+ * 서브링크 렌더링은 SublinkCard로 위임 — 카드 레이아웃 자체의 드리프트도 방지.
+ *
  * 서버/클라이언트 양쪽에서 쓸 수 있도록 "use client" 붙이지 않는다.
  * 순수 presentational 컴포넌트 — state/effect/훅 없음.
  */
 
-type Link = { slug: string; target_url: string };
+type ProfileLink = SublinkCardLink;
 
 export type PublicProfileViewProps = {
   displayName: string;
   namespaceName: string;
   bio: string | null;
   avatarUrl: string | null;
-  links: Link[];
+  links: ProfileLink[];
   isPaid: boolean;
   isExpired?: boolean;
   /**
@@ -169,48 +172,14 @@ export function PublicProfileView({
           </div>
         ) : (
           <div className={sz.linkSpacing}>
-            {links.map((link) =>
-              isPreview ? (
-                <div
-                  key={link.slug}
-                  className={`flex items-center gap-3 ${sz.linkPad} rounded-xl`}
-                  style={{
-                    background: "var(--surface-lowest)",
-                    boxShadow: "0 2px 32px rgba(0,0,0,0.03)",
-                  }}
-                >
-                  <span className={`font-medium ${sz.linkFont} truncate`}>
-                    {link.slug}
-                  </span>
-                  <span
-                    className="ml-auto text-xs shrink-0"
-                    style={{ color: "var(--on-surface-variant)" }}
-                  >
-                    →
-                  </span>
-                </div>
-              ) : (
-                <a
-                  key={link.slug}
-                  href={link.target_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-3 ${sz.linkPad} rounded-xl transition-all hover:translate-y-[-2px]`}
-                  style={{
-                    background: "var(--surface-lowest)",
-                    boxShadow: "0 2px 32px rgba(0,0,0,0.03)",
-                  }}
-                >
-                  <span className={`font-medium ${sz.linkFont}`}>{link.slug}</span>
-                  <span
-                    className="ml-auto text-xs"
-                    style={{ color: "var(--on-surface-variant)" }}
-                  >
-                    →
-                  </span>
-                </a>
-              )
-            )}
+            {links.map((link) => (
+              <SublinkCard
+                key={link.slug}
+                link={link}
+                namespaceName={namespaceName}
+                variant={variant}
+              />
+            ))}
           </div>
         )}
 

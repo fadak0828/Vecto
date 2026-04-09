@@ -21,6 +21,9 @@ type SubLink = {
   slug: string;
   target_url: string;
   click_count: number;
+  og_title: string | null;
+  og_image: string | null;
+  og_site_name: string | null;
 };
 
 export default function SettingsPage() {
@@ -78,7 +81,7 @@ export default function SettingsPage() {
       setAvatarUrl(ns.avatar_url ?? "");
       const { data: slugs } = await supabase
         .from("slugs")
-        .select("id, slug, target_url, click_count")
+        .select("id, slug, target_url, click_count, og_title, og_image, og_site_name")
         .eq("namespace_id", ns.id)
         .order("created_at", { ascending: true });
       setLinks(slugs ?? []);
@@ -130,22 +133,26 @@ export default function SettingsPage() {
       setAdding(false);
       return;
     }
-    const { error } = await supabase.from("slugs").insert({
-      slug: newSlug,
-      target_url: newUrl,
-      namespace_id: namespace.id,
-      owner_id: user.id,
-    });
-    if (error) {
-      if (error.code === "23505") {
-        setAddError("이미 사용 중인 링크 이름입니다.");
+    try {
+      const res = await fetch("/api/slugs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: newSlug,
+          target_url: newUrl,
+          namespace_id: namespace.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "추가 실패" }));
+        setAddError(data.error ?? "추가 실패");
       } else {
-        setAddError("추가 실패: " + error.message);
+        setNewSlug("");
+        setNewUrl("");
+        await loadData();
       }
-    } else {
-      setNewSlug("");
-      setNewUrl("");
-      await loadData();
+    } catch {
+      setAddError("추가 실패: 네트워크 오류");
     }
     setAdding(false);
   }
@@ -160,8 +167,14 @@ export default function SettingsPage() {
     const prevLinks = [...links];
     setLinks(links.filter((l) => l.id !== id));
     setDeletingId(null);
-    const { error } = await supabase.from("slugs").delete().eq("id", id);
-    if (error) {
+    try {
+      const res = await fetch(`/api/slugs/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setLinks(prevLinks);
+        setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
+        setTimeout(() => setAddError(""), 3000);
+      }
+    } catch {
       setLinks(prevLinks);
       setAddError("삭제에 실패했습니다. 다시 시도해주세요.");
       setTimeout(() => setAddError(""), 3000);
@@ -498,6 +511,9 @@ export default function SettingsPage() {
                 links={links.map((l) => ({
                   slug: l.slug,
                   target_url: l.target_url,
+                  og_title: l.og_title,
+                  og_image: l.og_image,
+                  og_site_name: l.og_site_name,
                 }))}
                 isPaid={
                   namespace.payment_status === "active" &&
