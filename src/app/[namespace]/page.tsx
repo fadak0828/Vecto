@@ -54,6 +54,7 @@ export default async function NamespacePage({ params }: Props) {
     og_title: string | null;
     og_image: string | null;
     og_site_name: string | null;
+    og_description: string | null;
   }[] = [];
 
   try {
@@ -63,7 +64,7 @@ export default async function NamespacePage({ params }: Props) {
       ns = nsData;
       const { data: slugs } = await supabase
         .from("slugs")
-        .select("slug, target_url, og_title, og_image, og_site_name")
+        .select("slug, target_url, og_title, og_image, og_site_name, og_description")
         .eq("namespace_id", nsData.id)
         .order("created_at", { ascending: true });
       links = slugs ?? [];

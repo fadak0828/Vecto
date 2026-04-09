@@ -1,7 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { SublinkCard, type SublinkCardLink } from "@/components/sublink-card";
+
+// SublinkCard 라이브 variant는 내부적으로 SublinkQRButton → SublinkDetailModal
+// 체인을 가진다. 모달은 open=false 상태로 시작하므로 qrcode는 import되지
+// 않지만, 실수로 상태가 바뀌어도 테스트가 안전하도록 mock.
+vi.mock("qrcode", () => ({
+  default: {
+    toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,mocked"),
+  },
+}));
 
 function base(overrides: Partial<SublinkCardLink> = {}): SublinkCardLink {
   return {
@@ -119,7 +128,7 @@ describe("SublinkCard", () => {
     expect(headline?.className ?? "").toContain("font-bold");
   });
 
-  it("live variant wraps in <a target=_blank rel=noopener noreferrer>", () => {
+  it("live variant has an inner <a target=_blank rel=noopener noreferrer>", () => {
     const { container } = render(
       <SublinkCard
         link={base({ target_url: "https://example.com/" })}
@@ -127,8 +136,11 @@ describe("SublinkCard", () => {
         variant="live"
       />
     );
-    const anchor = container.querySelector("a");
+    // After QR button restructure: outer div is sublink-card, inner anchor
+    // is sublink-card-anchor (covers thumb+text+arrow only).
+    const anchor = container.querySelector('[data-testid="sublink-card-anchor"]');
     expect(anchor).not.toBeNull();
+    expect(anchor?.tagName).toBe("A");
     expect(anchor?.getAttribute("target")).toBe("_blank");
     expect(anchor?.getAttribute("rel")).toBe("noopener noreferrer");
     expect(anchor?.getAttribute("href")).toBe("https://example.com/");
@@ -146,6 +158,25 @@ describe("SublinkCard", () => {
     expect(container.querySelector('[data-testid="sublink-card"]')).not.toBeNull();
   });
 
+  it("live variant renders the SublinkQRButton as a sibling (not inside the anchor)", () => {
+    const { container } = render(
+      <SublinkCard link={base({})} namespaceName="fadak" variant="live" />
+    );
+    const qrBtn = container.querySelector('[data-testid="sublink-qr-button"]');
+    expect(qrBtn).not.toBeNull();
+    // Must NOT be nested inside the anchor — nested interactive elements are
+    // invalid HTML and break a11y.
+    const anchor = container.querySelector('[data-testid="sublink-card-anchor"]');
+    expect(anchor?.contains(qrBtn!)).toBe(false);
+  });
+
+  it("preview variant does NOT render the SublinkQRButton", () => {
+    const { container } = render(
+      <SublinkCard link={base({})} namespaceName="fadak" variant="preview" />
+    );
+    expect(container.querySelector('[data-testid="sublink-qr-button"]')).toBeNull();
+  });
+
   it("aria-label on live anchor uses slug (primary identity)", () => {
     const { container } = render(
       <SublinkCard
@@ -154,7 +185,7 @@ describe("SublinkCard", () => {
         variant="live"
       />
     );
-    const anchor = container.querySelector("a");
+    const anchor = container.querySelector('[data-testid="sublink-card-anchor"]');
     expect(anchor?.getAttribute("aria-label")).toContain("유튜브");
     expect(anchor?.getAttribute("aria-label")).not.toContain("Something else");
   });

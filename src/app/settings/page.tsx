@@ -24,6 +24,7 @@ type SubLink = {
   og_title: string | null;
   og_image: string | null;
   og_site_name: string | null;
+  og_description: string | null;
 };
 
 export default function SettingsPage() {
@@ -81,7 +82,7 @@ export default function SettingsPage() {
       setAvatarUrl(ns.avatar_url ?? "");
       const { data: slugs } = await supabase
         .from("slugs")
-        .select("id, slug, target_url, click_count, og_title, og_image, og_site_name")
+        .select("id, slug, target_url, click_count, og_title, og_image, og_site_name, og_description")
         .eq("namespace_id", ns.id)
         .order("created_at", { ascending: true });
       setLinks(slugs ?? []);
@@ -514,6 +515,7 @@ export default function SettingsPage() {
                   og_title: l.og_title,
                   og_image: l.og_image,
                   og_site_name: l.og_site_name,
+                  og_description: l.og_description,
                 }))}
                 isPaid={
                   namespace.payment_status === "active" &&

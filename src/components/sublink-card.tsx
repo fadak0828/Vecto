@@ -22,7 +22,15 @@
  * 검증했다고 가정하고 그대로 <img>로 렌더한다. Dead link는 브라우저의
  * 기본 broken icon을 노출한다. 서버 컴포넌트라 onError JS 핸들러를
  * 붙일 수 없다. TODO: next/image remotePatterns + 폴백 프록시로 교체.
+ *
+ * QR 버튼 (사용자 피드백 20260409): live variant에 한해 SublinkQRButton을
+ * 앵커 옆 sibling으로 렌더한다. 클릭 → 모달로 전체 URL + 큰 QR 노출.
+ * preview variant(설정 프리뷰)에는 렌더하지 않는다 — 300px 프레임에
+ * 버튼을 또 박으면 답답하고, preview는 순수 시각 목업이라 상호작용이
+ * 필요 없다.
  */
+
+import { SublinkQRButton } from "@/components/sublink-qr-button";
 
 export type SublinkCardLink = {
   slug: string;
@@ -30,6 +38,7 @@ export type SublinkCardLink = {
   /** 카드에는 표시하지 않는다 — 타입 호환을 위해 옵셔널로만 받는다. 상세 모달 전용. */
   og_title?: string | null;
   og_image: string | null;
+  /** 카드에는 표시 안 함. QR 모달에서만 노출. */
   og_description?: string | null;
   og_site_name?: string | null;
 };
@@ -143,24 +152,39 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
     );
   }
 
+  // Live variant: 외부 div 카드 + 내부 anchor(thumb+text+arrow) + QR 버튼 sibling.
+  // 카드 hover/shadow는 div에, link semantic과 focus ring은 anchor에 분리.
+  // 중첩 interactive element(<a> 안에 <button>) 금지 — button은 anchor 밖 sibling.
   return (
-    <a
-      href={link.target_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={ariaLabel}
+    <div
       data-testid="sublink-card"
-      className={`${baseClass} transition-all hover:translate-y-[-2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
-      style={{
-        ...baseStyle,
-        // focus-visible 색상은 Tailwind arbitrary로 넣지 않고 inline으로 둬서
-        // 테마 변수 연동을 유지.
-        outlineColor: "var(--primary)",
-      }}
+      className={`flex items-center gap-2 sm:gap-3 ${sz.padding} rounded-2xl transition-all hover:translate-y-[-2px]`}
+      style={baseStyle}
     >
-      {Thumbnail}
-      {TextStack}
-      {Arrow}
-    </a>
+      <a
+        href={link.target_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={ariaLabel}
+        data-testid="sublink-card-anchor"
+        className={`flex items-center ${sz.gap} flex-1 min-w-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
+        style={{
+          // focus-visible 색상은 테마 변수 연동 유지를 위해 inline.
+          outlineColor: "var(--primary)",
+        }}
+      >
+        {Thumbnail}
+        {TextStack}
+        {Arrow}
+      </a>
+      <SublinkQRButton
+        slug={link.slug}
+        targetUrl={link.target_url}
+        namespaceName={namespaceName}
+        ogTitle={link.og_title ?? null}
+        ogDescription={link.og_description ?? null}
+        ogImage={link.og_image ?? null}
+      />
+    </div>
   );
 }

@@ -64,6 +64,15 @@ describe("public profile parity — drift prevention", () => {
     expect(sublinkCardComponent).not.toMatch(/^['"]use client['"]/m);
   });
 
+  it("SublinkCard live variant wires SublinkQRButton (visitor-facing QR feature)", () => {
+    // If someone removes the QR button from the card, visitors lose the
+    // in-person share affordance. This guard catches accidental regression.
+    expect(sublinkCardComponent).toContain(
+      'import { SublinkQRButton }'
+    );
+    expect(sublinkCardComponent).toContain("<SublinkQRButton");
+  });
+
   it("both pages SELECT the og_* columns so SublinkCard has the data it needs", () => {
     // Regression guard: if someone shrinks the SELECT, SublinkCard silently
     // falls back to the initial-box state for every link on that page.
