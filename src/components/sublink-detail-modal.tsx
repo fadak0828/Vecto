@@ -14,6 +14,58 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/** 여러 줄 텍스트 자동 줄바꿈 — canvas에 그릴 때 한 줄이 maxWidth 넘으면 다음 줄로. */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) {
+  // 한글은 단어 경계가 없어서 글자 단위로 그리디 래핑한다.
+  const chars = Array.from(text);
+  const lines: string[] = [];
+  let current = "";
+  for (const ch of chars) {
+    const test = current + ch;
+    if (ctx.measureText(test).width > maxWidth && current.length > 0) {
+      lines.push(current);
+      current = ch;
+      if (lines.length === maxLines - 1) break;
+    } else {
+      current = test;
+    }
+  }
+  // 남은 글자들이 마지막 줄. maxLines 넘으면 truncate + 말줄임.
+  if (lines.length < maxLines) {
+    lines.push(current);
+  } else {
+    // 마지막 줄에 잔여 글자들 이어붙이기
+    const rest = chars.slice(chars.indexOf(current[0]!)).join("");
+    let last = "";
+    for (const ch of Array.from(rest)) {
+      if (ctx.measureText(last + ch + "…").width > maxWidth) break;
+      last += ch;
+    }
+    lines.push(last + (rest.length > last.length ? "…" : ""));
+  }
+  lines.slice(0, maxLines).forEach((line, i) => {
+    ctx.fillText(line, x, y + i * lineHeight);
+  });
+}
+
+/** data URL을 HTMLImageElement로 로드. canvas.drawImage에 쓰려고. */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("image load failed"));
+    img.src = src;
+  });
+}
+
 export type SublinkDetailModalLink = {
   id: string;
   slug: string;
@@ -43,6 +95,7 @@ export function SublinkDetailModal({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -100,6 +153,100 @@ export function SublinkDetailModal({
       // 복사 실패는 조용히 무시 (graceful degrade) — 사용자가 수동 선택 가능.
     }
   }, [fullUrl]);
+
+  /**
+   * URL 텍스트 + QR을 canvas에 합성해서 PNG로 다운로드.
+   *
+   * 구성 (960x1200 @ 2x DPR for retina):
+   *   - 흰색 배경 (DESIGN.md surface-lowest)
+   *   - 상단에 좌표.to/{ns}/{slug} 큰 타이틀 (charcoal)
+   *   - 가운데 QR 코드 800x800 (charcoal on transparent → white bg)
+   *   - 하단 캡션 "좌표.to"
+   *
+   * DOM에서 보이는 QR은 width:480 이미 고해상도로 생성됐으므로 그대로
+   * drawImage하면 캔버스에서도 선명하다. 텍스트는 브라우저 폰트를 쓰되
+   * Manrope/Plus Jakarta Sans 부재 시 sans-serif fallback.
+   */
+  const handleDownload = useCallback(async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      // QR을 먼저 생성 (모달이 열렸으면 이미 qrDataUrl 있지만, 혹시
+      // 실패했거나 아직 로딩 중이면 여기서 직접 생성).
+      let qr = qrDataUrl;
+      if (!qr) {
+        const QRCode = (await import("qrcode")).default;
+        qr = await QRCode.toDataURL(fullUrl, {
+          margin: 1,
+          width: 800,
+          color: { dark: "#1a1c1c", light: "#ffffff" },
+        });
+      } else {
+        // DOM용 QR은 transparent 배경이라 저장용으로는 다시 그린다 —
+        // 흰 배경에 charcoal이 선명하고, 파일 열 때 투명 체커 패턴이
+        // 안 보인다.
+        const QRCode = (await import("qrcode")).default;
+        qr = await QRCode.toDataURL(fullUrl, {
+          margin: 1,
+          width: 800,
+          color: { dark: "#1a1c1c", light: "#ffffff" },
+        });
+      }
+
+      // Canvas 합성 — 960x1200 (4:5 portrait, SNS 공유에 무난)
+      const W = 960;
+      const H = 1200;
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("canvas 2d context unavailable");
+
+      // 배경
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+
+      // 상단 타이틀 — 2줄까지 자동 줄바꿈
+      ctx.fillStyle = "#1a1c1c";
+      ctx.font = "700 52px Manrope, 'Plus Jakarta Sans', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      wrapText(ctx, displayUrl, W / 2, 100, W - 120, 64, 2);
+
+      // QR — 중앙, 800x800
+      const qrImg = await loadImage(qr);
+      const qrSize = 800;
+      const qrX = (W - qrSize) / 2;
+      const qrY = 260;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+      // 하단 캡션
+      ctx.fillStyle = "#444746";
+      ctx.font = "500 32px Manrope, system-ui, sans-serif";
+      ctx.fillText("좌표.to", W / 2, H - 90);
+
+      // PNG 다운로드
+      const blob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error("canvas.toBlob returned null"));
+        }, "image/png");
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // 파일명: 좌표_송민우_유튜브.png — 한글 포함, 공백 대신 밑줄
+      a.download = `좌표_${namespaceName}_${link.slug}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // 저장 실패는 조용히 무시 — 사용자가 재시도 가능
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloading, qrDataUrl, fullUrl, displayUrl, namespaceName, link.slug]);
 
   const handleRefresh = useCallback(async () => {
     if (!onRefreshOG || refreshing) return;
@@ -179,8 +326,8 @@ export function SublinkDetailModal({
           )}
         </div>
 
-        {/* Copy button + toast */}
-        <div className="mt-6">
+        {/* Action buttons — Copy (primary, dark) + Save-as-image (ghost) */}
+        <div className="mt-6 flex flex-col gap-2">
           <button
             type="button"
             onClick={handleCopy}
@@ -193,6 +340,16 @@ export function SublinkDetailModal({
             }}
           >
             {copied ? "복사됨" : "URL 복사"}
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            data-testid="sublink-modal-download"
+            className="w-full py-3 rounded-xl text-sm font-medium transition-colors hover:bg-[var(--surface-container)] disabled:opacity-60"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            {downloading ? "저장 중..." : "이미지로 저장"}
           </button>
         </div>
 
