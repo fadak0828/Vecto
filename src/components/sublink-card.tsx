@@ -153,12 +153,18 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
   }
 
   // Live variant: 외부 div 카드 + 내부 anchor(thumb+text+arrow) + QR 버튼 sibling.
-  // 카드 hover/shadow는 div에, link semantic과 focus ring은 anchor에 분리.
-  // 중첩 interactive element(<a> 안에 <button>) 금지 — button은 anchor 밖 sibling.
+  // 카드 배경/shadow는 div, link semantic + focus + hover lift는 anchor.
+  //
+  // **중요**: wrapper div에는 `transform`을 유발하는 어떤 클래스도 두지 않는다.
+  // QR 버튼이 이 카드의 자식이고, QR 버튼은 내부에서 position:fixed 모달을
+  // 렌더한다. CSS에서 `position: fixed`는 조상에 transform/filter/backdrop-filter
+  // 가 있으면 viewport가 아니라 그 조상 기준으로 바뀌어서 모달이 카드 박스에
+  // 갇혀 떨리는 버그가 생긴다 (2026-04-09 제보). hover lift는 반드시 anchor에만.
+  // Portal 렌더도 이 문제를 해결하지만 방어는 이중으로 해둔다.
   return (
     <div
       data-testid="sublink-card"
-      className={`flex items-center gap-2 sm:gap-3 ${sz.padding} rounded-2xl transition-all hover:translate-y-[-2px]`}
+      className={`flex items-center gap-2 sm:gap-3 ${sz.padding} rounded-2xl`}
       style={baseStyle}
     >
       <a
@@ -167,7 +173,7 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
         rel="noopener noreferrer"
         aria-label={ariaLabel}
         data-testid="sublink-card-anchor"
-        className={`flex items-center ${sz.gap} flex-1 min-w-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
+        className={`flex items-center ${sz.gap} flex-1 min-w-0 rounded-xl transition-transform hover:translate-y-[-2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
         style={{
           // focus-visible 색상은 테마 변수 연동 유지를 위해 inline.
           outlineColor: "var(--primary)",

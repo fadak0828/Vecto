@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe("SublinkDetailModal", () => {
   it("does NOT render when open=false", () => {
-    const { container } = render(
+    render(
       <SublinkDetailModal
         open={false}
         onClose={() => {}}
@@ -47,11 +47,14 @@ describe("SublinkDetailModal", () => {
         namespaceName="fadak"
       />
     );
-    expect(container.querySelector('[data-testid="sublink-detail-modal"]')).toBeNull();
+    // Modal is portaled to document.body — search from document, not container.
+    expect(
+      document.querySelector('[data-testid="sublink-detail-modal"]'),
+    ).toBeNull();
   });
 
-  it("renders when open=true", () => {
-    const { container } = render(
+  it("renders when open=true (portaled to body)", async () => {
+    render(
       <SublinkDetailModal
         open={true}
         onClose={() => {}}
@@ -59,7 +62,12 @@ describe("SublinkDetailModal", () => {
         namespaceName="fadak"
       />
     );
-    expect(container.querySelector('[data-testid="sublink-detail-modal"]')).not.toBeNull();
+    // Portal gate: mounted effect runs post-mount, so modal appears async.
+    await waitFor(() =>
+      expect(
+        document.querySelector('[data-testid="sublink-detail-modal"]'),
+      ).not.toBeNull(),
+    );
   });
 
   it("displays the full 좌표.to URL prominently", () => {

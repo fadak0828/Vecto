@@ -1,11 +1,18 @@
 "use client";
 
 /**
- * SublinkDetailModal — 오너 대시보드 전용 서브링크 상세 모달.
+ * SublinkDetailModal — 서브링크 상세 모달 (대시보드 + 공개 프로필 공용).
  *
- * Full-screen overlay + centered card. 큰 QR + 전체 URL + 복사 + OG 미리보기 +
- * "다시 가져오기". ESC / 배경 클릭 / X 버튼으로 닫힘. 기본 포커스는 close
- * 버튼으로 이동 (포커스 트랩의 기본 수준).
+ * Full-screen overlay + centered card. 큰 QR + 전체 URL + 복사 + 이미지로 저장 +
+ * OG 미리보기 + "다시 가져오기". ESC / 배경 클릭 / X 버튼으로 닫힘. 기본 포커스는
+ * close 버튼으로 이동 (포커스 트랩의 기본 수준).
+ *
+ * **Portal 렌더링**: 모달은 `createPortal`로 `document.body`에 직접 붙는다.
+ * 왜: 조상 DOM에 `transform`/`filter`/`will-change`/`backdrop-filter`가 있으면
+ * `position: fixed`가 viewport가 아니라 그 조상 기준으로 바뀌는 CSS 함정이
+ * 있다. SublinkCard 구조상 QR 버튼이 `hover:translate-y-[-2px]` 카드 안에
+ * 있어서 모달이 카드 박스에 갇혀 떨리는 버그가 있었다 (2026-04-09 사용자 제보).
+ * Portal로 body에 붙이면 어떤 조상이 transform을 가져도 안전하다.
  *
  * QR 생성: homepage(`src/app/page.tsx`) 패턴 그대로 lazy import.
  * OG 표시: 카드(SublinkCard)는 description을 절대 표시하지 않지만 모달은 유일한
@@ -13,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /** 여러 줄 텍스트 자동 줄바꿈 — canvas에 그릴 때 한 줄이 maxWidth 넘으면 다음 줄로. */
 function wrapText(
@@ -96,6 +104,11 @@ export function SublinkDetailModal({
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  // SSR-safe portal gate: createPortal은 클라이언트에서만 실행되어야 한다.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -138,11 +151,15 @@ export function SublinkDetailModal({
   }, [open, onClose]);
 
   // 열릴 때 close 버튼으로 포커스 이동 (기본 포커스 트랩).
+  // mounted 의존성이 필요한 이유: portal 게이트 때문에 첫 render에서는
+  // mounted=false → null 반환 → ref가 붙지 않는다. mounted=true 재렌더
+  // 이후에야 DOM에 붙는다. open만 의존하면 이 시점에 effect가 재실행되지
+  // 않아서 포커스가 이동하지 않는다.
   useEffect(() => {
-    if (open) {
+    if (open && mounted) {
       closeButtonRef.current?.focus();
     }
-  }, [open]);
+  }, [open, mounted]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -259,8 +276,10 @@ export function SublinkDetailModal({
   }, [onRefreshOG, refreshing, link.id]);
 
   if (!open) return null;
+  // SSR 첫 렌더에서는 portal target이 없으므로 mounted 이후에만 렌더.
+  if (!mounted) return null;
 
-  return (
+  const modalTree = (
     <div
       role="dialog"
       aria-modal="true"
@@ -410,4 +429,8 @@ export function SublinkDetailModal({
       </div>
     </div>
   );
+
+  // Portal로 body에 직접 붙여서 조상의 transform/filter/backdrop-filter
+  // 스태킹 컨텍스트에서 완전히 탈출한다. position: fixed가 viewport 기준이 됨.
+  return createPortal(modalTree, document.body);
 }
