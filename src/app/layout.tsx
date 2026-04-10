@@ -1,6 +1,48 @@
 import type { Metadata } from "next";
+import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
+
+/**
+ * 폰트 자체 호스팅 (next/font).
+ *
+ * 이전(v0.10.x) 에는 layout.tsx 에서 <link rel="stylesheet"> 로 fonts.googleapis.com
+ * 과 cdn.jsdelivr.net 을 직접 불렀다. 두 개의 렌더-블로킹 CSS + 그 뒤의 woff2
+ * 파일 요청이 매 페이지 FCP 를 100~400ms 늦추고 있었다.
+ *
+ * next/font 는:
+ *   - 빌드타임에 폰트를 다운로드해 정적 자산으로 번들
+ *   - <link rel="preload"> 를 자동 주입
+ *   - `size-adjust` + fallback metric 을 계산해 layout shift 를 0 에 가깝게 유지
+ *
+ * 세 폰트 모두 CSS variable 로 노출해 globals.css 와 인라인 스타일이 참조한다.
+ */
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-manrope",
+  weight: ["200", "300", "400", "500", "600", "700", "800"],
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-jakarta",
+  weight: ["200", "300", "400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
+});
+
+// Pretendard 는 Google Fonts 에 없어 public CDN(jsdelivr) 에서 직접 호스팅
+// 되고 있었다. 여기서는 단일 variable woff2 를 번들에 포함시켜 자체 호스팅.
+// weight 범위는 Pretendard variable 의 wght axis 원본 값 (45~920).
+const pretendard = localFont({
+  src: "../fonts/PretendardVariable.woff2",
+  display: "swap",
+  variable: "--font-pretendard",
+  weight: "45 920",
+  style: "normal",
+});
 
 export const metadata: Metadata = {
   title: "좌표.to — 짧고 의미있는 한글 URL",
@@ -22,19 +64,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full antialiased">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          rel="stylesheet"
-          crossOrigin="anonymous"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
-      </head>
-      <body className="min-h-screen flex flex-col" style={{ background: "var(--surface)" }}>
+    <html
+      lang="ko"
+      className={`${manrope.variable} ${jakarta.variable} ${pretendard.variable} h-full antialiased`}
+    >
+      <body
+        className="min-h-screen flex flex-col"
+        style={{ background: "var(--surface)" }}
+      >
         <main className="flex-1 flex flex-col">{children}</main>
         <SiteFooter />
       </body>
