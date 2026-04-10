@@ -65,7 +65,7 @@ export function PaymentStatus({
         </div>
         <h3
           className="text-lg sm:text-xl font-bold mb-1 break-keep"
-          style={{ fontFamily: "Manrope, sans-serif" }}
+          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
         >
           프리미엄으로 받을 수 있는 것
         </h3>

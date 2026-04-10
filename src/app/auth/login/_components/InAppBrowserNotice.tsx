@@ -82,7 +82,7 @@ export function InAppBrowserNotice({
           <h2
             className="text-lg font-bold mb-2"
             style={{
-              fontFamily: "Manrope, sans-serif",
+              fontFamily: "var(--font-manrope), sans-serif",
               color: "var(--on-background)",
             }}
           >
@@ -109,7 +109,7 @@ export function InAppBrowserNotice({
           style={{
             background: "var(--primary)",
             color: "var(--surface-lowest)",
-            fontFamily: "Plus Jakarta Sans, sans-serif",
+            fontFamily: "var(--font-jakarta), sans-serif",
           }}
         >
           Chrome으로 열기
@@ -125,7 +125,7 @@ export function InAppBrowserNotice({
             style={{
               background: "var(--primary)",
               color: "var(--surface-lowest)",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
+              fontFamily: "var(--font-jakarta), sans-serif",
             }}
           >
             링크 복사

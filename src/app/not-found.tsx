@@ -6,7 +6,7 @@ export default function NotFound() {
     >
       <h1
         className="text-4xl font-extrabold mb-2"
-        style={{ fontFamily: "Manrope, sans-serif", color: "var(--on-surface)" }}
+        style={{ fontFamily: "var(--font-manrope), sans-serif", color: "var(--on-surface)" }}
       >
         404
       </h1>

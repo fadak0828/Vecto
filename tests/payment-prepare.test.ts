@@ -67,7 +67,12 @@ describe("POST /api/payment/prepare — 단일 SKU 구독", () => {
   });
 
   it("pricing 페이지가 customerName 을 PortOne customer.fullName 으로 전달한다", () => {
-    const pagePath = resolve(__dirname, "../src/app/pricing/page.tsx");
+    // v0.10.x 까지는 pricing/page.tsx 가 "use client" 였다. 2026-04-10
+    // 성능 리팩터로 결제 플로우는 CheckoutCard 클라 island 로 분리됨.
+    const pagePath = resolve(
+      __dirname,
+      "../src/app/pricing/_components/CheckoutCard.tsx",
+    );
     const page = readFileSync(pagePath, "utf8");
     expect(page).toMatch(/customer:\s*\{[^}]*fullName:\s*customerName/);
   });

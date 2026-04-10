@@ -20,7 +20,7 @@ export default function NamespaceNotFound() {
         </div>
         <h1
           className="text-2xl font-bold mb-2"
-          style={{ fontFamily: "Manrope, sans-serif" }}
+          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
         >
           좌표를 찾을 수 없습니다
         </h1>

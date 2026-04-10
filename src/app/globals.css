@@ -87,9 +87,10 @@
 body {
   background: var(--surface);
   color: var(--on-background);
-  font-family: "Plus Jakarta Sans", "Pretendard Variable", Pretendard,
-    -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
-    "Noto Sans KR", sans-serif;
+  /* next/font variables 는 layout.tsx 에서 <html> 에 주입됨. */
+  font-family: var(--font-jakarta), var(--font-pretendard), -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR",
+    sans-serif;
   line-height: 1.7;
   /* Korean text must wrap at word boundaries, not character boundaries.
      Without this, text-wrap: balance can split 짧은 / 좌표 mid-word. */
@@ -121,9 +122,9 @@ body {
    Manrope's Won glyph + comma combo looks slanted/italic. tabular-nums
    ensures consistent digit width so prices don't shift on hover/loading. */
 .price-display {
-  font-family: "Pretendard Variable", Pretendard, "Plus Jakarta Sans",
-    -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
-    "Noto Sans KR", sans-serif;
+  font-family: var(--font-pretendard), var(--font-jakarta), -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR",
+    sans-serif;
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum", "lnum", "ss01";
   letter-spacing: -0.02em;

@@ -1,139 +1,29 @@
-"use client";
-
-import { useState } from "react";
 import { MONTHLY_PRICE } from "@/lib/pricing";
 import { businessInfo } from "@/lib/business-info";
-import {
-  buildBillingKeyArgs,
-  billingCancelMessage,
-  type PayMethod,
-} from "@/lib/portone-billing";
+import { CheckoutCard } from "./_components/CheckoutCard";
 
 /**
  * /pricing — Single SKU Freemium 가격 페이지.
  *
- * Flow (billing key + server-initiated first charge):
- * 1. POST /api/payment/prepare → paymentId, subscriptionId, amount
- * 2. PortOne.requestIssueBillingKey → 빌링키 발급 (카카오페이 or 카드)
- * 3. BillingKey.Issued webhook → 서버가 PortOne API로 첫 ₩2,900 charge
- * 4. Transaction.Paid webhook → start_subscription RPC → 대시보드 이동
- *
- * 카카오페이가 기본 (한국 사용자 진입장벽 최소). 카드 직접입력은 fallback 링크.
+ * 성능 리팩터 (2026-04-10):
+ *   이전에는 전체 페이지가 "use client" 였다. 실제 client state 는 결제 버튼
+ *   하나의 loading 상태뿐인데 341줄 전부가 JS 번들에 포함되고 있었다.
+ *   이제는 page.tsx 가 server component 로 정적 마케팅 컨텐츠를 SSR 하고,
+ *   결제 카드만 CheckoutCard 클라 island 로 분리.
  */
 export default function PricingPage() {
-  const [loading, setLoading] = useState<
-    "idle" | "preparing" | "billing_key" | "scheduling"
-  >("idle");
-  const [activeMethod, setActiveMethod] = useState<PayMethod | null>(null);
-  const [error, setError] = useState("");
-
   // 카카오페이 채널키 미설정 시 버튼 자동 비활성화 → 사용자에게 즉시 신호.
   // NEXT_PUBLIC_* 는 빌드 타임 인라인이므로 빈 문자열/undefined 양쪽 체크.
-  const kakaopayChannelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_KAKAOPAY;
-  const kakaopayEnabled = !!kakaopayChannelKey && kakaopayChannelKey.length > 0;
-
-  async function handleSubscribe(method: PayMethod) {
-    // Re-entry guard — 이미 진행 중이면 무시. 모바일에서 빠른 더블탭/메서드 전환으로
-    // 두 개의 pending payment row가 생기는 것을 방지.
-    if (loading !== "idle") return;
-
-    setError("");
-    setActiveMethod(method);
-    setLoading("preparing");
-
-    try {
-      const res = await fetch("/api/payment/prepare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        if (res.status === 401) {
-          window.location.href = "/auth/login";
-          return;
-        }
-        if (res.status === 400 && data.error?.includes("네임스페이스")) {
-          window.location.href = "/dashboard";
-          return;
-        }
-        setError(data.error || "결제 준비 중 오류가 발생했습니다.");
-        setLoading("idle");
-        setActiveMethod(null);
-        return;
-      }
-
-      const { paymentId, customerName } = await res.json();
-
-      setLoading("billing_key");
-
-      // PortOne V2 billing key 발급. 서버가 BillingKey.Issued webhook 수신 후
-      // PortOne API로 첫 ₩2,900 charge → Transaction.Paid webhook → start_subscription.
-      // issueId + customer.customerId에 paymentId 양쪽 매핑 → webhook이 PortOne API로
-      // billingKey 조회 시 둘 중 하나로 우리 pending payment 찾을 수 있음.
-      const PortOne = await import("@portone/browser-sdk/v2");
-
-      const billingArgs = buildBillingKeyArgs(method, {
-        card: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
-        kakaopay: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_KAKAOPAY!,
-      });
-
-      const response = await PortOne.requestIssueBillingKey({
-        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
-        ...billingArgs,
-        issueId: paymentId,
-        issueName: "좌표.to 프리미엄 구독",
-        displayAmount: MONTHLY_PRICE,
-        currency: "KRW",
-        // 모바일은 REDIRECTION 강제 — Mobile Safari는 await 이후 popup을 차단함.
-        // PC는 IFRAME 으로 모달 UX 유지. 카드 + 카카오 양쪽 모두 동일한 창 정책.
-        windowType: { mobile: "REDIRECTION", pc: "IFRAME" },
-        // customer.fullName 은 KPN 등 일부 PG 의 빌링키 발급 필수 필드.
-        // 누락 시 issue-prepare/v2 가 ParsePgRawResponseFailed 로 400.
-        customer: { customerId: paymentId, fullName: customerName },
-      });
-
-      if (response?.code) {
-        if (response.code === "FAILURE_TYPE_PG") {
-          setError(billingCancelMessage(method));
-        } else {
-          setError(response.message || "결제 등록 중 오류가 발생했습니다.");
-        }
-        setLoading("idle");
-        setActiveMethod(null);
-        return;
-      }
-
-      setLoading("scheduling");
-      // 결제 완료 페이지 — verify가 비동기로 schedule/trial start 완료 대기
-      window.location.href = `/payment/complete?paymentId=${paymentId}`;
-    } catch (err) {
-      // 프로덕션 디버깅용 — kakaopay 실패 시 sentry/console에서 확인.
-      console.error("[pricing] handleSubscribe error:", err);
-      setError("결제 처리 중 오류가 발생했습니다.");
-      setLoading("idle");
-      setActiveMethod(null);
-    }
-  }
+  const kakaopayChannelKey =
+    process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_KAKAOPAY;
+  const kakaopayEnabled =
+    !!kakaopayChannelKey && kakaopayChannelKey.length > 0;
 
   const monthly = MONTHLY_PRICE.toLocaleString("ko-KR");
 
   // 런칭 위크 배너 — NEXT_PUBLIC_EVENT_END_AT (ISO8601) 미래이면 노출.
-  // 환경변수 미설정 시 배너 없음 (이벤트 종료 후 조용히 사라짐).
   const eventEndAt = process.env.NEXT_PUBLIC_EVENT_END_AT;
   const eventActive = !!eventEndAt && new Date(eventEndAt) > new Date();
-  const busy = loading !== "idle";
-  const stageLabel =
-    loading === "preparing"
-      ? "결제 준비 중…"
-      : loading === "billing_key"
-        ? activeMethod === "kakaopay"
-          ? "카카오페이로 이동 중…"
-          : "안전하게 카드 등록 중…"
-        : loading === "scheduling"
-          ? "무료 체험 시작 중…"
-          : "";
 
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
@@ -155,7 +45,7 @@ export default function PricingPage() {
         <a
           href="/"
           className="text-xl font-bold tracking-tight"
-          style={{ fontFamily: "Manrope, sans-serif" }}
+          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
         >
           좌표.to
         </a>
@@ -181,8 +71,7 @@ export default function PricingPage() {
       </nav>
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
-        {/* Hero — trial launch: 첫 1개월 무료가 primary message.
-            가격은 subhead로 relegated, 큰 가격 디스플레이 제거. */}
+        {/* Hero */}
         <section className="mb-8 text-center">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-3"
@@ -192,7 +81,7 @@ export default function PricingPage() {
           </p>
           <h1
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
-            style={{ fontFamily: "Manrope, sans-serif" }}
+            style={{ fontFamily: "var(--font-manrope), sans-serif" }}
           >
             첫 1개월 무료
           </h1>
@@ -214,59 +103,7 @@ export default function PricingPage() {
             boxShadow: "0 8px 48px rgba(0,0,0,0.06)",
           }}
         >
-          {kakaopayEnabled && (
-            <>
-              <button
-                onClick={() => handleSubscribe("kakaopay")}
-                disabled={busy}
-                className="w-full py-4 rounded-xl font-bold text-lg transition-opacity hover:opacity-90 disabled:opacity-70 flex items-center justify-center gap-2"
-                // Kakao 브랜드 컴플라이언스: #FEE500 배경 + #191919 텍스트는
-                // 카카오 디벨로퍼스 가이드라인의 필수 색상. DESIGN.md "No Pure Black" 규칙
-                // (#1a1c1c)에서 의도적으로 벗어남 — 카카오페이 인지도 = 사용자 신뢰 = 전환율.
-                // Brand yellow + text do the recognition work; decorative emoji removed.
-                style={{
-                  background: "#FEE500",
-                  color: "#191919",
-                  minHeight: 56,
-                }}
-              >
-                {busy && activeMethod === "kakaopay"
-                  ? stageLabel
-                  : "1개월 무료로 시작하기"}
-              </button>
-
-              <p
-                className="text-center text-xs mt-2.5 break-keep"
-                style={{ color: "var(--on-surface-variant)" }}
-              >
-                카카오톡 인증 한 번이면 끝 · 무료 체험 중 해지 시 과금 없음
-              </p>
-            </>
-          )}
-
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => handleSubscribe("card")}
-              disabled={busy}
-              className="text-sm underline-offset-2 hover:underline disabled:opacity-50"
-              style={{ color: "var(--on-surface-variant)" }}
-            >
-              {busy && activeMethod === "card"
-                ? stageLabel
-                : "신용/체크카드로 결제하기"}
-            </button>
-          </div>
-
-          {error && (
-            <p
-              className="text-sm mt-3 text-center break-keep"
-              style={{ color: "var(--error)" }}
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
+          <CheckoutCard kakaopayEnabled={kakaopayEnabled} />
 
           {/* 톤 블록으로 구분 (No-Line 원칙) */}
           <div

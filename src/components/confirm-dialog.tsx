@@ -125,7 +125,7 @@ export function ConfirmDialog({
           id="confirm-dialog-title"
           className="text-lg sm:text-xl font-bold mb-2 break-keep"
           style={{
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "var(--font-manrope), sans-serif",
             color: "var(--on-background)",
           }}
         >

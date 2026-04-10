@@ -317,7 +317,7 @@ export function SublinkDetailModal({
           className="text-2xl font-bold pr-8 break-all"
           style={{
             color: "var(--on-background)",
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "var(--font-manrope), sans-serif",
             fontFeatureSettings: '"tnum"',
             lineHeight: 1.3,
           }}
@@ -355,7 +355,7 @@ export function SublinkDetailModal({
             style={{
               background: "var(--on-background)",
               color: "var(--surface)",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
+              fontFamily: "var(--font-jakarta), sans-serif",
             }}
           >
             {copied ? "복사됨" : "URL 복사"}

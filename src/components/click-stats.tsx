@@ -74,7 +74,7 @@ export function ClickStats({
           <p
             className="font-bold mb-3 break-keep"
             style={{
-              fontFamily: "Manrope, sans-serif",
+              fontFamily: "var(--font-manrope), sans-serif",
               color: "var(--on-background)",
             }}
           >
@@ -143,7 +143,7 @@ export function ClickStats({
       style={{ background: "var(--surface-lowest)", boxShadow: "0 2px 48px rgba(0,0,0,0.03)" }}
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold" style={{ fontFamily: "Manrope, sans-serif" }}>클릭 통계</h2>
+        <h2 className="font-semibold" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>클릭 통계</h2>
         <span className="text-2xl font-bold tabular-nums">
           {stats.total.toLocaleString()}
           <span className="text-sm font-normal ml-1" style={{ color: "var(--on-surface-variant)" }}>

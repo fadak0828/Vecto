@@ -2,6 +2,14 @@
 
 ## 다음 작업 (우선순위순)
 
+### ⚡ v0.11.0 성능 개선 후속 (2026-04-10)
+
+- **PERF-1. OG backfill 크론** — `POST /api/slugs` 가 `after()` 로 OG 를 백그라운드 fetch 한다. Vercel 에서는 거의 항상 실행되지만 실패하면 `og_fetched_at = null` 인 row 가 영원히 남음. 해결: Vercel Cron + `/api/cron/og-backfill` 에서 `WHERE og_fetched_at IS NULL AND created_at < now() - interval '5 minutes'` 인 row 를 재fetch. 우선순위 P2.
+- **PERF-2. `/api/stats` 4왕복 튜닝** — `src/app/api/stats/route.ts` 가 auth + 네임스페이스 소유권 + slugs + daily RPC 를 직렬로 4번 왕복. paid 사용자 대시보드 사이드 패널에만 영향이라 hot path 는 아니지만 단일 Postgres function 으로 묶을 수 있음. 우선순위 P2.
+- **PERF-3. Pretendard dynamic subset** — 현재 `src/fonts/PretendardVariable.woff2` 는 single variable 파일 (~2MB). 한글 subset 으로 쪼개면 200~400KB 로 감소. `next/font/local` 에서 다중 파일 사용 + 빌드 스크립트로 subset 생성. 우선순위 P3.
+- **PERF-4. 번들 사이즈 실측** — SSR 전환 + client island 분리 후 실제 클라 JS 얼마나 줄었는지 `@next/bundle-analyzer` 로 before/after 비교. 우선순위 P3.
+- **PERF-5. `subscriptions_public` view 성능 점검** — view 내부 join 이 실제 인덱스를 타는지 `EXPLAIN ANALYZE` 로 확인, 필요하면 materialized view. 우선순위 P3.
+
 ### 🛡️ v0.10.0 서브링크 OG/QR 후속 — 보안 follow-up (2026-04-09 adversarial review)
 
 - **OG-SEC-1. DNS rebinding 방어** — `src/lib/og-fetcher.ts`의 `assertPublicHost`는 한 번만 resolve하고 undici가 다시 resolve한다. 공격자가 제어하는 DNS 서버가 TTL=0으로 첫 번째 쿼리에 `8.8.8.8`, 두 번째에 `169.254.169.254`를 반환하면 SSRF 우회 가능. 해결: `undici.Agent({ connect: { lookup } })`로 resolve된 IP를 pin하거나, 직접 IP로 연결 + `Host:` 헤더 수동 설정. 우선순위 P1.

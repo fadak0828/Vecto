@@ -13,7 +13,7 @@ export default function Error({
     >
       <h1
         className="text-4xl font-extrabold mb-2"
-        style={{ fontFamily: "Manrope, sans-serif", color: "var(--on-surface)" }}
+        style={{ fontFamily: "var(--font-manrope), sans-serif", color: "var(--on-surface)" }}
       >
         오류 발생
       </h1>

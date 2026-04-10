@@ -108,7 +108,7 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
         style={{
           color: "var(--on-background)",
           lineHeight: 1.3,
-          fontFamily: "Plus Jakarta Sans, sans-serif",
+          fontFamily: "var(--font-jakarta), sans-serif",
         }}
       >
         {link.slug}
@@ -119,7 +119,7 @@ export function SublinkCard({ link, namespaceName, variant }: SublinkCardProps) 
         style={{
           color: "var(--on-surface-variant)",
           fontFeatureSettings: '"tnum"',
-          fontFamily: "Manrope, sans-serif",
+          fontFamily: "var(--font-manrope), sans-serif",
         }}
       >
         {slugMeta}

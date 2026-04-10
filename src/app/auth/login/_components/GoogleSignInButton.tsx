@@ -75,7 +75,7 @@ export function GoogleSignInButton({ initialError }: { initialError?: string }) 
         style={{
           background: "var(--on-background)",
           color: "var(--surface-lowest)",
-          fontFamily: "Plus Jakarta Sans, sans-serif",
+          fontFamily: "var(--font-jakarta), sans-serif",
         }}
       >
         {loading ? (
