@@ -4,6 +4,24 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.11.0] - 2026-04-10 — 사이트 전반 속도 개선
+
+사이트가 체감적으로 훨씬 빨라졌습니다. 첫 방문자가 처음 보는 랜딩 페이지는 이제 서버에서 HTML로 떨어집니다 (이전엔 빈 껍데기 + JS 번들 다운로드를 기다려야 했음). 폰트도 더 이상 외부 CDN (fonts.googleapis.com, jsdelivr) 을 두 번 건너뛰지 않고 빌드에 내장되어 첫 렌더부터 올바른 글꼴로 나옵니다. 로그인 후 대시보드와 설정 페이지는 브라우저에서 Supabase로 4번 왕복하던 것을 서버에서 한 번에 병렬로 가져와 로딩 스피너가 사라졌습니다. 링크를 추가할 때도 이전에는 목적지 사이트의 메타데이터를 기다리느라 최대 2초까지 버튼이 멈춰 있었는데, 이제는 즉시 응답하고 메타데이터는 백그라운드에서 채워집니다.
+
+### Changed
+- **랜딩 페이지 SSR 전환** — `src/app/page.tsx` (816줄) 이 서버 컴포넌트로 재작성되고 인터랙티브 영역 (폼, 타이핑 애니메이션, QR 미리보기) 만 `HeroInteractive` 클라이언트 아일랜드로 분리. 정적 마케팅 섹션은 서버에서 HTML로 즉시 도착. 첫 방문 FCP 가 크게 개선되고 검색 엔진 크롤러에게도 완성된 HTML 이 노출됨.
+- **대시보드 SSR 전환** — `src/app/dashboard/page.tsx` 가 서버 컴포넌트. 기존 `loadData()` 의 4왕복 (auth → namespaces → slugs → subscriptions) 이 서버에서 `Promise.all` 로 병렬 실행되어 로딩 스피너 제거. 인터랙션 로직은 `dashboard-client.tsx` 로 분리되었고 mutation 후에는 `router.refresh()` + 낙관적 업데이트로 최신화.
+- **설정 페이지 SSR 전환** — 대시보드와 동일 패턴. `settings/page.tsx` + `settings-client.tsx` 분리. 공유 서버 로더 `src/lib/server/user-namespace.ts` 를 `React.cache` 로 감싸 대시보드 ↔ 설정 이동 시 같은 요청 안에서는 중복 쿼리 없음.
+- **가격표 SSR 분리** — `pricing/page.tsx` 가 서버 컴포넌트가 되고 PortOne 결제 플로우는 `CheckoutCard` 클라이언트 아일랜드로 분리 (341줄 → 서버 대부분 + 작은 섬).
+- **링크 생성 API 비동기 OG fetch** — `POST /api/slugs` 가 네임스페이스 소유권 체크 + 중복 slug 체크를 `Promise.all` 로 병렬화하고, OG 메타데이터 fetch 는 `next/server` 의 `after()` 로 응답 이후 백그라운드에서 실행. 사용자는 링크 생성 버튼 누르고 500ms 이내에 응답받음 (이전: 500~2000ms, 타깃 URL 이 느리면 최대 2초).
+- **공개 프로필 요청당 쿼리 중복 제거** — `src/app/[namespace]/page.tsx` 의 `generateMetadata` 와 페이지 렌더가 `React.cache` 로 감싼 `getNamespaceBundle(decoded)` 을 공유. 이전에는 `namespaces` 테이블을 같은 요청에서 두 번 쿼리하고 있었음.
+- **폰트 자체 호스팅 (next/font)** — `src/app/layout.tsx` 가 `fonts.googleapis.com` 과 `cdn.jsdelivr.net` 의 외부 `<link>` 2개를 제거하고 Manrope / Plus Jakarta Sans (Google) + Pretendard Variable (로컬 woff2) 을 `next/font` 로 자체 호스팅. 렌더-블로킹 외부 CSS 요청 0건, layout shift 방지를 위한 fallback metrics 자동 주입. 21개 컴포넌트의 인라인 `fontFamily: "Manrope, sans-serif"` 를 `fontFamily: "var(--font-manrope), sans-serif"` 로 일괄 치환.
+- **`slugs` 테이블 정렬 인덱스** — 새 마이그레이션 `supabase/013_slugs_created_at_index.sql` 로 `slugs_namespace_created_at_idx (namespace_id, created_at asc)` 부분 인덱스 추가. 대시보드/설정/공개 프로필이 공통으로 쓰는 `WHERE namespace_id = X ORDER BY created_at ASC` 쿼리가 memory sort 를 피함. 프로덕션 DB 에 이미 적용됨.
+
+### Added
+- **서버 전용 공유 로더** — `src/lib/server/user-namespace.ts` 에 `getUserNamespaceData()` 함수 추가. `React.cache` 로 감싸서 같은 요청 안에서 1회만 실행. 대시보드와 설정 페이지가 동일한 쿼리를 공유해 DRY 와 성능을 동시에 확보.
+- **링크 추가 후 OG 지연 반영** — 대시보드/설정의 `handleAddLink` 가 링크 추가 직후 낙관적으로 리스트에 표시하고, 2초 후 한 번 더 `router.refresh()` 를 호출해 백그라운드 `after()` 가 채운 OG 메타데이터를 가져옴.
+
 ## [0.10.0] - 2026-04-09 — 서브링크 상세보기, QR 공유, OG 카드
 
 프로필 페이지의 서브링크가 살아났습니다. 각 서브링크 옆의 QR 아이콘을 누르면 전체 URL과 큰 QR 코드가 뜨고, "이미지로 저장"으로 현장에서 바로 인쇄 가능한 PNG가 떨어집니다. 수업, 부스, 전단지에 쓰세요. 서브링크를 카카오톡이나 페이스북에 공유하면 좌표.to 브랜드 이미지가 아니라 **실제 목적지 사이트의 썸네일**이 나옵니다 (이전엔 엉뚱하게 좌표.to 로고가 떴음). 공개 프로필 카드에는 목적지의 이미지가 작은 썸네일로 붙어서 방문자가 클릭 전에 어떤 링크인지 한눈에 알 수 있습니다.
