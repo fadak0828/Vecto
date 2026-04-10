@@ -25,7 +25,7 @@ export function SiteFooter() {
           <a
             href="/"
             className="font-bold tracking-tight"
-            style={{ fontFamily: "Manrope, sans-serif" }}
+            style={{ fontFamily: "var(--font-manrope), sans-serif" }}
           >
             좌표.to
           </a>

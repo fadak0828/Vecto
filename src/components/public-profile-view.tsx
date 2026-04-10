@@ -99,7 +99,7 @@ export function PublicProfileView({
             <div className="min-w-0">
               <h1
                 className={`${sz.nameFont} font-bold truncate`}
-                style={{ fontFamily: "Manrope, sans-serif" }}
+                style={{ fontFamily: "var(--font-manrope), sans-serif" }}
               >
                 {displayName}
               </h1>
@@ -107,7 +107,7 @@ export function PublicProfileView({
                 className={`${sz.slugFont} mt-1 truncate`}
                 style={{
                   color: "var(--on-surface-variant)",
-                  fontFamily: "Manrope, sans-serif",
+                  fontFamily: "var(--font-manrope), sans-serif",
                   fontFeatureSettings: '"tnum"',
                 }}
               >

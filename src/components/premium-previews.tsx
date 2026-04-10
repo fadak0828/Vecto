@@ -83,7 +83,7 @@ export function NamespacePillPreview({
               ? "flex items-baseline flex-1 min-w-0"
               : "flex items-baseline min-w-0"
           }
-          style={{ fontFamily: "Manrope, sans-serif" }}
+          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
         >
           <span
             className="text-sm sm:text-base font-medium tracking-tight"
@@ -233,7 +233,7 @@ export function ProfileCardPreview({
           style={{
             background:
               "linear-gradient(135deg, var(--primary), var(--primary-container))",
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "var(--font-manrope), sans-serif",
           }}
           aria-hidden="true"
         >
@@ -243,7 +243,7 @@ export function ProfileCardPreview({
           <p
             className="text-sm font-bold truncate"
             style={{
-              fontFamily: "Manrope, sans-serif",
+              fontFamily: "var(--font-manrope), sans-serif",
               color: "var(--on-background)",
             }}
           >
@@ -310,7 +310,7 @@ export function ClickChartPreview({ className = "" }: { className?: string }) {
         <span
           className="text-2xl font-extrabold leading-none"
           style={{
-            fontFamily: "Manrope, sans-serif",
+            fontFamily: "var(--font-manrope), sans-serif",
             color: "var(--on-background)",
           }}
         >

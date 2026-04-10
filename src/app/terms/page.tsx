@@ -10,11 +10,11 @@ export default function TermsPage() {
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
       <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-3xl mx-auto">
-        <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>좌표.to</a>
+        <a href="/" className="text-xl font-bold tracking-tight" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>좌표.to</a>
       </nav>
 
       <main className="px-6 sm:px-8 py-8 sm:py-16 max-w-3xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>이용약관</h1>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>이용약관</h1>
         <p className="text-sm mb-12" style={{ color: "var(--on-surface-variant)" }}>최종 수정일: 2026년 4월 6일</p>
 
         <div className="space-y-10" style={{ color: "var(--on-surface)", lineHeight: 1.8 }}>
@@ -97,7 +97,7 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "Manrope, sans-serif" }}>{title}</h2>
+      <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>{title}</h2>
       <div className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{children}</div>
     </section>
   );

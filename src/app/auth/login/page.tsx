@@ -41,7 +41,7 @@ export default async function LoginPage({
       <a
         href="/"
         className="text-xl font-bold tracking-tight"
-        style={{ fontFamily: "Manrope, sans-serif" }}
+        style={{ fontFamily: "var(--font-manrope), sans-serif" }}
       >
         좌표.to
       </a>
@@ -58,7 +58,7 @@ export default async function LoginPage({
           <h1
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.05] mb-6"
             style={{
-              fontFamily: "Manrope, sans-serif",
+              fontFamily: "var(--font-manrope), sans-serif",
               textWrap: "balance",
               wordBreak: "keep-all",
             }}

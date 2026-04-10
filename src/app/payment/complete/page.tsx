@@ -24,7 +24,7 @@ function PaymentLoadingShell({ label, sub }: { label: string; sub: string }) {
         <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: "var(--primary)", opacity: 0.1 }}>
           <div className="w-8 h-8 rounded-full animate-spin" style={{ border: "3px solid var(--primary)", borderTopColor: "transparent" }} />
         </div>
-        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>{label}</h1>
+        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>{label}</h1>
         <p style={{ color: "var(--on-surface-variant)" }}>{sub}</p>
       </div>
     </div>
@@ -112,7 +112,7 @@ function PaymentCompleteContent() {
                 <polyline points="12 6 12 12 16 14" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>결제 확인이 지연되고 있습니다</h1>
+            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>결제 확인이 지연되고 있습니다</h1>
             <p className="mb-6" style={{ color: "var(--on-surface-variant)" }}>
               결제가 완료되었다면 아래 버튼을 눌러 수동으로 확인해주세요.
             </p>
@@ -144,7 +144,7 @@ function PaymentCompleteContent() {
             <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center text-2xl" style={{ background: "rgba(0,101,101,0.1)" }}>
               ✓
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif", color: "var(--primary)" }}>결제 완료!</h1>
+            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-manrope), sans-serif", color: "var(--primary)" }}>결제 완료!</h1>
             <p style={{ color: "var(--on-surface-variant)" }}>이용권이 활성화되었습니다. 대시보드로 이동합니다...</p>
           </>
         )}
@@ -154,7 +154,7 @@ function PaymentCompleteContent() {
             <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center text-2xl" style={{ background: "rgba(186,26,26,0.1)" }}>
               ✕
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "Manrope, sans-serif" }}>오류가 발생했습니다</h1>
+            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-manrope), sans-serif" }}>오류가 발생했습니다</h1>
             <p className="mb-6" style={{ color: "var(--error)" }}>{error}</p>
             <a
               href="/dashboard"
