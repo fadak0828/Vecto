@@ -19,8 +19,18 @@ const namespacePage = readFileSync(
   resolve(root, "src/app/[namespace]/page.tsx"),
   "utf-8"
 );
+// v0.10.x 까지는 settings/page.tsx 가 "use client" 로 모든 로직을 가지고
+// 있었다. 2026-04-10 성능 리팩터로 page.tsx 는 server component 가 되고
+// 실제 preview + SELECT 는 settings-client.tsx 로 이동했다. 이 테스트는
+// drift 방지 목적이므로 실제 로직이 있는 client 파일을 읽는다.
 const settingsPage = readFileSync(
-  resolve(root, "src/app/settings/page.tsx"),
+  resolve(root, "src/app/settings/settings-client.tsx"),
+  "utf-8"
+);
+// settings 의 데이터 SELECT 는 공유 서버 로더로 이동됨 — og_* 필드 검증은
+// 여기서 수행.
+const serverLoader = readFileSync(
+  resolve(root, "src/lib/server/user-namespace.ts"),
   "utf-8"
 );
 const sharedComponent = readFileSync(
@@ -76,10 +86,12 @@ describe("public profile parity — drift prevention", () => {
   it("both pages SELECT the og_* columns so SublinkCard has the data it needs", () => {
     // Regression guard: if someone shrinks the SELECT, SublinkCard silently
     // falls back to the initial-box state for every link on that page.
+    // /[namespace] 는 페이지에서 직접 select.
     expect(namespacePage).toMatch(/og_title/);
     expect(namespacePage).toMatch(/og_image/);
-    expect(settingsPage).toMatch(/og_title/);
-    expect(settingsPage).toMatch(/og_image/);
+    // /settings 는 공유 서버 로더(getUserNamespaceData)를 사용.
+    expect(serverLoader).toMatch(/og_title/);
+    expect(serverLoader).toMatch(/og_image/);
   });
 
   it("/settings/page.tsx does NOT re-introduce the old Linktree-style preview markup", () => {
