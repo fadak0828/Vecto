@@ -2,7 +2,7 @@
  * PostHog 이벤트 트래킹.
  *
  * - 8개 타입 안전 이벤트 (design doc 2026-04-22 기준)
- * - `NEXT_PUBLIC_POSTHOG_KEY` 가 비어 있으면 no-op → 사이트는 정상 동작
+ * - `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` 가 비어 있으면 no-op → 사이트는 정상 동작
  * - UTM 은 첫 랜딩에서 sessionStorage 에 저장 → `signup_completed` 에 attach
  */
 
@@ -62,7 +62,7 @@ export type UtmParams = Partial<Record<(typeof UTM_KEYS)[number], string>>;
 const UTM_STORAGE_KEY = "vecto.utm";
 
 export const posthogEnabled = () =>
-  Boolean((process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "").trim());
+  Boolean((process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN ?? "").trim());
 
 /** 브라우저에서만 PostHog 인스턴스 접근. 서버/비활성화 시 null. */
 function getPosthog(): PostHog | null {
