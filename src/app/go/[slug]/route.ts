@@ -3,6 +3,23 @@ import { getSupabase } from "@/lib/supabase";
 import { escapeHtml } from "@/lib/html-escape";
 
 /**
+ * 단축 URL 경유지는 전부 크롤러에 숨긴다.
+ *
+ *  - `noindex`    — 검색결과에 /go/* 가 뜨면 안 됨 (스팸 리다이렉트 경유지
+ *                    로 오인받아 브랜드 신뢰 추락)
+ *  - `nofollow`   — 경유지가 연결한 target_url 이 좌표.to 의 신뢰를 빌려가
+ *                    PageRank 를 넘기지 않도록 차단
+ *  - `nosnippet`  — 만약 실수로 인덱싱돼도 스니펫에 target_url 이 노출되지
+ *                    않게 최후 방어선
+ *
+ * robots.txt 로 크롤 자체를 막지만, 링크를 통해 직접 Googlebot 이 도착할
+ * 수 있으므로 응답 헤더로도 반드시 표시한다.
+ */
+export const NOINDEX_HEADERS = {
+  "X-Robots-Tag": "noindex, nofollow, nosnippet",
+} as const;
+
+/**
  * GET /go/:slug
  *
  * 무료 단축 URL 리다이렉트.
@@ -19,7 +36,7 @@ export async function GET(
   } catch {
     return new NextResponse(notFoundHtml("invalid-slug"), {
       status: 400,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: { "Content-Type": "text/html; charset=utf-8", ...NOINDEX_HEADERS },
     });
   }
 
@@ -36,7 +53,7 @@ export async function GET(
   if (error || !data) {
     return new NextResponse(notFoundHtml(decoded), {
       status: 404,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: { "Content-Type": "text/html; charset=utf-8", ...NOINDEX_HEADERS },
     });
   }
 
@@ -44,7 +61,7 @@ export async function GET(
   if (data.expires_at && new Date(data.expires_at) < new Date()) {
     return new NextResponse(expiredHtml(decoded), {
       status: 410,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
+      headers: { "Content-Type": "text/html; charset=utf-8", ...NOINDEX_HEADERS },
     });
   }
 
@@ -52,7 +69,9 @@ export async function GET(
   // click_count 비동기 증가 (리다이렉트 응답을 블로킹하지 않음)
   void supabase.rpc("increment_click", { slug_id: data.id });
 
-  return NextResponse.redirect(data.target_url, 302);
+  const response = NextResponse.redirect(data.target_url, 302);
+  response.headers.set("X-Robots-Tag", NOINDEX_HEADERS["X-Robots-Tag"]);
+  return response;
 }
 
 function notFoundHtml(slug: string) {

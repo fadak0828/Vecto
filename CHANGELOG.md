@@ -4,6 +4,29 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.13.0] - 2026-04-22 — SEO 기반공사 (Lane A)
+
+검색엔진에 사이트가 존재한다는 사실 자체를 알리기 위한 기초 작업입니다. 지금까지는 `좌표.to` 로 검색해도 결과에 뜨지 않았습니다. 이제는 Google / Bing / 네이버가 사이트 구조를 읽을 수 있게 `robots.txt`, `sitemap.xml`, 메타 태그, 구조화 데이터(JSON-LD) 가 갖춰졌습니다. Bitly 와 링크트리가 차지한 "url 단축" 키워드 공간에 진입하기 위한 첫 단추입니다. 사용자 UI 는 그대로이고 전부 크롤러 대상 변경.
+
+### Added
+- **`/robots.txt` 동적 라우트** — `src/app/robots.ts`. `/go/`, `/api/`, `/auth/`, `/dashboard`, `/settings`, `/payment`, `/reserve` 를 Disallow. 크롤 예산을 공개 페이지에 쓰도록 유도하고, 단축 URL 경유지가 인덱싱되지 않게 막음.
+- **`/sitemap.xml` 동적 라우트** — `src/app/sitemap.ts`. 홈, `/pricing`, `/privacy`, `/terms` 네 개의 정적 공개 라우트만 포함. 수만 개의 공개 서브링크(`/[namespace]/[slug]`)가 크롤 예산을 터뜨리지 못하게 의도적으로 제외.
+- **JSON-LD 구조화 데이터** — `src/components/json-ld.tsx`. `Organization` + `WebSite` (SearchAction 포함) + `SoftwareApplication` 세 타입을 `@graph` 로 묶어 루트 레이아웃에 주입. Google Rich Results + 네이버 브랜드 엔티티 매칭 확보. `businessInfo` 재사용.
+- **SEO 헬퍼** — `src/lib/seo.ts`. `SITE_URL` 상수 (유니코드 `https://좌표.to` — 브랜드 SERP 매칭 우위) + `buildMetadata({ title, description, path, noindex })` 헬퍼. 각 라우트가 동일한 형태로 title / description / canonical / openGraph / twitter / robots 메타를 선언.
+
+### Changed
+- **루트 레이아웃 (`src/app/layout.tsx`)** — `metadataBase: new URL(SITE_URL)` 추가. `title` 을 `default` + `template` 구조로 바꿔 하위 페이지가 자동으로 ` — 좌표.to` 접미사를 받도록. `alternates.canonical`, `twitter` 카드, `robots: { index: true, follow: true }` 명시. `<JsonLd />` 를 body 최상단에 삽입.
+- **`/go/[slug]` 리다이렉트 라우트** — `X-Robots-Tag: noindex, nofollow, nosnippet` 헤더를 302 리다이렉트 + 400 / 404 / 410 모든 응답에 부착. 단축 URL 경유지가 SERP 에 뜨면 스팸 리다이렉트 경유지로 오인받아 브랜드 신뢰가 추락할 수 있는 리스크를 차단.
+- **`/pricing`** — `buildMetadata` 헬퍼로 per-route metadata 선언. 결제 연동 전이므로 `noindex: !paymentsEnabled` 로 색인 보호.
+
+### Tests
+- 29 개 신규 테스트 추가 — `seo.test.ts`, `robots.test.ts`, `sitemap.test.ts`, `go-noindex.test.ts`, `json-ld.test.tsx`. 394 / 394 통과.
+
+### Notes
+- **배포 후 체크리스트:** (1) `curl -I https://좌표.to/go/test` 로 `X-Robots-Tag` 헤더 확인, (2) `/robots.txt` + `/sitemap.xml` 수동 검증, (3) Rich Results Test 제출, (4) GSC 도메인 소유권 등록, (5) Vercel primary domain 설정으로 `xn--h25b29s.to` → `좌표.to` 308 확인.
+- **NOT in scope:** 콘텐츠 SEO (블로그 / 가이드), 네이버 최적화 별도 전략, 공개 서브링크 인덱싱 정책, OG 이미지 폰트 번들링 — 후속 PR 로 이월.
+- **다음 단계:** Lane B (PostHog 무료 티어 + 8 이벤트 스키마 + UTM 캡처) 와 Lane C (홈 히어로 Before / After 강화) 는 별도 PR. 설계 결정 근거는 `~/.gstack/projects/fadak0828-Vecto/` 의 design doc 에 기록됨.
+
 ## [0.12.0] - 2026-04-21 — 결제 UI 일괄 숨김 (pre-launch gating)
 
 PG 심사·계약이 끝나기 전에 사이트를 먼저 배포해 SEO 색인과 사전 작업을 쌓기 위한 조치입니다. 결제 연동에 의존하는 UI를 환경변수 `NEXT_PUBLIC_PAYMENTS_ENABLED` 하나로 일괄 토글합니다. 플래그를 켜지 않은 채 배포하면 `/pricing`, `/payment/*`는 404로 응답하고, 홈·푸터·히어로·대시보드·프로필·만료 이메일·만료 HTML에 있던 "프리미엄" / 가격 페이지 링크가 모두 사라집니다. 백엔드(결제 API, 웹훅, cron, Supabase 스키마)는 그대로 살아 있어서 PG 계약이 끝나는 시점에 ENV 값만 `"true"`로 바꿔 재배포하면 됩니다.

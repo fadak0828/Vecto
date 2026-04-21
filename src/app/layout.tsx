@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { SiteFooter } from "@/components/site-footer";
+import { JsonLd } from "@/components/json-ld";
+import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 /**
@@ -44,18 +46,41 @@ const pretendard = localFont({
   style: "normal",
 });
 
+/**
+ * 루트 metadata.
+ *
+ * `metadataBase` 가 있어야 하위 페이지의 상대경로 OG 이미지/canonical 이
+ * 절대 URL 로 풀린다. 유니코드 URL 이지만 `URL` 생성자가 punycode 로
+ * 정규화한다 (네트워크 레이어). 실제 canonical 링크는 `buildMetadata`
+ * (src/lib/seo.ts) 가 유니코드 문자열로 직접 주입.
+ */
 export const metadata: Metadata = {
-  title: "좌표.to — 짧고 의미있는 한글 URL",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "좌표.to — 짧고 의미있는 한글 URL",
+    template: "%s — 좌표.to",
+  },
   description:
     "한글로 된 짧고 의미있는 URL을 만드세요. 좌표.to/go/오늘강의 처럼 누구나 기억하고 입력할 수 있는 주소.",
+  alternates: {
+    canonical: SITE_URL,
+  },
   openGraph: {
     title: "좌표.to — 짧고 의미있는 한글 URL",
     description:
       "한글로 된 짧고 의미있는 URL을 만드세요. 강의실, 명함, 전단지에서 바로 쓸 수 있습니다.",
+    url: SITE_URL,
     siteName: "좌표.to",
     type: "website",
     locale: "ko_KR",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "좌표.to — 짧고 의미있는 한글 URL",
+    description:
+      "한글로 된 짧고 의미있는 URL을 만드세요. 강의실, 명함, 전단지에서 바로 쓸 수 있습니다.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
@@ -72,6 +97,7 @@ export default function RootLayout({
         className="min-h-screen flex flex-col"
         style={{ background: "var(--surface)" }}
       >
+        <JsonLd />
         <main className="flex-1 flex flex-col">{children}</main>
         <SiteFooter />
       </body>
