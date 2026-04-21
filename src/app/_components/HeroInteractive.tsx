@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { NamespacePillPreview } from "@/components/premium-previews";
+import { paymentsEnabled } from "@/lib/feature-flags";
 
 /** Strip http:// or https:// prefix for display (clipboard copy keeps full URL) */
 function stripScheme(url: string): string {
@@ -463,7 +464,7 @@ export function HeroInteractive() {
                 </p>
 
                 <a
-                  href="/pricing"
+                  href={paymentsEnabled ? "/pricing" : "/dashboard"}
                   className="group flex flex-col items-start gap-3 p-4 rounded-2xl transition-all hover:translate-y-[-1px]"
                   style={{
                     background: "var(--surface-lowest)",
@@ -493,7 +494,7 @@ export function HeroInteractive() {
                     style={{ color: "var(--primary)" }}
                     aria-hidden="true"
                   >
-                    더 알아보기 →
+                    {paymentsEnabled ? "더 알아보기 →" : "무료로 시작 →"}
                   </span>
                 </a>
 

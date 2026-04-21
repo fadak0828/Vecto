@@ -4,6 +4,28 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.12.0] - 2026-04-21 — 결제 UI 일괄 숨김 (pre-launch gating)
+
+PG 심사·계약이 끝나기 전에 사이트를 먼저 배포해 SEO 색인과 사전 작업을 쌓기 위한 조치입니다. 결제 연동에 의존하는 UI를 환경변수 `NEXT_PUBLIC_PAYMENTS_ENABLED` 하나로 일괄 토글합니다. 플래그를 켜지 않은 채 배포하면 `/pricing`, `/payment/*`는 404로 응답하고, 홈·푸터·히어로·대시보드·프로필·만료 이메일·만료 HTML에 있던 "프리미엄" / 가격 페이지 링크가 모두 사라집니다. 백엔드(결제 API, 웹훅, cron, Supabase 스키마)는 그대로 살아 있어서 PG 계약이 끝나는 시점에 ENV 값만 `"true"`로 바꿔 재배포하면 됩니다.
+
+### Added
+- **기능 플래그 헬퍼** — `src/lib/feature-flags.ts` 에 `paymentsEnabled` 하나만 노출. `NEXT_PUBLIC_PAYMENTS_ENABLED === "true"` 일 때만 결제 관련 UI를 렌더. 서버/클라 양쪽에서 import 가능.
+- **`/payment` 라우트 그룹 레이아웃** — `src/app/payment/layout.tsx` 에서 플래그 검사 후 `notFound()`. 직접 링크/북마크로 들어와도 하위 client 페이지(/payment/complete)까지 한번에 차단.
+
+### Changed
+- **`/pricing` 페이지** — 플래그 OFF 시 `notFound()` 반환. SEO 크롤러가 "결제 안 되는 상점"으로 색인하지 못하게 404를 돌려줌.
+- **홈/푸터 네비** — `src/app/page.tsx`, `src/components/site-footer.tsx`, `src/app/_components/HeroInteractive.tsx` 의 `/pricing` 링크·"프리미엄" 버튼을 플래그로 감쌈. Hero 업그레이드 프롬프트는 플래그 OFF 시 `/dashboard` 로 대체되고 CTA 문구도 "무료로 시작 →"으로 바뀜.
+- **대시보드** — `PaymentStatus`, `ClickStats` lock card, "프리미엄으로 받는 것" 프리뷰 블록이 모두 플래그 뒤로 숨음. 결제 플로우가 없는 상태에서 구독 상태 뱃지나 블러 업셀이 노출되지 않음.
+- **공개 프로필 프로모 배너** — `src/components/public-profile-view.tsx` 의 `ProfilePromoBanner` (무료 사용자 프로필 상단 안내 바) 가 플래그 OFF 시 완전히 사라짐.
+- **만료 안내 이메일** — `src/app/api/cron/expire/route.ts` 의 "이용권 갱신하기" 버튼이 플래그 OFF 시 제거. 본문은 그대로 유지.
+- **만료 네임스페이스 HTML** — `src/app/[namespace]/[sub]/route.ts` 의 만료 페이지 "이용권 갱신하기 →" 링크 조건부.
+- **`.env.example`** — `NEXT_PUBLIC_PAYMENTS_ENABLED` 섹션 추가, 기본값 `"false"` 및 용도 설명.
+
+### Notes
+- 결제 API 라우트(`/api/payment/*`, `/api/subscription/cancel`, webhook), Vercel cron, Supabase 구독 테이블은 전부 살아 있음 — 백엔드 개발·내부 테스트 계속 가능.
+- 플래그 끈 상태에서 "프리미엄"이라는 단어는 `/terms` 법적 본문에만 남음 (링크 없음). 법적 안전을 위해 그대로 둠.
+- 플래그 켜는 순간 되돌리는 작업 없음 — ENV `"true"` 로 설정 후 재배포만.
+
 ## [0.11.0] - 2026-04-10 — 사이트 전반 속도 개선
 
 사이트가 체감적으로 훨씬 빨라졌습니다. 첫 방문자가 처음 보는 랜딩 페이지는 이제 서버에서 HTML로 떨어집니다 (이전엔 빈 껍데기 + JS 번들 다운로드를 기다려야 했음). 폰트도 더 이상 외부 CDN (fonts.googleapis.com, jsdelivr) 을 두 번 건너뛰지 않고 빌드에 내장되어 첫 렌더부터 올바른 글꼴로 나옵니다. 로그인 후 대시보드와 설정 페이지는 브라우저에서 Supabase로 4번 왕복하던 것을 서버에서 한 번에 병렬로 가져와 로딩 스피너가 사라졌습니다. 링크를 추가할 때도 이전에는 목적지 사이트의 메타데이터를 기다리느라 최대 2초까지 버튼이 멈춰 있었는데, 이제는 즉시 응답하고 메타데이터는 백그라운드에서 채워집니다.

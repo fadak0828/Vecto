@@ -1,5 +1,7 @@
+import { notFound } from "next/navigation";
 import { MONTHLY_PRICE } from "@/lib/pricing";
 import { businessInfo } from "@/lib/business-info";
+import { paymentsEnabled } from "@/lib/feature-flags";
 import { CheckoutCard } from "./_components/CheckoutCard";
 
 /**
@@ -12,6 +14,12 @@ import { CheckoutCard } from "./_components/CheckoutCard";
  *   결제 카드만 CheckoutCard 클라 island 로 분리.
  */
 export default function PricingPage() {
+  // 결제 연동 완료 전까지 /pricing 자체를 404로 막는다. UI만 감추는 것으로는
+  // 직링크(네이버/구글 색인)로 들어온 사용자가 깨진 결제 버튼을 보게 된다.
+  if (!paymentsEnabled) {
+    notFound();
+  }
+
   // 카카오페이 채널키 미설정 시 버튼 자동 비활성화 → 사용자에게 즉시 신호.
   // NEXT_PUBLIC_* 는 빌드 타임 인라인이므로 빈 문자열/undefined 양쪽 체크.
   const kakaopayChannelKey =

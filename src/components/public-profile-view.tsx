@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ProfilePromoBanner } from "@/components/profile-promo-banner";
 import { SublinkCard, type SublinkCardLink } from "@/components/sublink-card";
+import { paymentsEnabled } from "@/lib/feature-flags";
 
 /**
  * PublicProfileView — 공개 프로필 페이지 렌더링의 단일 진실 공급원.
@@ -125,9 +126,10 @@ export function PublicProfileView({
           )}
         </div>
 
-        {/* Promo banner — free users only. 프리뷰에서도 동일하게 보인다. */}
-        {!isPaid && !isPreview && <ProfilePromoBanner />}
-        {!isPaid && isPreview && (
+        {/* Promo banner — free users only. 프리뷰에서도 동일하게 보인다.
+            결제 UI OFF (pre-launch) 상태에서는 배너 자체를 숨김. */}
+        {paymentsEnabled && !isPaid && !isPreview && <ProfilePromoBanner />}
+        {paymentsEnabled && !isPaid && isPreview && (
           <div
             className="mb-5 p-2.5 rounded-lg"
             style={{ background: "var(--surface-lowest)" }}
