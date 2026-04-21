@@ -4,6 +4,36 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.14.0] - 2026-04-22 — PostHog 분석 + 퍼널 이벤트 (Lane B)
+
+검색→클릭→단축→가입 퍼널의 **측정 레이어**. SEO 로 트래픽이 들어오기 시작하면 어느 단계에서 사람이 빠지는지 알아야 다음 개선을 할 수 있습니다. PostHog Cloud 무료 티어(월 1M events + 5k 세션리플레이) 를 깔고, 8 개의 타입 안전 이벤트를 코드에 심었습니다. UTM 은 첫 랜딩에서 sessionStorage 에 저장되어 `signup_completed` 이벤트에 attach — 광고 집행 시 어떤 캠페인이 실제 가입으로 이어지는지 추적 가능. `NEXT_PUBLIC_POSTHOG_KEY` 가 비면 트래킹은 전부 no-op 이라 키 발급 전 배포해도 안전. `autocapture: false` — 명시적 이벤트만 추적.
+
+### Added
+- **PostHog 통합** — `posthog-js` 설치, `src/app/providers.tsx` 에서 초기화. `autocapture: false` + `capture_pageview/pageleave: true`. `persistence: localStorage+cookie`. 서버/키 없음 시 안전하게 no-op.
+- **타입 안전 이벤트 스키마** — `src/lib/analytics.ts`. 8 개 이벤트(`shorten_submitted`, `shorten_created`, `shorten_error`, `result_page_viewed`, `upsell_cta_clicked`, `signup_started`, `signup_completed`, `custom_slug_first_used`) 각각의 properties 를 generic 으로 enforcement — 잘못된 필드명 쓰면 타입 에러.
+- **UTM 캡처** — `captureUtmFromLocation()` + `getStoredUtm()`. 첫 랜딩 시 `utm_source/medium/campaign/term/content` 5 종을 sessionStorage(`vecto.utm`)에 1 회만 저장 (덮어쓰지 않음). `signup_completed` 에 attach. 광고 CPC → 가입 CAC 측정 가능.
+- **이벤트 발화 지점**:
+  - 홈 단축 폼(`HeroInteractive.tsx`): 제출 시 `shorten_submitted`(`has_custom_slug`), 성공 시 `shorten_created`(`slug`, `is_anon`) + `result_page_viewed`, 실패 시 `shorten_error`(`code`, `http_status`).
+  - OAuth 로그인(`GoogleSignInButton.tsx`): 클릭 시 `signup_started`(`provider: "google"`).
+  - Auth 콜백(`/auth/callback/route.ts`): 성공 리다이렉트에 `?auth=success` 마커 추가 — 클라이언트 Providers 가 감지해 `signup_completed` + `identify(user.id)` 발화, sessionStorage UTM 을 properties 로 attach, 마커 URL 은 `history.replaceState` 로 제거.
+  - 대시보드 슬러그 생성(`dashboard-client.tsx`): 응답의 `is_first_slug` 플래그를 받아 첫 번째일 때만 `custom_slug_first_used`(`slug_length`).
+- **`/api/slugs` `is_first_slug` 응답 필드** — INSERT 직후 유저의 총 슬러그 수를 `{ count: "exact", head: true }` 로 HEAD 쿼리 (row 페이로드 없음 → 오버헤드 최소). `count === 1` 이면 첫 슬러그.
+- **env placeholder** — `.env.example` 에 `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` 추가. 키 비면 no-op.
+
+### Changed
+- **Root layout** — `<Providers>` 클라이언트 래퍼가 `<main>` + `<SiteFooter>` 를 감쌈. PostHog init + UTM 캡처 + `?auth=success` 감지 전부 이 안에서 처리.
+
+### Tests
+- **`tests/analytics.test.ts`** (11 tests) — `extractUtm` 파싱, sessionStorage 1 회 저장/덮어쓰지 않음, `posthogEnabled()` 키 유무 분기, `track/identify/resetIdentity` no-op 안전성 + PostHog 있을 때 올바른 호출.
+- **`tests/api-slugs.test.ts`** — 모의 Supabase 체인에 HEAD count 쿼리 지원 추가(`slugs:count` 큐). 성공 경로에 count 응답 enqueue.
+- **`tests/auth-callback.test.ts`** — 리다이렉트 URL 의 `?auth=success` 마커 기대값 업데이트.
+
+### Notes
+- **배포 후 체크리스트:** (1) Vercel 환경변수에 `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` 추가, (2) PostHog 대시보드에서 8 개 이벤트 수신 확인, (3) 퍼널 대시보드 생성 (`shorten_submitted` → `shorten_created` → `signup_started` → `signup_completed` → `custom_slug_first_used`), (4) UTM 세그먼트 분해 검증.
+- **설계 근거:** `~/.gstack/projects/fadak0828-Vecto/fadak-claude-eager-wescoff-cf6471-design-20260422-000704.md` — 8 개 이벤트 목록, `autocapture: false` 정책, UTM attach 타이밍 모두 design doc 의 "Resolved Decisions" 섹션에서 확정.
+- **NOT in scope:** `upsell_cta_clicked` 발화 지점(Lane C 의 결과 페이지 업셀 CTA 가 아직 존재하지 않음 — 스키마만 정의), `paid_conversion` 이벤트(v0.12 의 결제 UI 숨김 플래그 중이므로 제외), PostHog 세션리플레이 설정, 퍼널/대시보드 프로비저닝.
+- **다음 단계:** Lane C (홈 히어로 Before/After 강화 + 결과 페이지 업셀 CTA — `upsell_cta_clicked` 발화 지점 등장) 는 별도 PR.
+
 ## [0.13.0] - 2026-04-22 — SEO 기반공사 (Lane A)
 
 검색엔진에 사이트가 존재한다는 사실 자체를 알리기 위한 기초 작업입니다. 지금까지는 `좌표.to` 로 검색해도 결과에 뜨지 않았습니다. 이제는 Google / Bing / 네이버가 사이트 구조를 읽을 수 있게 `robots.txt`, `sitemap.xml`, 메타 태그, 구조화 데이터(JSON-LD) 가 갖춰졌습니다. Bitly 와 링크트리가 차지한 "url 단축" 키워드 공간에 진입하기 위한 첫 단추입니다. 사용자 UI 는 그대로이고 전부 크롤러 대상 변경.

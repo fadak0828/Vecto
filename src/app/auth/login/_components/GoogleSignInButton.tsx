@@ -6,6 +6,7 @@ import {
   type InAppBrowserInfo,
   detectInAppBrowser,
 } from "@/lib/in-app-browser";
+import { track } from "@/lib/analytics";
 import { InAppBrowserNotice } from "./InAppBrowserNotice";
 
 export const LOGIN_FAILED_MESSAGE = "로그인에 실패했습니다. 다시 시도해주세요.";
@@ -51,6 +52,7 @@ export function GoogleSignInButton({ initialError }: { initialError?: string }) 
   async function handleClick() {
     setLoading(true);
     setErrorMsg("");
+    track("signup_started", { provider: "google" });
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

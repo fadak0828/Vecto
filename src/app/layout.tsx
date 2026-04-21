@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { SiteFooter } from "@/components/site-footer";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL } from "@/lib/seo";
+import { Providers } from "./providers";
 import "./globals.css";
 
 /**
@@ -98,8 +99,10 @@ export default function RootLayout({
         style={{ background: "var(--surface)" }}
       >
         <JsonLd />
-        <main className="flex-1 flex flex-col">{children}</main>
-        <SiteFooter />
+        <Providers>
+          <main className="flex-1 flex flex-col">{children}</main>
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
   );
