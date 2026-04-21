@@ -52,7 +52,7 @@ describe("Auth Callback — GET 핸들러 (OAuth 코드 교환)", () => {
       makeRequest("https://xn--h25b29s.to/auth/callback?code=oauth_xyz")
     );
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard?auth=success");
     expect(exchangeMock).toHaveBeenCalledWith("oauth_xyz");
   });
 
@@ -79,7 +79,7 @@ describe("Auth Callback — GET 핸들러 (OAuth 코드 교환)", () => {
         "https://xn--h25b29s.to/auth/callback?code=ok&next=/settings"
       )
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/settings");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/settings?auth=success");
   });
 
   it("code + 악성 next 파라미터 (외부 URL)는 /dashboard 로 폴백", async () => {
@@ -90,7 +90,7 @@ describe("Auth Callback — GET 핸들러 (OAuth 코드 교환)", () => {
         "https://xn--h25b29s.to/auth/callback?code=ok&next=https://evil.com"
       )
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard?auth=success");
   });
 
   it("provider error (access_denied) 만 있고 code 없음 → 원본 코드 전달", async () => {
@@ -127,7 +127,7 @@ describe("Auth Callback — next 파라미터 강화 검증 (URL 파싱)", () =>
         "https://xn--h25b29s.to/auth/callback?code=ok&next=/settings"
       )
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/settings");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/settings?auth=success");
   });
 
   it("protocol-relative //evil.com 차단", async () => {
@@ -138,7 +138,7 @@ describe("Auth Callback — next 파라미터 강화 검증 (URL 파싱)", () =>
         "https://xn--h25b29s.to/auth/callback?code=ok&next=//evil.com"
       )
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard?auth=success");
   });
 
   it("backslash 우회 /\\evil.com 차단", async () => {
@@ -163,7 +163,7 @@ describe("Auth Callback — next 파라미터 강화 검증 (URL 파싱)", () =>
         "https://xn--h25b29s.to/auth/callback?code=ok&next=javascript%3Aalert(1)"
       )
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard?auth=success");
   });
 
   it("next 누락 시 /dashboard 기본값", async () => {
@@ -172,6 +172,6 @@ describe("Auth Callback — next 파라미터 강화 검증 (URL 파싱)", () =>
     const res = await GET(
       makeRequest("https://xn--h25b29s.to/auth/callback?code=ok")
     );
-    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard");
+    expect(res.headers.get("location")).toBe("https://xn--h25b29s.to/dashboard?auth=success");
   });
 });

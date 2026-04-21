@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NamespacePillPreview } from "@/components/premium-previews";
 import { paymentsEnabled } from "@/lib/feature-flags";
+import { track } from "@/lib/analytics";
 
 /** Strip http:// or https:// prefix for display (clipboard copy keeps full URL) */
 function stripScheme(url: string): string {
@@ -155,6 +156,7 @@ export function HeroInteractive() {
     setLoading(true);
     setResult(null);
     setQrDataUrl(null);
+    track("shorten_submitted", { has_custom_slug: slug.trim().length > 0 });
     try {
       const res = await fetch("/api/shorten", {
         method: "POST",
@@ -164,8 +166,24 @@ export function HeroInteractive() {
       const data = await res.json();
       if (!res.ok) {
         setResult({ error: data.error, suggested: data.suggested });
+        track("shorten_error", {
+          code: typeof data.error === "string" ? data.error : "unknown",
+          http_status: res.status,
+        });
       } else {
         setResult({ url: data.url, delete_token: data.delete_token });
+        const createdSlug =
+          typeof data.slug === "string"
+            ? data.slug
+            : typeof data.url === "string"
+              ? data.url.split("/").pop() ?? ""
+              : "";
+        track("shorten_created", {
+          slug: createdSlug,
+          is_anon: !data.user_id,
+          ttl_hours: typeof data.ttl_hours === "number" ? data.ttl_hours : undefined,
+        });
+        track("result_page_viewed", { slug: createdSlug });
         try {
           const QRCode = (await import("qrcode")).default;
           const dataUrl = await QRCode.toDataURL(data.url, {
@@ -180,6 +198,7 @@ export function HeroInteractive() {
       }
     } catch {
       setResult({ error: "네트워크 오류가 발생했습니다." });
+      track("shorten_error", { code: "network_error" });
     } finally {
       setLoading(false);
     }

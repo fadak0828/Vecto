@@ -28,6 +28,7 @@ let mockUser: User = { id: "user-1" };
 interface MockQueryResult {
   data?: unknown;
   error?: { code?: string; message?: string } | null;
+  count?: number | null;
 }
 
 // 호출별 응답 큐 — from(table)+mode 튜플 키
@@ -43,8 +44,12 @@ function dequeue(key: string): MockQueryResult {
 
 function makeChain(table: string) {
   let mode: "select" | "insert" | "update" | "delete" = "select";
+  let isHeadCount = false;
   const chain: Record<string, unknown> = {};
-  chain.select = () => chain;
+  chain.select = (_cols?: string, opts?: { count?: string; head?: boolean }) => {
+    if (opts?.head) isHeadCount = true;
+    return chain;
+  };
   chain.insert = () => {
     mode = "insert";
     return chain;
@@ -65,6 +70,8 @@ function makeChain(table: string) {
   // DELETE/UPDATE chain: handler does `await supabase.from("slugs").delete().eq(...)`
   // or `.update(...).eq(...)` without .single(), so the chain must be thenable
   // for those modes. INSERT/SELECT still resolve via single/maybeSingle.
+  // HEAD count query (`.select(_, {count, head: true})`) also awaits the chain
+  // directly → dequeue from `${table}:count`.
   chain.then = function (
     onFulfilled: (v: MockQueryResult) => unknown,
     onRejected?: (e: unknown) => unknown,
@@ -72,6 +79,14 @@ function makeChain(table: string) {
     if (mode === "delete" || mode === "update") {
       try {
         const v = dequeue(`${table}:${mode}`);
+        return Promise.resolve(v).then(onFulfilled, onRejected);
+      } catch (e) {
+        return Promise.reject(e).then(onFulfilled, onRejected);
+      }
+    }
+    if (mode === "select" && isHeadCount) {
+      try {
+        const v = dequeue(`${table}:count`);
         return Promise.resolve(v).then(onFulfilled, onRejected);
       } catch (e) {
         return Promise.reject(e).then(onFulfilled, onRejected);
@@ -253,6 +268,7 @@ describe("POST /api/slugs", () => {
       },
       error: null,
     });
+    enqueue("slugs:count", { data: null, error: null, count: 1 } as MockQueryResult);
     const { POST } = await import("@/app/api/slugs/route");
     const res = await POST(
       makeRequest({
@@ -294,6 +310,7 @@ describe("POST /api/slugs", () => {
       },
       error: null,
     });
+    enqueue("slugs:count", { data: null, error: null, count: 2 } as MockQueryResult);
     const { POST } = await import("@/app/api/slugs/route");
     const res = await POST(
       makeRequest({
@@ -332,6 +349,7 @@ describe("POST /api/slugs", () => {
       },
       error: null,
     });
+    enqueue("slugs:count", { data: null, error: null, count: 3 } as MockQueryResult);
     ogResult = { ok: false, error: "timeout" };
     const { POST } = await import("@/app/api/slugs/route");
     const res = await POST(

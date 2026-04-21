@@ -135,7 +135,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 6) 응답 반환 후 백그라운드에서 OG fetch + UPDATE
+  // 6) `is_first_slug` — 방금 INSERT 한 row 포함 총 개수가 1 이면 이 유저의 첫 슬러그.
+  //    count 는 HEAD 요청이라 row 페이로드 없음 → 오버헤드 최소.
+  const { count: ownerSlugCount } = await supabase
+    .from("slugs")
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", user.id);
+  const isFirstSlug = ownerSlugCount === 1;
+
+  // 7) 응답 반환 후 백그라운드에서 OG fetch + UPDATE
   //    Vercel/Node 환경에서 `after()` 는 응답이 전송된 뒤에도 서버 함수를
   //    유지해서 작업을 실행한다. 실패하면 row 의 og_fetched_at 이 null 로
   //    유지되고, 후속 PR 에서 cron backfill 로 재시도 (TODOS.md 참고).
@@ -168,5 +176,5 @@ export async function POST(request: NextRequest) {
     }
   });
 
-  return NextResponse.json(inserted);
+  return NextResponse.json({ ...inserted, is_first_slug: isFirstSlug });
 }

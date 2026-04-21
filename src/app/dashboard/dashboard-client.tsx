@@ -14,6 +14,7 @@ import {
 } from "@/components/premium-previews";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 import { paymentsEnabled } from "@/lib/feature-flags";
+import { track } from "@/lib/analytics";
 import { SublinkDetailModal } from "@/components/sublink-detail-modal";
 import type {
   ServerNamespace,
@@ -224,7 +225,12 @@ export function DashboardClient({
           .catch(() => ({ error: "추가 실패" }));
         setAddError(data.error ?? "추가 실패");
       } else {
-        const inserted = (await res.json()) as ServerSubLink;
+        const inserted = (await res.json()) as ServerSubLink & {
+          is_first_slug?: boolean;
+        };
+        if (inserted.is_first_slug) {
+          track("custom_slug_first_used", { slug_length: inserted.slug.length });
+        }
         // 낙관적: OG 필드가 비어있는 채로 즉시 리스트에 추가.
         setLinks((prev) => [...prev, inserted]);
         setNewSlug("");

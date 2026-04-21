@@ -42,7 +42,12 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const response = NextResponse.redirect(`${origin}${safeDest}`);
+    // `auth=success` 마커는 클라이언트 Providers 가 감지해 signup_completed 를
+    // 발화 + identify 한 뒤 replaceState 로 제거한다. UTM 은 sessionStorage 에
+    // 있으므로 서버에서는 접근 불가 — 발화를 클라이언트로 위임.
+    const destUrl = new URL(safeDest, origin);
+    destUrl.searchParams.set("auth", "success");
+    const response = NextResponse.redirect(destUrl);
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
