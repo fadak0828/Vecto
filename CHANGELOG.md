@@ -4,6 +4,13 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.14.1] - 2026-04-22 — PostHog env 이름을 공식 규격에 맞춤
+
+PostHog Cloud 대시보드가 제공하는 `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` 이름과 맞추기 위해 env 변수 이름 변경. Vercel 환경변수에 그대로 붙여넣을 수 있게 됨.
+
+### Changed
+- `NEXT_PUBLIC_POSTHOG_KEY` → **`NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`** (src/lib/analytics.ts, src/app/providers.tsx, .env.example, tests/analytics.test.ts).
+
 ## [0.14.0] - 2026-04-22 — PostHog 분석 + 퍼널 이벤트 (Lane B)
 
 검색→클릭→단축→가입 퍼널의 **측정 레이어**. SEO 로 트래픽이 들어오기 시작하면 어느 단계에서 사람이 빠지는지 알아야 다음 개선을 할 수 있습니다. PostHog Cloud 무료 티어(월 1M events + 5k 세션리플레이) 를 깔고, 8 개의 타입 안전 이벤트를 코드에 심었습니다. UTM 은 첫 랜딩에서 sessionStorage 에 저장되어 `signup_completed` 이벤트에 attach — 광고 집행 시 어떤 캠페인이 실제 가입으로 이어지는지 추적 가능. `NEXT_PUBLIC_POSTHOG_KEY` 가 비면 트래킹은 전부 no-op 이라 키 발급 전 배포해도 안전. `autocapture: false` — 명시적 이벤트만 추적.

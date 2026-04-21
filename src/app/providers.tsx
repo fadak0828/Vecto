@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     captureUtmFromLocation();
 
     if (!posthogEnabled() || initialized) return;
-    const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    const key = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
     const host =
       process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
     if (!key) return;

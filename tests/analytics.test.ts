@@ -74,12 +74,12 @@ describe("posthogEnabled", () => {
   });
 
   it("키가 비면 false", () => {
-    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN", "");
     expect(posthogEnabled()).toBe(false);
   });
 
   it("키가 있으면 true", () => {
-    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "phc_abc");
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN", "phc_abc");
     expect(posthogEnabled()).toBe(true);
   });
 });
