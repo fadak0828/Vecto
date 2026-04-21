@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { escapeHtml } from "@/lib/html-escape";
+import { paymentsEnabled } from "@/lib/feature-flags";
 
 /**
  * GET /:namespace/:sub
@@ -193,10 +194,15 @@ function notFoundHtml(ns: string, sub: string) {
 }
 
 function expiredHtml(ns: string) {
+  // paymentsEnabled OFF 시 /pricing 링크 자체를 노출하지 않는다. 현재 결제가
+  // 막혀 있는 상태에서 "갱신하기" 버튼은 404로 이어지기 때문.
+  const renewCta = paymentsEnabled
+    ? `<a href="https://좌표.to/pricing">이용권 갱신하기 →</a>`
+    : "";
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>좌표.to - 이용권 만료</title>
 <style>body{font-family:Pretendard,system-ui,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fafaf9}
 .box{text-align:center;padding:2rem}.title{font-size:1.5rem;font-weight:bold;margin-bottom:.5rem}.desc{color:#78716c;margin-bottom:1.5rem}a{color:#0f766e;text-decoration:none}</style></head>
-<body><div class="box"><div class="title">이용권이 만료되었습니다</div><div class="desc">${escapeHtml(ns)}의 이용권이 만료되어 리다이렉트가 중지되었습니다.</div><a href="https://좌표.to/pricing">이용권 갱신하기 →</a></div></body></html>`;
+<body><div class="box"><div class="title">이용권이 만료되었습니다</div><div class="desc">${escapeHtml(ns)}의 이용권이 만료되어 리다이렉트가 중지되었습니다.</div>${renewCta}</div></body></html>`;
 }
 
 function errorHtml() {

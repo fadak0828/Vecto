@@ -4,6 +4,7 @@ import {
   ProfileCardPreview,
   RotatingSlug,
 } from "@/components/premium-previews";
+import { paymentsEnabled } from "@/lib/feature-flags";
 import { HeroInteractive } from "./_components/HeroInteractive";
 
 /**
@@ -32,13 +33,15 @@ export default function Home() {
           좌표.to
         </span>
         <div className="flex items-center gap-3 sm:gap-6">
-          <a
-            href="/pricing"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            프리미엄
-          </a>
+          {paymentsEnabled && (
+            <a
+              href="/pricing"
+              className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
+              style={{ color: "var(--on-surface-variant)" }}
+            >
+              프리미엄
+            </a>
+          )}
           <a
             href="/auth/login"
             className="text-sm px-4 py-2 rounded-full transition-opacity hover:opacity-90"
@@ -56,18 +59,20 @@ export default function Home() {
       <HeroInteractive />
 
       {/* Mobile-only nav links */}
-      <nav className="flex sm:hidden gap-2 px-6 pb-6">
-        <a
-          href="/pricing"
-          className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
-          style={{
-            background: "var(--surface-container)",
-            color: "var(--on-surface)",
-          }}
-        >
-          프리미엄
-        </a>
-      </nav>
+      {paymentsEnabled && (
+        <nav className="flex sm:hidden gap-2 px-6 pb-6">
+          <a
+            href="/pricing"
+            className="flex-1 inline-flex items-center justify-center text-sm font-medium py-3 rounded-xl transition-opacity hover:opacity-90"
+            style={{
+              background: "var(--surface-container)",
+              color: "var(--on-surface)",
+            }}
+          >
+            프리미엄
+          </a>
+        </nav>
+      )}
 
       {/* Premium Features — visual previews instead of text cards.
           RotatingSlug / NamespacePillPreview / ProfileCardPreview /
