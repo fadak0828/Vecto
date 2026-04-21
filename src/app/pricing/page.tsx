@@ -2,7 +2,17 @@ import { notFound } from "next/navigation";
 import { MONTHLY_PRICE } from "@/lib/pricing";
 import { businessInfo } from "@/lib/business-info";
 import { paymentsEnabled } from "@/lib/feature-flags";
+import { buildMetadata } from "@/lib/seo";
 import { CheckoutCard } from "./_components/CheckoutCard";
+
+export const metadata = buildMetadata({
+  title: "가격",
+  description:
+    "좌표.to 는 무료로 시작합니다. 한글 커스텀 슬러그와 네임스페이스가 필요하면 월 구독으로 확장하세요.",
+  path: "/pricing",
+  // 결제 연동 완료 전까지 /pricing 은 notFound() 로 막혀 있으므로 색인 대상 아님.
+  noindex: !paymentsEnabled,
+});
 
 /**
  * /pricing — Single SKU Freemium 가격 페이지.
