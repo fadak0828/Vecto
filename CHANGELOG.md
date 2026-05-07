@@ -4,6 +4,13 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.0.1] - 2026-05-07 — 신용/체크카드 결제 버튼 숨김
+
+`/pricing` 의 신용/체크카드 결제 버튼 일시 비노출. 카카오페이 결제 흐름은 그대로. 카드 결제 처리 로직 (`handleSubscribe("card")` / `PayMethod` 타입 / PortOne 카드 채널 키) 은 코드에 유지 — 다시 노출하려면 버튼 1개 되돌리면 됨.
+
+### Changed
+- 결제 페이지 카드 버튼 비노출 (src/app/pricing/_components/CheckoutCard.tsx).
+
 ## [0.15.0] - 2026-05-07 — 결제·프리미엄 UI 복구 + 슬러그 등록 버그 수정
 
 PG 계약 이슈로 일괄 숨겨뒀던 결제/프리미엄 UI 전체 복구. 그리고 그 동안 잠복해 있던 대시보드 슬러그 등록 버그 발견·수정 (등록은 되지만 UI는 "오류" 표시되던 문제).
