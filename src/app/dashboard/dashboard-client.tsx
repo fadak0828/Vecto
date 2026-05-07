@@ -13,7 +13,6 @@ import {
   ProfileCardPreview,
 } from "@/components/premium-previews";
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
-import { paymentsEnabled } from "@/lib/feature-flags";
 import { track } from "@/lib/analytics";
 import { SublinkDetailModal } from "@/components/sublink-detail-modal";
 import type {
@@ -405,20 +404,18 @@ export function DashboardClient({
               </p>
             </form>
 
-            {paymentsEnabled && (
-              <div className="mt-10">
-                <p
-                  className="text-xs font-bold uppercase tracking-widest mb-3"
-                  style={{ color: "var(--primary)" }}
-                >
-                  프리미엄으로 받는 것
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <ProfileCardPreview displayName={claimName || "내이름"} />
-                  <ClickChartPreview />
-                </div>
+            <div className="mt-10">
+              <p
+                className="text-xs font-bold uppercase tracking-widest mb-3"
+                style={{ color: "var(--primary)" }}
+              >
+                프리미엄으로 받는 것
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ProfileCardPreview displayName={claimName || "내이름"} />
+                <ClickChartPreview />
               </div>
-            )}
+            </div>
           </section>
         ) : (
           <section className="space-y-6">
@@ -434,28 +431,25 @@ export function DashboardClient({
               </p>
             </div>
 
-            {paymentsEnabled && (
-              <PaymentStatus
-                subscription={subscription}
-                namespaceSlug={namespace.name}
-                displayName={namespace.display_name ?? undefined}
-                onCancel={
-                  subscription?.status === "active"
-                    ? () => setCancelOpen(true)
-                    : undefined
-                }
-              />
-            )}
+            <PaymentStatus
+              subscription={subscription}
+              namespaceSlug={namespace.name}
+              displayName={namespace.display_name ?? undefined}
+              onCancel={
+                subscription?.status === "active"
+                  ? () => setCancelOpen(true)
+                  : undefined
+              }
+            />
 
-            {paymentsEnabled && (
-              <ClickStats
-                namespaceId={namespace.id}
-                isPaid={
-                  subscription?.status === "active" ||
-                  subscription?.status === "canceled"
-                }
-              />
-            )}
+            <ClickStats
+              namespaceId={namespace.id}
+              isPaid={
+                subscription?.status === "active" ||
+                subscription?.status === "canceled"
+              }
+            />
+
 
             {/* Profile card */}
             <div

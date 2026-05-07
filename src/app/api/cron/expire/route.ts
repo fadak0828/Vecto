@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/portone";
-import { paymentsEnabled } from "@/lib/feature-flags";
 
 /**
  * GET /api/cron/expire
@@ -159,7 +158,7 @@ async function sendRenewalEmail(
           <h2 style="color: #006565;">좌표.to/${namespaceName}</h2>
           <p>안녕하세요! 좌표.to/${namespaceName} 이용권이 <strong>${daysLeft}일 후</strong> 만료됩니다.</p>
           <p>만료 후 30일까지는 기존 링크가 유지되지만, 이후에는 리다이렉트가 중지됩니다.</p>
-          ${paymentsEnabled ? `<a href="https://좌표.to/pricing" style="display: inline-block; padding: 12px 24px; background: #006565; color: white; text-decoration: none; border-radius: 8px; margin-top: 16px;">이용권 갱신하기</a>` : ""}
+          <a href="https://좌표.to/pricing" style="display: inline-block; padding: 12px 24px; background: #006565; color: white; text-decoration: none; border-radius: 8px; margin-top: 16px;">이용권 갱신하기</a>
           <p style="color: #78716c; font-size: 12px; margin-top: 24px;">좌표.to</p>
         </div>
       `;
