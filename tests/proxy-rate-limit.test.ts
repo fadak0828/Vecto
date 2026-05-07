@@ -32,8 +32,9 @@ describe("proxy.ts — Rate Limit 설정", () => {
 });
 
 describe("proxy.ts — CSP 헤더 값 검증", () => {
+  // 실제 proxy.ts 의 CSP 문자열과 동기화 유지.
   const csp =
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co";
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.portone.io; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://api.portone.io https://us.i.posthog.com https://us-assets.i.posthog.com; frame-src https://*.portone.io";
 
   it("default-src가 self로 설정되어 있다", () => {
     expect(csp).toContain("default-src 'self'");
@@ -45,6 +46,13 @@ describe("proxy.ts — CSP 헤더 값 검증", () => {
 
   it("Pretendard 폰트 CDN을 허용한다", () => {
     expect(csp).toContain("https://cdn.jsdelivr.net");
+  });
+
+  // 회귀: PostHog (US 리전) 이벤트 ingestion + assets 가 connect-src 에 있어야
+  // 분석 이벤트가 차단 없이 전송된다.
+  it("PostHog US 리전 ingestion + assets 호스트를 connect-src 에 허용한다", () => {
+    expect(csp).toContain("https://us.i.posthog.com");
+    expect(csp).toContain("https://us-assets.i.posthog.com");
   });
 });
 
