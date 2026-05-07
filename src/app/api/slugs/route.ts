@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       og_fetch_error: null,
     })
     .select(
-      "id, slug, target_url, namespace_id, og_title, og_description, og_image, og_site_name, og_fetched_at, og_fetch_error",
+      "id, slug, target_url, namespace_id, click_count, og_title, og_description, og_image, og_site_name, og_fetched_at, og_fetch_error",
     )
     .single();
 

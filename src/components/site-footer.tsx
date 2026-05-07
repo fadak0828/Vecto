@@ -1,5 +1,4 @@
 import { businessInfo } from "@/lib/business-info";
-import { paymentsEnabled } from "@/lib/feature-flags";
 
 /**
  * 글로벌 footer.
@@ -34,14 +33,12 @@ export function SiteFooter() {
             className="flex flex-wrap justify-center gap-1 sm:gap-3 text-sm"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            {paymentsEnabled && (
-              <a
-                href="/pricing"
-                className="inline-flex items-center px-3 py-3 -my-1 hover:opacity-70 transition-opacity"
-              >
-                프리미엄
-              </a>
-            )}
+            <a
+              href="/pricing"
+              className="inline-flex items-center px-3 py-3 -my-1 hover:opacity-70 transition-opacity"
+            >
+              프리미엄
+            </a>
             <a
               href="/terms"
               className="inline-flex items-center px-3 py-3 -my-1 hover:opacity-70 transition-opacity"

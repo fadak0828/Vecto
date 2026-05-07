@@ -4,6 +4,23 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.0] - 2026-05-07 — 결제·프리미엄 UI 복구 + 슬러그 등록 버그 수정
+
+PG 계약 이슈로 일괄 숨겨뒀던 결제/프리미엄 UI 전체 복구. 그리고 그 동안 잠복해 있던 대시보드 슬러그 등록 버그 발견·수정 (등록은 되지만 UI는 "오류" 표시되던 문제).
+
+### Added
+- **결제·프리미엄 UI 복구** — 홈 네비게이션, 푸터, hero CTA, 대시보드 결제 상태 카드, 클릭 분석, 프로필 프로모 배너, 만료 이메일/페이지의 갱신 CTA가 모두 다시 노출됨. `/pricing`, `/payment/*` 라우트 정상 응답.
+- **PostHog CSP 허용** — `connect-src` 에 `us.i.posthog.com`, `us-assets.i.posthog.com` 추가. 분석 이벤트가 더 이상 브라우저 CSP 에 차단되지 않음 (src/proxy.ts).
+
+### Fixed
+- **대시보드 슬러그 등록 시 "오류" 표시 버그** — POST `/api/slugs` 의 INSERT.SELECT 절이 `click_count` 를 누락해, 클라이언트 optimistic 렌더링이 `link.click_count.toLocaleString()` 에서 throw → React 트리 unmount → "오류" 표시. DB row 자체는 정상 저장되어 새로고침하면 보였음. SELECT 절에 `click_count` 추가로 해결 (src/app/api/slugs/route.ts).
+
+### Removed
+- **`NEXT_PUBLIC_PAYMENTS_ENABLED` 플래그 + `src/lib/feature-flags.ts`** — 임시 토글이라 이젠 들고 다닐 이유 없음. 13개 파일에서 `paymentsEnabled` 분기 제거. `src/app/payment/layout.tsx` (404 게이트만 있던 no-op) 도 삭제.
+
+### Tests
+- 회귀 테스트 2개 추가 — `slugs:insert` SELECT 에 `click_count` 포함 검증 (tests/api-slugs.test.ts), CSP `connect-src` 에 PostHog 호스트 포함 검증 (tests/proxy-rate-limit.test.ts). 407/407 passed.
+
 ## [0.14.1] - 2026-04-22 — PostHog env 이름을 공식 규격에 맞춤
 
 PostHog Cloud 대시보드가 제공하는 `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` 이름과 맞추기 위해 env 변수 이름 변경. Vercel 환경변수에 그대로 붙여넣을 수 있게 됨.

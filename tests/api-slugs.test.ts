@@ -42,12 +42,16 @@ function dequeue(key: string): MockQueryResult {
   return q.shift()!;
 }
 
+// `.from(table).<mode>().select("cols")` 에 전달된 컬럼 문자열 기록.
+// INSERT 후 SELECT 가 누락한 컬럼을 잡기 위함 (예: click_count → undefined → 클라 crash).
+const selectCols: Record<string, string> = {};
 function makeChain(table: string) {
   let mode: "select" | "insert" | "update" | "delete" = "select";
   let isHeadCount = false;
   const chain: Record<string, unknown> = {};
-  chain.select = (_cols?: string, opts?: { count?: string; head?: boolean }) => {
+  chain.select = (cols?: string, opts?: { count?: string; head?: boolean }) => {
     if (opts?.head) isHeadCount = true;
+    if (typeof cols === "string") selectCols[`${table}:${mode}`] = cols;
     return chain;
   };
   chain.insert = () => {
@@ -127,6 +131,7 @@ vi.mock("@/lib/og-fetcher", () => ({
 beforeEach(() => {
   mockUser = { id: "user-1" };
   for (const k of Object.keys(queues)) delete queues[k];
+  for (const k of Object.keys(selectCols)) delete selectCols[k];
   afterCallbacks.length = 0;
   ogResult = {
     ok: true,
@@ -287,6 +292,45 @@ describe("POST /api/slugs", () => {
     expect(body.og_fetch_error).toBeNull();
     // 백그라운드 콜백이 정확히 1번 등록되어야 함.
     expect(afterCallbacks).toHaveLength(1);
+  });
+
+  // 회귀: INSERT 후 SELECT 절에 click_count 누락 시 클라이언트가 받는
+  // optimistic row 의 click_count 가 undefined → 카드 렌더링이
+  // `link.click_count.toLocaleString()` 에서 throw → UI 가 "오류" 표시.
+  // (DB 자체는 default 0 이라 새로고침하면 정상 보임.)
+  it("INSERT 후 SELECT 절에 click_count 가 포함된다", async () => {
+    enqueue("namespaces:select", {
+      data: { id: "ns-1", owner_id: "user-1" },
+      error: null,
+    });
+    enqueue("slugs:select", { data: null, error: null });
+    enqueue("slugs:insert", {
+      data: {
+        id: "x",
+        slug: "x",
+        target_url: "https://example.com",
+        namespace_id: "ns-1",
+        click_count: 0,
+        og_title: null,
+        og_description: null,
+        og_image: null,
+        og_site_name: null,
+        og_fetched_at: null,
+        og_fetch_error: null,
+      },
+      error: null,
+    });
+    enqueue("slugs:count", { data: null, error: null, count: 1 } as MockQueryResult);
+    const { POST } = await import("@/app/api/slugs/route");
+    await POST(
+      makeRequest({
+        slug: "x",
+        target_url: "https://example.com",
+        namespace_id: "ns-1",
+      }),
+    );
+    expect(selectCols["slugs:insert"]).toBeDefined();
+    expect(selectCols["slugs:insert"]).toContain("click_count");
   });
 
   it("성공 → 백그라운드 after() 가 OG 를 fetch 해서 slugs.update 호출", async () => {
