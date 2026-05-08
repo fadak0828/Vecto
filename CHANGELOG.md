@@ -4,6 +4,17 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.2] - 2026-05-08 — 대시보드: 결제 미완료(pending) 사용자에게 "프리미엄 이용 중" 잘못 표시되던 버그 수정
+
+사용자가 결제 시작 후 PortOne 창에서 이탈해 \`pending\` 구독 row 만 남으면, 다음 대시보드 진입 시 "프리미엄 이용 중" 으로 잘못 표시되고 클릭 통계가 잠금 해제되던 버그.
+
+### Fixed
+- `PaymentStatus` 가 `pending` 케이스를 명시적으로 무료 플랜 카드로 처리. 이전엔 모든 분기 빠져나가서 fallthrough 인 active 표시로 떨어짐 (src/components/payment-status.tsx).
+- 대시보드 `ClickStats` 의 `isPaid` 판정을 새 헬퍼 `isPaidSubscription()` 로 교체. `canceled` 면서 기간 만료된 구독을 더 이상 paid 로 취급하지 않음 (src/app/dashboard/dashboard-client.tsx, src/lib/server/user-namespace.ts).
+
+### Tests
+- 회귀 테스트 15개 추가 — `isPaidSubscription` 6 상태 (tests/subscription-status.test.ts), `PaymentStatus` 6 상태 렌더링 (tests/payment-status.test.tsx). 422/422 passed.
+
 ## [0.15.1] - 2026-05-08 — 인증 nav + 카드 결제 버튼 숨김
 
 로그인된 사용자가 홈/`/pricing` 으로 돌아왔을 때 상단 nav 가 여전히 "로그인" 버튼을 보여주던 버그 수정. 그동안 대시보드에서만 가능했던 로그아웃을 nav 에서 바로 가능. 그리고 `/pricing` 의 신용/체크카드 결제 버튼을 일시 비노출 (카카오페이 결제만 남김).
