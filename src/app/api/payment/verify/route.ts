@@ -61,6 +61,50 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // 1개월 무료 체험 (trial) flow 단락 처리:
+  //   "1개월 무료로 시작하기" 는 PortOne 에서 빌링키만 발급하고 실제 charge 는
+  //   30일 후로 schedule 한다. 그러면 payment.status 는 영원히 'pending' 으로
+  //   남고 PortOne 측에서도 PAID 상태가 안 뜬다 (실제 결제가 없으니).
+  //
+  //   하지만 BillingKey.Issued webhook 이 start_trial RPC 로 subscription 을
+  //   'trialing' 으로 전환해두므로, payment.subscription_id 의 상태가 trialing
+  //   이면 무료 체험이 성공적으로 시작된 것 → 클라이언트 입장에서는 "성공".
+  //
+  //   webhook 이 늦게 도착하면 잠시 pending 으로 응답되겠지만, /payment/complete
+  //   페이지가 5초 간격 6회 폴링하므로 webhook 도착 후 자연스럽게 trialing 감지.
+  // 1개월 무료 체험 (trial) flow 단락 처리:
+  //   "1개월 무료로 시작하기" 는 PortOne 에서 빌링키만 발급하고 실제 charge 는
+  //   30일 후로 schedule 한다. 그러면 payment.status 는 영원히 'pending' 으로
+  //   남고 PortOne 측에서도 PAID 상태가 안 뜬다 (실제 결제가 없으니).
+  //
+  //   하지만 BillingKey.Issued webhook 이 start_trial RPC 로 subscription 을
+  //   'trialing' 으로 전환해두므로, payment.subscription_id 의 상태가 trialing
+  //   이면 무료 체험이 성공적으로 시작된 것 → 클라이언트 입장에서는 "성공".
+  //
+  //   webhook 이 늦게 도착하면 잠시 pending 으로 응답되겠지만, /payment/complete
+  //   페이지가 5초 간격 6회 폴링하므로 webhook 도착 후 자연스럽게 trialing 감지.
+  if (payment.subscription_id) {
+    const { data: sub } = await serviceSupabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("id", payment.subscription_id)
+      .maybeSingle();
+    if (sub?.status === "trialing") {
+      return NextResponse.json({
+        message: "무료 체험이 시작되었습니다.",
+        status: "paid",
+        paid_until: sub.current_period_end,
+      });
+    }
+    if (sub?.status === "active") {
+      return NextResponse.json({
+        message: "구독이 활성화되었습니다.",
+        status: "paid",
+        paid_until: sub.current_period_end,
+      });
+    }
+  }
+
   let portonePayment;
   try {
     portonePayment = await getPortOnePayment(paymentId);
