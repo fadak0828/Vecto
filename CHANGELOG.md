@@ -4,15 +4,16 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
-## [0.15.1] - 2026-05-08 — 인증 상태에 맞는 nav 표시
+## [0.15.1] - 2026-05-08 — 인증 nav + 카드 결제 버튼 숨김
 
-로그인된 사용자가 홈/`/pricing` 으로 돌아왔을 때 상단 nav 가 여전히 "로그인" 버튼을 보여주던 버그 수정. 그리고 그동안 대시보드에서만 가능했던 로그아웃을 nav 에서 바로 가능.
+로그인된 사용자가 홈/`/pricing` 으로 돌아왔을 때 상단 nav 가 여전히 "로그인" 버튼을 보여주던 버그 수정. 그동안 대시보드에서만 가능했던 로그아웃을 nav 에서 바로 가능. 그리고 `/pricing` 의 신용/체크카드 결제 버튼을 일시 비노출 (카카오페이 결제만 남김).
 
 ### Added
 - 공통 상단 nav 컴포넌트 `SiteNav` (Server Component, `auth.getUser()` 로 세션 읽음). 로그인 됨 → "프리미엄 / 대시보드 / 로그아웃" 노출, 비로그인 → "프리미엄 / 로그인". `LogoutButton` 클라이언트 island 가 `supabase.auth.signOut()` 처리.
 
 ### Changed
 - 홈 (`src/app/page.tsx`) 과 `/pricing` (`src/app/pricing/page.tsx`) 의 자체 nav 를 `<SiteNav />` 로 교체. 그 결과 두 페이지가 prerendered 에서 server-rendered (per-request) 로 전환 — 인증 상태가 사용자별로 달라야 하므로 의도된 트레이드오프.
+- `/pricing` 의 신용/체크카드 결제 버튼 비노출 (src/app/pricing/_components/CheckoutCard.tsx). 카드 결제 처리 로직 (`handleSubscribe("card")`, `PayMethod` 타입, PortOne 카드 채널 키) 은 코드에 유지 — 다시 노출하려면 14줄 블록만 되돌리면 됨.
 
 ### Fixed
 - 로그인된 사용자가 홈 으로 갔을 때 nav 에 "로그인" 버튼이 떠있는 버그 (`/auth/login` 자체는 redirect 가드가 있어서 클릭해도 깨지진 않았지만, UX 혼란).
