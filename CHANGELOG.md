@@ -4,6 +4,16 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.3] - 2026-05-08 — 무료 체험 시작 후 "결제 확인 지연" 화면에서 멈추는 버그 수정
+
+"1개월 무료로 시작하기" 결제 후 `/payment/complete` 페이지가 30초 폴링 끝에 "결제 확인이 지연되고 있습니다" 화면에서 멈추던 버그.
+
+### Fixed
+- 무료 체험은 PortOne 에서 빌링키만 발급하고 실제 charge 는 30일 후로 예약되므로, `payment.status` 가 영원히 `pending` 으로 남아 verify API 가 timeout 됐음. `/api/payment/verify` 가 이제 `subscription.status='trialing'` (또는 `'active'`) 면 즉시 success 응답 — webhook 이 이미 무료 체험을 시작해뒀으므로 클라 입장에서는 "성공" (src/app/api/payment/verify/route.ts).
+
+### Tests
+- `tests/payment-verify-trial.test.ts` 회귀 테스트 3 개 — trialing/active 단락 처리 확인 + pending 시 PortOne 폴 진입 검증. 425/425 passed.
+
 ## [0.15.2] - 2026-05-08 — 대시보드: 결제 미완료(pending) 사용자에게 "프리미엄 이용 중" 잘못 표시되던 버그 수정
 
 사용자가 결제 시작 후 PortOne 창에서 이탈해 \`pending\` 구독 row 만 남으면, 다음 대시보드 진입 시 "프리미엄 이용 중" 으로 잘못 표시되고 클릭 통계가 잠금 해제되던 버그.
