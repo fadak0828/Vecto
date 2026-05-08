@@ -12,6 +12,12 @@ type Props = {
   kakaopayEnabled: boolean;
 };
 
+// 무료 체험 toggle. 미설정/"true" → trial flow, "false" → 즉시 결제.
+// 동일한 NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED 가 서버측 webhook 에서도 읽힘.
+const TRIAL_ENABLED =
+  (process.env.NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED ?? "").trim().toLowerCase() !==
+  "false";
+
 /**
  * 결제 플로우 전용 client island.
  *
@@ -119,7 +125,9 @@ export function CheckoutCard({ kakaopayEnabled }: Props) {
           ? "카카오페이로 이동 중…"
           : "안전하게 카드 등록 중…"
         : loading === "scheduling"
-          ? "무료 체험 시작 중…"
+          ? TRIAL_ENABLED
+            ? "무료 체험 시작 중…"
+            : "결제 진행 중…"
           : "";
 
   return (
@@ -139,14 +147,18 @@ export function CheckoutCard({ kakaopayEnabled }: Props) {
           >
             {busy && activeMethod === "kakaopay"
               ? stageLabel
-              : "1개월 무료로 시작하기"}
+              : TRIAL_ENABLED
+                ? "1개월 무료로 시작하기"
+                : `월 ₩${MONTHLY_PRICE.toLocaleString("ko-KR")} 구독 시작`}
           </button>
 
           <p
             className="text-center text-xs mt-2.5 break-keep"
             style={{ color: "var(--on-surface-variant)" }}
           >
-            카카오톡 인증 한 번이면 끝 · 무료 체험 중 해지 시 과금 없음
+            {TRIAL_ENABLED
+              ? "카카오톡 인증 한 번이면 끝 · 무료 체험 중 해지 시 과금 없음"
+              : "카카오톡 인증 한 번이면 끝 · 언제든 해지 가능"}
           </p>
         </>
       )}

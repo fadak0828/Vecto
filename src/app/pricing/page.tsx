@@ -34,9 +34,16 @@ export default function PricingPage() {
   const eventEndAt = process.env.NEXT_PUBLIC_EVENT_END_AT;
   const eventActive = !!eventEndAt && new Date(eventEndAt) > new Date();
 
+  // 무료 체험 toggle — server webhook 과 동일한 NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED.
+  // "false" 일 때 hero/배너 카피를 "월 ₩X 구독" 으로 전환.
+  const trialEnabled =
+    (process.env.NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED ?? "")
+      .trim()
+      .toLowerCase() !== "false";
+
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
-      {eventActive && (
+      {eventActive && trialEnabled && (
         <div
           role="banner"
           aria-label="런칭 이벤트 안내"
@@ -65,15 +72,27 @@ export default function PricingPage() {
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-3 break-keep"
             style={{ fontFamily: "var(--font-manrope), sans-serif" }}
           >
-            첫 1개월 무료
+            {trialEnabled ? (
+              "첫 1개월 무료"
+            ) : (
+              <>
+                월 <span className="price-display">₩{monthly}</span>
+              </>
+            )}
           </h1>
           <p
             className="text-sm sm:text-base break-keep"
             style={{ color: "var(--on-surface-variant)", lineHeight: 1.7 }}
           >
-            이후 월{" "}
-            <span className="price-display font-bold">₩{monthly}</span> 자동
-            결제 · 언제든 1클릭 해지
+            {trialEnabled ? (
+              <>
+                이후 월{" "}
+                <span className="price-display font-bold">₩{monthly}</span> 자동
+                결제 · 언제든 1클릭 해지
+              </>
+            ) : (
+              <>매월 자동 결제 · 언제든 1클릭 해지</>
+            )}
           </p>
         </section>
 
