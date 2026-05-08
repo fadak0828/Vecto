@@ -8,19 +8,16 @@
 import { describe, it, expect } from "vitest";
 import {
   isPaidSubscription,
-  type ServerSubscription,
-} from "@/lib/server/user-namespace";
+  type SubscriptionLike,
+} from "@/lib/subscription-status";
 
 function sub(
-  partial: Partial<ServerSubscription> & {
-    status: ServerSubscription["status"];
+  partial: Partial<SubscriptionLike> & {
+    status: SubscriptionLike["status"];
   },
-): ServerSubscription {
+): SubscriptionLike {
   return {
-    id: "sub_x",
     current_period_end: null,
-    past_due_since: null,
-    failed_charge_count: 0,
     ...partial,
   };
 }

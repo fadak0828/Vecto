@@ -15,12 +15,12 @@ import {
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 import { track } from "@/lib/analytics";
 import { SublinkDetailModal } from "@/components/sublink-detail-modal";
-import {
-  isPaidSubscription,
-  type ServerNamespace,
-  type ServerSubLink,
-  type ServerSubscription,
+import type {
+  ServerNamespace,
+  ServerSubLink,
+  ServerSubscription,
 } from "@/lib/server/user-namespace";
+import { isPaidSubscription } from "@/lib/subscription-status";
 
 type Props = {
   initialUser: { id: string; email: string };
