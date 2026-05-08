@@ -4,6 +4,7 @@ import {
   ProfileCardPreview,
   RotatingSlug,
 } from "@/components/premium-previews";
+import { SiteNav } from "@/components/site-nav";
 import { HeroInteractive } from "./_components/HeroInteractive";
 
 /**
@@ -24,33 +25,7 @@ export default function Home() {
   return (
     <div className="flex-1" style={{ background: "var(--surface)" }}>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
-        <span
-          className="text-xl font-bold tracking-tight"
-          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
-        >
-          좌표.to
-        </span>
-        <div className="flex items-center gap-3 sm:gap-6">
-          <a
-            href="/pricing"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex sm:items-center sm:px-2 sm:py-3"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            프리미엄
-          </a>
-          <a
-            href="/auth/login"
-            className="text-sm px-4 py-2 rounded-full transition-opacity hover:opacity-90"
-            style={{
-              background: "var(--on-background)",
-              color: "var(--surface-lowest)",
-            }}
-          >
-            로그인
-          </a>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Hero — client island */}
       <HeroInteractive />

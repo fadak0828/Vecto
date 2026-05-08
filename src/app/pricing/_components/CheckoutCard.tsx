@@ -151,20 +151,6 @@ export function CheckoutCard({ kakaopayEnabled }: Props) {
         </>
       )}
 
-      <div className="mt-4 text-center">
-        <button
-          type="button"
-          onClick={() => handleSubscribe("card")}
-          disabled={busy}
-          className="text-sm underline-offset-2 hover:underline disabled:opacity-50"
-          style={{ color: "var(--on-surface-variant)" }}
-        >
-          {busy && activeMethod === "card"
-            ? stageLabel
-            : "신용/체크카드로 결제하기"}
-        </button>
-      </div>
-
       {error && (
         <p
           className="text-sm mt-3 text-center break-keep"
