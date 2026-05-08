@@ -4,6 +4,21 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.15.1] - 2026-05-08 — 인증 상태에 맞는 nav 표시
+
+로그인된 사용자가 홈/`/pricing` 으로 돌아왔을 때 상단 nav 가 여전히 "로그인" 버튼을 보여주던 버그 수정. 그리고 그동안 대시보드에서만 가능했던 로그아웃을 nav 에서 바로 가능.
+
+### Added
+- 공통 상단 nav 컴포넌트 `SiteNav` (Server Component, `auth.getUser()` 로 세션 읽음). 로그인 됨 → "프리미엄 / 대시보드 / 로그아웃" 노출, 비로그인 → "프리미엄 / 로그인". `LogoutButton` 클라이언트 island 가 `supabase.auth.signOut()` 처리.
+
+### Changed
+- 홈 (`src/app/page.tsx`) 과 `/pricing` (`src/app/pricing/page.tsx`) 의 자체 nav 를 `<SiteNav />` 로 교체. 그 결과 두 페이지가 prerendered 에서 server-rendered (per-request) 로 전환 — 인증 상태가 사용자별로 달라야 하므로 의도된 트레이드오프.
+
+### Fixed
+- 로그인된 사용자가 홈 으로 갔을 때 nav 에 "로그인" 버튼이 떠있는 버그 (`/auth/login` 자체는 redirect 가드가 있어서 클릭해도 깨지진 않았지만, UX 혼란).
+- `/pricing` 에서 "대시보드" 와 "로그인" 버튼이 동시에 노출되는 버그.
+- 홈/pricing 에서 로그아웃 진입점 부재 — 이제 nav 에서 직접 가능.
+
 ## [0.15.0] - 2026-05-07 — 결제·프리미엄 UI 복구 + 슬러그 등록 버그 수정
 
 PG 계약 이슈로 일괄 숨겨뒀던 결제/프리미엄 UI 전체 복구. 그리고 그 동안 잠복해 있던 대시보드 슬러그 등록 버그 발견·수정 (등록은 되지만 UI는 "오류" 표시되던 문제).

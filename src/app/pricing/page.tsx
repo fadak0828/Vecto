@@ -1,6 +1,7 @@
 import { MONTHLY_PRICE } from "@/lib/pricing";
 import { businessInfo } from "@/lib/business-info";
 import { buildMetadata } from "@/lib/seo";
+import { SiteNav } from "@/components/site-nav";
 import { CheckoutCard } from "./_components/CheckoutCard";
 
 export const metadata = buildMetadata({
@@ -49,34 +50,7 @@ export default function PricingPage() {
           LAUNCH WEEK · 런칭 위크 한정, 첫 1개월 무료
         </div>
       )}
-      <nav className="flex items-center justify-between px-6 sm:px-8 py-5 max-w-5xl mx-auto">
-        <a
-          href="/"
-          className="text-xl font-bold tracking-tight"
-          style={{ fontFamily: "var(--font-manrope), sans-serif" }}
-        >
-          좌표.to
-        </a>
-        <div className="flex items-center gap-3 sm:gap-6">
-          <a
-            href="/dashboard"
-            className="text-sm hover:opacity-70 transition-opacity hidden sm:inline-flex"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            대시보드
-          </a>
-          <a
-            href="/auth/login"
-            className="text-sm px-4 py-2 rounded-full transition-opacity hover:opacity-90"
-            style={{
-              background: "var(--on-background)",
-              color: "var(--surface-lowest)",
-            }}
-          >
-            로그인
-          </a>
-        </div>
-      </nav>
+      <SiteNav />
 
       <main className="px-6 sm:px-8 pt-6 sm:pt-12 pb-20 max-w-md mx-auto">
         {/* Hero */}
