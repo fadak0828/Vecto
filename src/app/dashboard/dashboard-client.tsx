@@ -20,6 +20,7 @@ import type {
   ServerSubLink,
   ServerSubscription,
 } from "@/lib/server/user-namespace";
+import { isPaidSubscription } from "@/lib/subscription-status";
 
 type Props = {
   initialUser: { id: string; email: string };
@@ -444,10 +445,7 @@ export function DashboardClient({
 
             <ClickStats
               namespaceId={namespace.id}
-              isPaid={
-                subscription?.status === "active" ||
-                subscription?.status === "canceled"
-              }
+              isPaid={isPaidSubscription(subscription)}
             />
 
 

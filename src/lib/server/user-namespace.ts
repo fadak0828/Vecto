@@ -49,6 +49,7 @@ export type ServerSubscription = {
   failed_charge_count: number;
 };
 
+
 export type UserNamespaceData = {
   user: { id: string; email: string } | null;
   namespace: ServerNamespace | null;

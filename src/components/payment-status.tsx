@@ -11,12 +11,16 @@ import {
  * 결제 상태 표시 컴포넌트 (6-state — trial launch 추가).
  *
  * user-visible states:
- *   1. 무료               — subscription IS NULL
+ *   1. 무료               — subscription IS NULL  (또는 'pending' 등 미완료 상태)
  *   2a. 무료 체험 중      — status='trialing', D-N 카운트 (신규)
  *   2.  이용 중 (auto)    — status='active'
  *   3.  이용 중 (해지됨)  — status='canceled' AND current_period_end > now
  *   4.  결제 확인 필요    — status='past_due'
  *   5.  만료              — status='canceled' AND period_end <= now, OR status='failed'
+ *
+ *   'pending' (사용자가 결제 시작했다가 PortOne 창 닫음 등 미완료) 은
+ *   결제가 확정되지 않은 상태이므로 무료 플랜 카드(state 1)와 동일하게 처리.
+ *   다음 시도 시 /api/payment/prepare 가 기존 pending 을 정리한다.
  */
 
 type Subscription = {
@@ -44,8 +48,10 @@ export function PaymentStatus({
   displayName?: string;
   onCancel?: () => void;
 }) {
-  // State 1: 무료 (no subscription)
-  if (!subscription) {
+  // State 1: 무료 (no subscription, 또는 'pending' — 결제 미완료)
+  // pending 은 사용자가 결제 시작 후 확정 전 상태. 표시 측면에서는 무료와
+  // 동일하게 다뤄 잘못된 "프리미엄 이용 중" 노출을 막는다.
+  if (!subscription || subscription.status === "pending") {
     const monthly = MONTHLY_PRICE.toLocaleString();
     return (
       <div
