@@ -4,6 +4,23 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.16.0] - 2026-05-08 — 무료 체험 toggle (PG 심사용 즉시 결제 모드)
+
+PG (카카오페이/카드사) 심사 동안 1개월 무료 체험을 일시적으로 끄고 즉시 결제 흐름을 노출할 수 있도록 toggle 도입. 심사 통과 후 env 만 풀면 무료 체험 자동 복원.
+
+### Added
+- `NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED` env flag. 미설정 또는 `"true"` → 기존 동작 (1개월 무료 체험 후 자동 결제), `"false"` → 빌링키 발급 직후 즉시 ₩2,900 charge. 서버 (webhook) + 클라 (UI 라벨) 양쪽이 동일 flag 를 읽어 거짓말 안 됨.
+
+### Changed
+- BillingKey.Issued webhook 분기 추가 (src/app/api/payment/webhook/route.ts) — trial OFF 시 `chargeBillingKey()` 즉시 호출. 결제 처리 자체는 기존 Transaction.Paid 핸들러가 그대로 처리하므로 별도 RPC 변경 없음.
+- `/pricing` 의 hero ("첫 1개월 무료" → "월 ₩2,900"), CheckoutCard 의 버튼 ("1개월 무료로 시작하기" → "월 ₩2,900 구독 시작") + 부가 카피, 런칭 위크 배너가 trial 상태에 맞게 토글 (src/app/pricing/page.tsx, src/app/pricing/_components/CheckoutCard.tsx).
+
+### Tests
+- `tests/payment-trial-toggle.test.ts` — env 헬퍼 6 케이스 (미설정/true/false/대소문자/공백/알 수 없는 값). 431/431 passed.
+
+### Operational
+- 카카오페이/카드사 심사 시 Vercel `NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED=false` 설정 → 재배포. 심사 통과 후 env 삭제하거나 `"true"` 로 변경.
+
 ## [0.15.3] - 2026-05-08 — 무료 체험 시작 후 "결제 확인 지연" 화면에서 멈추는 버그 수정
 
 "1개월 무료로 시작하기" 결제 후 `/payment/complete` 페이지가 30초 폴링 끝에 "결제 확인이 지연되고 있습니다" 화면에서 멈추던 버그.

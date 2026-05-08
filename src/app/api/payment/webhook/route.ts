@@ -4,9 +4,28 @@ import {
   getServiceSupabase,
   getPortOnePayment,
   schedulePayment,
+  chargeBillingKey,
   getBillingKey,
 } from "@/lib/portone";
 import { validatePaymentAmount, MONTHLY_PRICE } from "@/lib/pricing";
+
+/**
+ * 무료 체험 (trial) toggle.
+ *
+ * NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED 미설정 또는 "true" → 기존 동작
+ * (1개월 무료 체험 후 자동 결제). "false" → BillingKey.Issued 직후
+ * 즉시 ₩2,900 charge. PG 심사 등 "실제 결제 흐름 확인이 필요한 시나리오"
+ * 에서 사용.
+ *
+ * NEXT_PUBLIC_ prefix 사용 — 클라이언트 UI 라벨 ("1개월 무료로 시작하기"
+ * vs "월 ₩2,900 구독하기") 도 같은 flag 로 토글되어야 거짓말이 안 됨.
+ * 동일한 import 가 src/lib/feature-flags 같은 공유 모듈로 가도 좋지만,
+ * 현재 webhook 1군데 + UI 2군데라 인라인 helper 로 충분.
+ */
+function isTrialEnabled(): boolean {
+  const v = (process.env.NEXT_PUBLIC_PAYMENTS_TRIAL_ENABLED ?? "").trim().toLowerCase();
+  return v === "" || v === "true";
+}
 
 /**
  * POST /api/payment/webhook
@@ -166,17 +185,65 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Already processed" });
     }
 
-    // 1개월 무료 체험 flow:
-    //   1. PortOne에 +30d 결제 예약 생성 (schedulePayment)
-    //   2. 성공 시 start_trial RPC → subscription status='trialing', period_end=trial_end
-    //   3. 실패 시 billing_key_id NULL 롤백, status='failed' (ENG A6 fix — 영구 trialing 방지)
-    // D+30에 PortOne scheduler가 charge → Transaction.Paid webhook → process_subscription_charge
     const { data: ns } = await supabase
       .from("namespaces")
       .select("name")
       .eq("id", payment.namespace_id)
       .maybeSingle();
 
+    // === 무료 체험 OFF 분기 (PG 심사용) ===
+    //   PAYMENTS_TRIAL_ENABLED="false" → BillingKey.Issued 직후 즉시 ₩2,900 charge.
+    //   PortOne 이 paymentId 로 결제 생성 → Transaction.Paid webhook 으로 진입 →
+    //   기존 first-charge 핸들러가 start_subscription RPC 로 active 전환.
+    //   chargeBillingKey 자체는 비동기 (PortOne 처리 시간 있음) 이라 webhook 응답
+    //   시점에는 결제가 아직 안 됐을 수 있다. 그래서 여기서 sub 상태는 그대로
+    //   pending 으로 두고, Transaction.Paid 가 도착하면 active 로 승격.
+    if (!isTrialEnabled()) {
+      const charged = await chargeBillingKey({
+        billingKey,
+        paymentId: correlationId,
+        orderName: `좌표.to/${ns?.name ?? "premium"} 프리미엄 (첫 결제)`,
+        amount: MONTHLY_PRICE,
+      });
+
+      if (!charged) {
+        // ENG A6 패턴 동일 — billing_key_id 롤백, sub 'failed' 로 전환.
+        await supabase
+          .from("subscriptions")
+          .update({
+            portone_billing_key_id: null,
+            status: "failed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", payment.subscription_id);
+        console.error(
+          JSON.stringify({
+            event: "subscription.first_charge.failed",
+            sub_id: payment.subscription_id,
+            billing_key: billingKey.substring(0, 8) + "...",
+          }),
+        );
+        return NextResponse.json(
+          { error: "First charge failed" },
+          { status: 500 },
+        );
+      }
+
+      console.log(
+        JSON.stringify({
+          event: "subscription.first_charge.requested",
+          sub_id: payment.subscription_id,
+          mode: "immediate",
+        }),
+      );
+      return NextResponse.json({ message: "OK", mode: "immediate" });
+    }
+
+    // === 무료 체험 ON (default) flow ===
+    //   1. PortOne에 +30d 결제 예약 생성 (schedulePayment)
+    //   2. 성공 시 start_trial RPC → subscription status='trialing', period_end=trial_end
+    //   3. 실패 시 billing_key_id NULL 롤백, status='failed' (ENG A6 fix — 영구 trialing 방지)
+    // D+30에 PortOne scheduler가 charge → Transaction.Paid webhook → process_subscription_charge
     const trialDays = 30;
     const payAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
