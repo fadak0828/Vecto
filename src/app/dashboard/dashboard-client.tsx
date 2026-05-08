@@ -15,10 +15,11 @@ import {
 import { validateSlug, validateUrl } from "@/lib/slug-validation";
 import { track } from "@/lib/analytics";
 import { SublinkDetailModal } from "@/components/sublink-detail-modal";
-import type {
-  ServerNamespace,
-  ServerSubLink,
-  ServerSubscription,
+import {
+  isPaidSubscription,
+  type ServerNamespace,
+  type ServerSubLink,
+  type ServerSubscription,
 } from "@/lib/server/user-namespace";
 
 type Props = {
@@ -444,10 +445,7 @@ export function DashboardClient({
 
             <ClickStats
               namespaceId={namespace.id}
-              isPaid={
-                subscription?.status === "active" ||
-                subscription?.status === "canceled"
-              }
+              isPaid={isPaidSubscription(subscription)}
             />
 
 
