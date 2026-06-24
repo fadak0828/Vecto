@@ -218,6 +218,32 @@ export async function createShortUrl(params: {
   }
 
   // ── 자동 슬러그 경로 (주소창 접두어 방식) ─────────────────────────────
+  // 멱등화: 주소창 접두어 방식은 GET 이라 브라우저 prefetch + 실제 내비게이션,
+  // 또는 새로고침으로 같은 요청이 여러 번 들어온다. 같은 IP 가 같은 원본 URL 로
+  // 만든 미만료 슬러그가 이미 있으면 새로 만들지 않고 그것을 재사용한다.
+  // (중복 슬러그 양산 방지 — 동시 요청 race 는 드물어 v1 에서 허용 가능한 잔여
+  //  위험으로 둔다.)
+  const nowIso = new Date().toISOString();
+  const { data: dup } = await supabase
+    .from("slugs")
+    .select("id, slug, expires_at")
+    .eq("created_by_ip", ip)
+    .eq("target_url", target_url)
+    .is("namespace_id", null)
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (dup) {
+    return {
+      ok: true,
+      id: dup.id,
+      slug: dup.slug,
+      delete_token: deleteToken,
+      expires_at: dup.expires_at,
+    };
+  }
+
   const [{ count: dailyCount }, { count: monthlyCount }] = await Promise.all([
     dailyQuery(),
     monthlyQuery(),

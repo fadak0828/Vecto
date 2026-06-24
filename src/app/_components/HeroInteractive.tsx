@@ -53,6 +53,36 @@ export function HeroInteractive() {
   const [teaserWordIndex, setTeaserWordIndex] = useState(0);
   const [teaserVisible, setTeaserVisible] = useState(true);
 
+  // 주소창 접두어 방식(만들기.좌표.to)으로 생성 후 ?created=<slug> 로 돌아오면
+  // 결과 카드(단축 주소 + QR)를 그대로 띄운다. window.location 을 직접 읽어
+  // useSearchParams 의 Suspense 요구를 피한다(클라 전용 effect).
+  useEffect(() => {
+    const created = new URLSearchParams(window.location.search).get("created");
+    if (!created) return;
+    const url = `https://좌표.to/go/${created}`;
+    setResult({ url });
+    track("result_page_viewed", { slug: created });
+    let cancelled = false;
+    (async () => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        const dataUrl = await QRCode.toDataURL(url, {
+          margin: 1,
+          width: 480,
+          color: { dark: "#1a1c1c", light: "#00000000" },
+        });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch {
+        if (!cancelled) setQrDataUrl(null);
+      }
+    })();
+    // 쿼리 제거 — 새로고침 시 재트리거 방지 + 깔끔한 주소.
+    window.history.replaceState(null, "", "/");
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const reduceMotion =
       typeof window !== "undefined" &&
