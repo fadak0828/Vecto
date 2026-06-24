@@ -4,6 +4,24 @@
 
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)을 따르며, 버전은 [SemVer](https://semver.org/lang/ko/)를 따릅니다.
 
+## [0.17.0] - 2026-06-24 — 주소창 접두어 방식 단축 URL (`만들기.좌표.to`)
+
+주소창에 `https://만들기.좌표.to/https://www.naver.com` 처럼 원본 URL 을 붙여 접속하면 즉시 단축 URL 을 생성하고 `https://좌표.to/go/<slug>` 로 302 리다이렉트하는 기능 추가. 회원가입·폼 입력 없이 주소창만으로 단축.
+
+### Added
+- `만들기.좌표.to` (punycode `xn--ok0b30kwpe.xn--h25b29s.to`) 호스트 전용 접두어 단축. 이 호스트에서만 동작해 기존 `/go/*`, `/[namespace]/*` 리다이렉트와 충돌하지 않음.
+- `src/lib/prefix-url.ts` — `isMakerHost()` (유니코드 + punycode 양형), `extractOriginalUrl()` (raw `request.url` 직접 절단, 쿼리스트링 보존, `decodeURIComponent` 미적용). Next 의 `//`→`/` 308 정규화에 대비해 선두 스킴(`https:/`)을 복원.
+- `src/lib/create-short-url.ts` — `/api/shorten` 의 생성 로직(검증·rate limit·DB 삽입)을 공용 함수로 추출. slug 생략 시 랜덤 슬러그 자동 생성 + 충돌 재시도. `/api/shorten` 과 신규 `/api/prefix` 가 동일 경로 공유.
+- `GET /api/prefix` — proxy rewrite 로만 도달하는 내부 라우트. http/https + 길이(최대 2048자) 검증 후 단축 생성. `javascript:`/`data:`/`file:`/`ftp:` 거부. 원본 URL 을 서버에서 fetch 하지 않음 (SSRF 방지). IP 기준 10개/일·30개/월 rate limit 적용.
+
+### Changed
+- `validateUrl()` 에 `MAX_URL_LENGTH`(2048) 길이 상한 추가 (옵션 인자로 조정 가능).
+- `proxy.ts` matcher 를 전체 경로로 확장(정적 자산 제외)하되, 비-접두어 호스트는 기존 대상 경로(/api/*, /dashboard, /settings)에만 로직을 적용하도록 carve-out 하여 다른 라우트 동작은 그대로 유지.
+
+### 제약
+- `#fragment` 는 브라우저가 서버로 전송하지 않으므로 이 방식으로는 보존 불가 (구조적 제약, 코드·README 에 명시).
+- Next 의 `//` 정규화로 원본 URL 경로 *내부* 의 `//` 는 복원되지 않음 (드문 케이스).
+
 ## [0.16.0] - 2026-05-08 — 무료 체험 toggle (PG 심사용 즉시 결제 모드)
 
 PG (카카오페이/카드사) 심사 동안 1개월 무료 체험을 일시적으로 끄고 즉시 결제 흐름을 노출할 수 있도록 toggle 도입. 심사 통과 후 env 만 풀면 무료 체험 자동 복원.
