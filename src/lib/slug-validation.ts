@@ -47,9 +47,20 @@ export function validateSlug(slug: string): {
   return { valid: true };
 }
 
-export function validateUrl(url: string): { valid: boolean; error?: string } {
+/** target_url 기본 최대 길이. DB 컬럼/주소창 접두어 방식 공통 상한. */
+export const MAX_URL_LENGTH = 2048;
+
+export function validateUrl(
+  url: string,
+  opts?: { maxLength?: number }
+): { valid: boolean; error?: string } {
   if (!url || url.length === 0) {
     return { valid: false, error: "URL을 입력해주세요." };
+  }
+
+  const maxLength = opts?.maxLength ?? MAX_URL_LENGTH;
+  if (url.length > maxLength) {
+    return { valid: false, error: `URL이 너무 깁니다. (최대 ${maxLength}자)` };
   }
 
   try {

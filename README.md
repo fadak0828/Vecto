@@ -51,6 +51,33 @@ bun run dev                      # http://localhost:3000
 - `/auth/login` — Google OAuth 로그인
 - `/terms`, `/privacy` — 법적 문서 (사업자 정보 포함)
 
+### 주소창 접두어 방식 단축 (`만들기.좌표.to`)
+
+`https://만들기.좌표.to/https://www.naver.com` 처럼 `/` 뒤에 원본 URL 을 붙여
+접속하면 즉시 단축 URL 을 생성하고 `https://좌표.to/go/<slug>` 로 302
+리다이렉트한다.
+
+- **호스트 한정** — `만들기.좌표.to` (punycode `xn--ok0b30kwpe.xn--h25b29s.to`)
+  에서만 동작. 그래야 기존 `/go/*`, `/[namespace]/*` 리다이렉트와 충돌하지 않음.
+- **흐름** — `proxy.ts` 가 raw `request.url` (디코딩 안 함) 에서 원본 URL 을 잘라
+  `x-prefix-original-url` 헤더에 담아 `/api/prefix` 로 rewrite → 검증 후
+  `createShortUrl()` (`/api/shorten` 과 동일 로직) 호출.
+- **raw 보존** — 프레임워크가 파싱한 pathname 대신 raw URL 문자열을 직접 잘라
+  쿼리스트링까지 보존. 원본 전체에 `decodeURIComponent()` 를 적용하지 않아
+  `%EB..`, `%2F`, `%3F` 인코딩이 그대로 유지됨 (Base64 불필요).
+- **허용 스킴** — `http://`, `https://` 만. `javascript:`/`data:`/`file:`/`ftp:`
+  등은 거부.
+- **제한** — IP 기준 10개/일·30개/월 rate limit, 원본 URL 최대 2048자.
+- **SSRF 안전** — 원본 URL 을 서버에서 자동 조회하지 않음. 저장·리다이렉트
+  용도로만 처리.
+- **`#fragment` 미지원** — 브라우저가 fragment 를 서버로 전송하지 않으므로 이
+  방식으로는 보존 불가 (구조적 제약).
+- **프록시 주의** — Vercel 은 raw request URI 를 그대로 전달한다. Nginx/Cloudflare
+  앞단에 둘 경우 경로의 인코딩·중복 슬래시를 정규화하지 않도록 설정해야 한다
+  (Nginx 는 `location` 정규화 회피, CF 는 "Normalize incoming URLs" 비활성화).
+  Next 자체가 `//`→`/` 308 정규화를 하므로 선두 스킴(`https:/`)은 코드가 복원하되,
+  원본 경로 *내부* 의 `//` 는 복원되지 않는 제약이 있다.
+
 ## Testing
 
 ```bash
