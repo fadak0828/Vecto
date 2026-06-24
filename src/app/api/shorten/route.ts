@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
-import { validateSlug, validateUrl } from "@/lib/slug-validation";
-import { randomUUID } from "crypto";
+import { createShortUrl } from "@/lib/create-short-url";
 
 /**
  * POST /api/shorten
@@ -9,147 +7,39 @@ import { randomUUID } from "crypto";
  * 무료 한글 URL 단축. 회원가입 불필요.
  *
  * Request:  { slug: string, target_url: string }
- * Response: 200 { id, slug, delete_token, expires_at }
+ * Response: 200 { id, slug, delete_token, expires_at, url }
  *           409 { error, suggested }
  *           422 { error }
  *           429 { error, retry_after }
+ *
+ * 검증·rate limit·DB 삽입은 createShortUrl() 공용 로직에 위임한다
+ * (주소창 접두어 방식 /api/prefix 와 동일 경로 공유).
  */
 export async function POST(request: NextRequest) {
-  // Rate limit check (IP 기반)
   const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown";
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
   const { slug, target_url } = await request.json().catch(() => ({
     slug: "",
     target_url: "",
   }));
 
-  let supabase;
-  try {
-    supabase = getSupabase();
-  } catch (e) {
-    return NextResponse.json(
-      { error: "서버 설정 오류: " + (e instanceof Error ? e.message : String(e)) },
-      { status: 500 }
-    );
-  }
+  const result = await createShortUrl({ slug, target_url, ip });
 
-  // 슬러그 유효성 검증
-  const slugCheck = validateSlug(slug);
-  if (!slugCheck.valid) {
-    return NextResponse.json({ error: slugCheck.error }, { status: 422 });
-  }
-
-  // URL 유효성 검증
-  const urlCheck = validateUrl(target_url);
-  if (!urlCheck.valid) {
-    return NextResponse.json({ error: urlCheck.error }, { status: 422 });
-  }
-
-  // IP 기반 일일/월간 제한 + 네임스페이스/슬러그 충돌을 1 round-trip으로 병렬 확인
-  // (기존: 4 sequential SELECT → 4 round-trips. 개선: Promise.all → 1 round-trip)
-  const today = new Date().toISOString().split("T")[0];
-  const monthStart = today.slice(0, 7) + "-01";
-
-  const [
-    { count: dailyCount },
-    { count: monthlyCount },
-    { data: nsConflict },
-    { data: existing },
-  ] = await Promise.all([
-    supabase
-      .from("slugs")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by_ip", ip)
-      .gte("created_at", today),
-    supabase
-      .from("slugs")
-      .select("*", { count: "exact", head: true })
-      .eq("created_by_ip", ip)
-      .gte("created_at", monthStart),
-    supabase.from("namespaces").select("id").eq("name", slug).maybeSingle(),
-    supabase
-      .from("slugs")
-      .select("id")
-      .eq("slug", slug)
-      .is("namespace_id", null)
-      .maybeSingle(),
-  ]);
-
-  if ((dailyCount ?? 0) >= 10) {
-    return NextResponse.json(
-      { error: "일일 생성 한도(10개)를 초과했습니다.", retry_after: "tomorrow" },
-      { status: 429 }
-    );
-  }
-
-  if ((monthlyCount ?? 0) >= 30) {
-    return NextResponse.json(
-      { error: "월간 생성 한도(30개)를 초과했습니다." },
-      { status: 429 }
-    );
-  }
-
-  if (nsConflict) {
-    return NextResponse.json(
-      {
-        error: "이 이름은 네임스페이스로 사용 중입니다.",
-        suggested: slug + "2",
-      },
-      { status: 409 }
-    );
-  }
-
-  if (existing) {
-    return NextResponse.json(
-      {
-        error: "이미 사용 중인 주소입니다.",
-        suggested: slug + "2",
-      },
-      { status: 409 }
-    );
-  }
-
-  // 삭제 토큰 생성 (UUID v4, 122비트 엔트로피)
-  const deleteToken = randomUUID();
-  const expiresAt = new Date(
-    Date.now() + 7 * 24 * 60 * 60 * 1000
-  ).toISOString();
-
-  // DB 삽입 (unique constraint로 race condition 방지)
-  const { data, error } = await supabase
-    .from("slugs")
-    .insert({
-      slug,
-      target_url,
-      delete_token: deleteToken,
-      expires_at: expiresAt,
-      created_by_ip: ip,
-    })
-    .select("id, slug, expires_at")
-    .single();
-
-  if (error) {
-    // unique constraint violation = 동시 요청으로 인한 충돌
-    if (error.code === "23505") {
-      return NextResponse.json(
-        { error: "이미 사용 중인 주소입니다.", suggested: slug + "2" },
-        { status: 409 }
-      );
-    }
-    console.error("Slug creation failed:", error);
-    return NextResponse.json(
-      { error: "URL 생성에 실패했습니다: " + error.message },
-      { status: 500 }
-    );
+  if (!result.ok) {
+    const body: { error: string; suggested?: string; retry_after?: string } = {
+      error: result.error,
+    };
+    if (result.suggested) body.suggested = result.suggested;
+    if (result.retry_after) body.retry_after = result.retry_after;
+    return NextResponse.json(body, { status: result.status });
   }
 
   return NextResponse.json({
-    id: data.id,
-    slug: data.slug,
-    delete_token: deleteToken,
-    expires_at: data.expires_at,
-    url: `https://좌표.to/go/${data.slug}`,
+    id: result.id,
+    slug: result.slug,
+    delete_token: result.delete_token,
+    expires_at: result.expires_at,
+    url: `https://좌표.to/go/${result.slug}`,
   });
 }

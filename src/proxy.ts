@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isMakerHost, extractOriginalUrl } from "@/lib/prefix-url";
 
 /**
  * Next.js 16 Proxy (구 middleware)
  *
+ * 0. 만들기.좌표.to 호스트 → 주소창 접두어 방식 단축 URL 생성으로 rewrite
  * 1. CSP 헤더 추가
  * 2. POST 요청 rate limiting (Supabase 기반)
  * 3. /dashboard, /settings 인증 체크
@@ -18,6 +20,34 @@ const DEFAULT_RATE_LIMIT = { max: 100, window: "hour" as const };
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── 0. 주소창 접두어 방식 (만들기.좌표.to 호스트 전용) ───────────────────
+  // 이 호스트에서만 실행해 기존 단축 URL 리다이렉트 경로와 충돌을 막는다.
+  // request.url(디코딩 안 된 raw 문자열)에서 원본 URL 을 추출해 헤더에 담아
+  // /api/prefix 로 rewrite 한다. pathname 은 쿼리를 잃으므로 쓰지 않는다.
+  if (isMakerHost(request.headers.get("host"))) {
+    const original = extractOriginalUrl(request.url);
+    const url = request.nextUrl.clone();
+    url.pathname = "/api/prefix";
+    url.search = "";
+    const headers = new Headers(request.headers);
+    if (original) {
+      headers.set("x-prefix-original-url", original);
+    } else {
+      headers.delete("x-prefix-original-url");
+    }
+    return NextResponse.rewrite(url, { request: { headers } });
+  }
+
+  // 접두어 호스트가 아니면, 기존 matcher 대상 경로(/api/*, /dashboard,
+  // /settings)에만 아래 로직을 적용한다. 그 외 경로는 손대지 않아 broaden 된
+  // matcher 가 다른 라우트의 동작(CSP, OG 이미지 등)을 바꾸지 않게 한다.
+  const isApi = pathname.startsWith("/api/");
+  const isProtected = pathname === "/dashboard" || pathname === "/settings";
+  if (!isApi && !isProtected) {
+    return NextResponse.next();
+  }
+
   const response = NextResponse.next();
 
   // CSP 헤더
@@ -124,6 +154,9 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// 만들기.좌표.to 의 임의 경로(`/https://...`)를 가로채려면 모든 경로에서
+// proxy 가 돌아야 한다. 정적 자산은 제외해 오버헤드를 줄이고, 위 함수에서
+// 호스트/경로로 carve-out 하므로 다른 라우트 동작은 그대로 유지된다.
 export const config = {
-  matcher: ["/api/:path*", "/dashboard", "/settings"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
