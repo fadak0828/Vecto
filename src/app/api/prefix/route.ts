@@ -53,8 +53,13 @@ export async function GET(request: NextRequest) {
     return htmlError(result.status === 429 ? 429 : 400, title, escapeHtml(result.error));
   }
 
-  // 생성된 단축 URL 로 302 리다이렉트.
-  return NextResponse.redirect(`https://좌표.to/go/${result.slug}`, 302);
+  // 결과 페이지로 302 리다이렉트. /go/<slug> 로 보내면 곧장 원본으로 튕겨
+  // 사용자가 만들어진 단축 URL·QR 을 못 본다. 대신 홈으로 보내 ?created=<slug>
+  // 로 결과 카드(단축 주소 + QR + 복사)를 띄운다. slug 는 ascii 라 쿼리에 안전.
+  return NextResponse.redirect(
+    `https://좌표.to/?created=${result.slug}`,
+    302
+  );
 }
 
 function htmlError(status: number, title: string, descHtml: string) {
